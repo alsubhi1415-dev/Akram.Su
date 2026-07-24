@@ -4121,14 +4121,17 @@ export default function FleetApp() {
         /* القائمة الجانبية الثابتة أقصى اليمين */
         .app-shell { margin-right: 218px; }
         .side-rail { position: fixed; top: 0; right: 0; bottom: 0; width: 218px; z-index: 250;
-          background: #14181F; display: flex; flex-direction: column; gap: 6px; padding: 14px 10px;
-          border-left: 1px solid rgba(255,255,255,0.06); overflow-y: auto; }
-        .side-rail .rail-title { color: #E8EAEF; font-size: 13.5px; font-weight: 800; padding: 4px 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 4px; }
+          background: linear-gradient(178deg, #1B2440 0%, #232A47 34%, #3A1A2A 78%, #4A1218 100%);
+          display: flex; flex-direction: column; gap: 6px; padding: 14px 10px;
+          border-left: 1px solid rgba(212,175,55,0.22); box-shadow: -6px 0 24px rgba(10,14,26,0.35); overflow-y: auto; }
+        .side-rail .rail-title { color: #F2E9D8; font-size: 13.5px; font-weight: 800; padding: 4px 8px 10px;
+          border-bottom: 1px solid rgba(212,175,55,0.35); margin-bottom: 4px; letter-spacing: 0.2px; }
         .side-rail button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: right;
-          background: transparent; color: #C9CCD4; border: none; border-radius: 11px; padding: 11px 12px;
-          font-size: 13.5px; font-weight: 800; cursor: pointer; font-family: inherit; }
-        .side-rail button:hover { background: rgba(255,255,255,0.07); color: #fff; }
-        .side-rail button.act { background: #9E1B22; color: #fff; box-shadow: 0 3px 12px rgba(158,27,34,0.45); }
+          background: transparent; color: #D6D9E4; border: none; border-radius: 12px; padding: 11px 12px;
+          font-size: 13.5px; font-weight: 800; cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s; }
+        .side-rail button:hover { background: rgba(255,255,255,0.09); color: #fff; transform: translateX(-2px); }
+        .side-rail button.act { background: linear-gradient(120deg, #B3121C, #7E1A2F); color: #fff;
+          box-shadow: 0 4px 16px rgba(158,27,34,0.5), inset 0 1px 0 rgba(255,255,255,0.18); }
         .side-rail .ric { font-size: 20px; line-height: 1; width: 26px; text-align: center; flex-shrink: 0; }
         @media (max-width: 760px) {
           .app-shell { margin-right: 62px; }
