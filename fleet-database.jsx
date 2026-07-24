@@ -1482,7 +1482,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ...(isOwner ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -1511,7 +1511,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={() => window.print()} style={{
+          <button onClick={() => { if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض — تسجيل الدخول يتيحها للمحرر والمشرف"); return; } window.print(); }} style={{
             background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 30px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
           }}>📄 حفظ التقرير PDF / طباعة</button>
@@ -3473,6 +3473,11 @@ export default function FleetApp() {
 
   // تنزيل index.html بأحدث البيانات الحية — للمشرف
   const downloadIndex = () => {
+    if (ro) {
+      setImportMsg("🔒 تحميل index غير متاح بوضع الاستعراض — صلاحية المشرف");
+      setTimeout(() => setImportMsg(""), 5000);
+      return;
+    }
     if (!db) return;
     try {
       const html = buildSiteHTML(db);
@@ -3710,7 +3715,7 @@ export default function FleetApp() {
             <span className="ric">{ic}</span><span className="rlb">{lbl}</span>
           </button>
         ))}
-        {isOwner && typeof window !== "undefined" && window.__STANDALONE__ && (
+        {(isOwner || ro) && typeof window !== "undefined" && window.__STANDALONE__ && (
           <button onClick={downloadIndex} style={{ marginTop: "auto", background: "rgba(31,111,184,0.25)", color: "#BBD9F2" }}>
             <span className="ric">⬇</span><span className="rlb">تحميل index</span>
           </button>
@@ -3729,7 +3734,7 @@ export default function FleetApp() {
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات</div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              {isOwner && <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
+              {(isOwner || ro) && <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
                 if (!vehGuard()) return;
                 persist({ ...db, vehicles: nv }, mode === "replace" ? "الاستبدال الكامل من الإكسل" : "الدمج من الإكسل");
                 setImportMsg(mode === "replace"
@@ -3737,7 +3742,7 @@ export default function FleetApp() {
                   : `تم الدمج: تحديث ${pv.matched} وإضافة ${pv.added} آلية و${faultsAdded} عطل جديد`);
                 setTimeout(() => setImportMsg(""), 6000);
               }} />}
-              {isOwner && <button onClick={() => { setView("list"); setAdding(true); setSelectedId(null); }} style={{
+              {(isOwner || ro) && <button onClick={() => { setView("list"); setAdding(true); setSelectedId(null); }} style={{
                 background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px",
                 fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                 boxShadow: "0 4px 14px rgba(158,27,34,0.45)",
@@ -3759,10 +3764,22 @@ export default function FleetApp() {
               {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
             </span>
             {ro ? (
+              <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
               <button onClick={loginEditor} style={{
                 background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
                 borderRadius: 10, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
               }}>🔐 دخول المحررين</button>
+              {typeof window !== "undefined" && window.__STANDALONE__ && (
+                <button onClick={downloadIndex} title="صلاحية المشرف — معروض للاطلاع" style={{
+                  background: "rgba(31,111,184,0.45)", color: "#fff", border: "none", borderRadius: 10,
+                  padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                }}>⬇ تحميل index</button>
+              )}
+              <button onClick={() => { setImportMsg("🔒 ربط GitHub صلاحية المشرف — الاستعراض متاح للجميع"); setTimeout(() => setImportMsg(""), 5000); }} title="صلاحية المشرف — معروض للاطلاع" style={{
+                background: "rgba(20,26,40,0.7)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 10,
+                padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+              }}>🔑 ربط GitHub</button>
+              </span>
             ) : (
               <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
                 <span style={{ color: "#B9E8C9", fontSize: 12.5, fontWeight: 800, background: "rgba(46,158,99,0.25)", borderRadius: 10, padding: "8px 14px" }}>{isOwner ? "👑 المشرف" : "✏️ محرر جاهزية"}</span>
@@ -3770,15 +3787,15 @@ export default function FleetApp() {
                   background: "transparent", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.25)",
                   borderRadius: 10, padding: "8px 10px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                 }}>خروج</button>
-                {typeof window !== "undefined" && window.__STANDALONE__ && isOwner && (
+                {typeof window !== "undefined" && window.__STANDALONE__ && (isOwner || ro) && (
                   <button onClick={downloadIndex} title="تنزيل ملف index بأحدث بياناتك — لرفعه على GitHub" style={{
                     background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 10,
                     padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                     boxShadow: "0 3px 10px rgba(31,111,184,0.45)",
                   }}>⬇ تحميل index</button>
                 )}
-                {isOwner && (
-                  <button onClick={() => { setGhVal(""); setGhErr(""); setGhOpen(true); }} title="ربط GitHub لتفعيل المزامنة — مرة واحدة" style={{
+                {(isOwner || ro) && (
+                  <button onClick={() => { if (ro) { setImportMsg("🔒 ربط GitHub صلاحية المشرف — الاستعراض متاح للجميع"); setTimeout(() => setImportMsg(""), 5000); return; } setGhVal(""); setGhErr(""); setGhOpen(true); }} title="ربط GitHub لتفعيل المزامنة — مرة واحدة" style={{
                     background: "#141A28", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 10,
                     padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                   }}>🔑 ربط GitHub</button>
