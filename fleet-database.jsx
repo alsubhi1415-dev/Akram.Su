@@ -4190,7 +4190,7 @@ export default function FleetApp() {
         )}
       </aside>
 
-      <header className="no-print" style={{ background: `linear-gradient(270deg, #14181F 55%, rgba(20,24,31,0.52) 80%, rgba(20,24,31,0.16) 100%), url(${HEADER_BG}) left center / auto 115% no-repeat, #14181F`, padding: "12px 22px 0", color: "#fff", position: "relative" }}>
+      <header className="no-print" style={{ background: `linear-gradient(268deg, #1B2440 46%, rgba(35,42,71,0.72) 66%, rgba(74,18,24,0.38) 88%, rgba(74,18,24,0.14) 100%), url(${HEADER_BG}) left center / auto 115% no-repeat, linear-gradient(120deg, #1B2440, #4A1218)`, padding: "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.35)", boxShadow: "0 6px 22px rgba(10,14,26,0.35)" }}>
         {/* زر خفي: تنزيل index.html بأحدث بياناتك الحية لرفعه على GitHub */}
         
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
