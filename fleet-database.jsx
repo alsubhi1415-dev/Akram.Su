@@ -1104,7 +1104,7 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, ops
           )}
         </div>
         <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E4E7F0", padding: 16 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 8 }}>نبض 30 يوماً — الحوادث المباشرة يومياً</div>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 8 }}>الحوادث المباشرة يومياً خلال آخر 30 يوماً</div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={S.trend} margin={{ left: -18 }}>
               <defs><linearGradient id="opsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3D5AA9" stopOpacity={0.6} /><stop offset="100%" stopColor="#3D5AA9" stopOpacity={0.05} /></linearGradient></defs>
