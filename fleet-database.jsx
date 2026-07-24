@@ -774,6 +774,92 @@ const ttStyle = {
 };
 const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 700, fill: "#3A4152" };
 
+
+// ====== إحصائية عمر التوقف: الآليات الأطول تعطلاً بالأيام من تواريخ أعطالها الهجرية ======
+function DowntimeCard({ vehicles }) {
+  const t = todayHijri();
+  const dayNum = (s) => {
+    const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if (!m) return null;
+    return (+m[1]) * 354.367 + ((+m[2]) - 1) * 29.53 + (+m[3]);
+  };
+  const todayNum = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+  const BR = ["عطلانة", "تحت التجهيز والتسليم"];
+  const data = useMemo(() => {
+    const rows = [];
+    vehicles.forEach((v) => {
+      if (!BR.includes((v.status || "").trim())) return;
+      const open = (v.faults || []).filter((f) => !f.repairDate).map((f) => ({ f, n: dayNum(f.date) })).filter((x) => x.n);
+      if (!open.length) return;
+      open.sort((a, b) => a.n - b.n);
+      const days = Math.max(1, Math.round(todayNum - open[0].n));
+      rows.push({ v, f: open[0].f, days });
+    });
+    rows.sort((a, b) => b.days - a.days);
+    const bands = [
+      { k: "أكثر من سنة", min: 355, c: "#7A1016", list: [] },
+      { k: "من 6 أشهر إلى سنة", min: 178, c: "#B3121C", list: [] },
+      { k: "من 3 إلى 6 أشهر", min: 89, c: "#D97706", list: [] },
+      { k: "من شهر إلى 3 أشهر", min: 30, c: "#E3A008", list: [] },
+      { k: "أقل من شهر", min: 0, c: "#5A6172", list: [] },
+    ];
+    rows.forEach((r) => { bands.find((b) => r.days >= b.min).list.push(r); });
+    return { rows, bands };
+  }, [vehicles]);
+  const fmt = (d) => d >= 355 ? `${(d / 354.367).toFixed(1)} سنة` : d >= 30 ? `${Math.round(d / 29.53)} أشهر` : `${d} يوماً`;
+  const top = data.rows.slice(0, 15);
+  const [openBand, setOpenBand] = useState(null);
+  return (
+    <ChartCard title="أطول الآليات توقفاً بسبب الأعطال" icon="⏳" grad="linear-gradient(90deg, #7A1016, #E3A008)">
+      {data.rows.length === 0 ? (
+        <div style={{ padding: 20, fontWeight: 700, color: "#5A6172" }}>لا توجد آليات متوقفة حالياً.</div>
+      ) : (
+        <div style={{ padding: "14px 18px 18px" }}>
+          {/* شرائح التصنيف الزمني — انقر أي شريحة لعرض آلياتها */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+            {data.bands.map((b) => (
+              <div key={b.k} onClick={() => setOpenBand(openBand === b.k ? null : b.k)} style={{
+                cursor: "pointer", background: openBand === b.k ? b.c : "#F4F5F7", color: openBand === b.k ? "#fff" : "#141A28",
+                border: `2px solid ${b.c}`, borderRadius: 12, padding: "7px 13px", fontSize: 12.5, fontWeight: 800,
+              }}>
+                {b.k}: <span style={{ color: openBand === b.k ? "#fff" : b.c }}>{b.list.length}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#8B93A3", fontWeight: 700, marginBottom: 10 }}>
+            الأقدم توقفاً: {data.rows[0].v.type} — {data.rows[0].v.plate} ({fmt(data.rows[0].days)}) · إجمالي المتوقفة {data.rows.length} آلية
+          </div>
+          {openBand && (
+            <div style={{ background: "#F9FAFB", border: "1px solid #E7E9EE", borderRadius: 14, padding: "10px 12px", marginBottom: 12, maxHeight: 300, overflowY: "auto" }}>
+              {(data.bands.find((b) => b.k === openBand)?.list || []).map((r, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "5px 2px", borderBottom: "1px solid #EEF0F4", fontSize: 12, fontWeight: 700 }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.v.type} — {r.v.plate} <span style={{ color: "#8B93A3" }}>· {r.v.unit || ""}</span></span>
+                  <b style={{ color: "#9E1B22", flexShrink: 0 }}>{r.days} يوماً ({fmt(r.days)})</b>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* أطول 15 آلية — أعمدة أفقية ملونة بحسب شريحتها */}
+          <ResponsiveContainer width="100%" height={Math.max(300, top.length * 26)}>
+            <BarChart data={top.map((r) => ({ name: `${r.v.plate}`, days: r.days, type: r.v.type, unit: r.v.unit, desc: r.f.desc || r.f.faultType || "", band: data.bands.find((b) => r.days >= b.min).c }))}
+              layout="vertical" margin={{ top: 4, right: 60, left: 10, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11, fontWeight: 700 }} />
+              <YAxis type="category" dataKey="name" width={86} tick={{ fontSize: 11, fontWeight: 800 }} />
+              <Tooltip formatter={(v) => [v + " يوماً", "مدة التوقف"]}
+                labelFormatter={(l, p) => p && p[0] ? `${p[0].payload.type} — ${l} · ${p[0].payload.unit || ""}${p[0].payload.desc ? " · " + p[0].payload.desc : ""}` : l} />
+              <Bar dataKey="days" radius={[0, 8, 8, 0]}>
+                <LabelList dataKey="days" position="left" style={{ fontSize: 11, fontWeight: 800, fill: "#141A28" }} formatter={(v) => v + " يوم"} />
+                {top.map((r, i) => <Cell key={i} fill={data.bands.find((b) => r.days >= b.min).c} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </ChartCard>
+  );
+}
+
 function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, equip, supportCounts, prio, prioWeights }) {
   const statusData = STATUSES.map((s) => ({ name: s, value: counts[s] || 0 })).filter((d) => d.value > 0);
 
@@ -891,6 +977,8 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
+
+        <DowntimeCard vehicles={vehicles} />
 
         {/* عداد الجاهزية */}
         <ChartCard title="نسبة الجاهزية التشغيلية" icon="⚡" grad="linear-gradient(120deg,#00875A,#00C48C)">
