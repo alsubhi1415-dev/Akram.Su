@@ -3516,9 +3516,15 @@ export default function FleetApp() {
   };
   const vehicles = db?.vehicles || [];
 
-  const updateVehicle = (nv) => persist({ ...db, vehicles: vehicles.map((x) => (x.id === nv.id ? nv : x)) }, "تعديل بيانات آلية " + (nv.plate || ""));
-  const deleteVehicle = (id) => { const dv = vehicles.find((x) => x.id === id); persist({ ...db, vehicles: vehicles.filter((x) => x.id !== id) }, "حذف آلية " + (dv?.plate || "")); setView("list"); setSelectedId(null); };
-  const addVehicle = (v) => { persist({ ...db, vehicles: [...vehicles, v] }, "إضافة آلية " + (v.plate || "")); setAdding(false); setView("list"); };
+  const vehGuard = () => {
+    if (isOwner) return true;
+    setImportMsg("🔒 بيانات الآليات وأعطالها استعراض فقط لهذه الصلاحية — التعديل عليها للمشرف وحده");
+    setTimeout(() => setImportMsg(""), 6000);
+    return false;
+  };
+  const updateVehicle = (nv) => { if (!vehGuard()) return; persist({ ...db, vehicles: vehicles.map((x) => (x.id === nv.id ? nv : x)) }, "تعديل بيانات آلية " + (nv.plate || "")); };
+  const deleteVehicle = (id) => { if (!vehGuard()) return; const dv = vehicles.find((x) => x.id === id); persist({ ...db, vehicles: vehicles.filter((x) => x.id !== id) }, "حذف آلية " + (dv?.plate || "")); setView("list"); setSelectedId(null); };
+  const addVehicle = (v) => { if (!vehGuard()) return; persist({ ...db, vehicles: [...vehicles, v] }, "إضافة آلية " + (v.plate || "")); setAdding(false); setView("list"); };
 
   const uploadLogo = async (dataUrl) => {
     setLogo(dataUrl);
@@ -3723,18 +3729,19 @@ export default function FleetApp() {
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات</div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
+              {isOwner && <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
+                if (!vehGuard()) return;
                 persist({ ...db, vehicles: nv }, mode === "replace" ? "الاستبدال الكامل من الإكسل" : "الدمج من الإكسل");
                 setImportMsg(mode === "replace"
                   ? `تم الاستبدال الكامل: ${nv.length} آلية من الملف`
                   : `تم الدمج: تحديث ${pv.matched} وإضافة ${pv.added} آلية و${faultsAdded} عطل جديد`);
                 setTimeout(() => setImportMsg(""), 6000);
-              }} />
-              <button onClick={() => { setView("list"); setAdding(true); setSelectedId(null); }} style={{
+              }} />}
+              {isOwner && <button onClick={() => { setView("list"); setAdding(true); setSelectedId(null); }} style={{
                 background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px",
                 fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                 boxShadow: "0 4px 14px rgba(158,27,34,0.45)",
-              }}>+ إضافة آلية</button>
+              }}>+ إضافة آلية</button>}
             </div>
           </div>
           {/* الصف الثاني: الجاهزية أساس التنقل والبقية بالقائمة الجانبية */}
