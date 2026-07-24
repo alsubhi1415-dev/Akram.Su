@@ -779,7 +779,200 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
-function OpsStatsPage({ incidents, onAdd, onDelete, ro }) {
+
+// ====== النموذج الشامل: نموذج إحصائية الحوادث اليومي الرسمي (272/3) — طباعة مطابقة ======
+function ShamelReport({ incidents, ro, logo, vehiclesCount, opsMeta, onSaveMeta, onClose }) {
+  const t = todayHijri();
+  const todayStr = `${t.y}/${String(t.m).padStart(2, "0")}/${String(t.d).padStart(2, "0")}`;
+  const [day, setDay] = useState(todayStr);
+  const WD = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const [weekday, setWeekday] = useState(WD[new Date().getDay()]);
+  const [officers, setOfficers] = useState(opsMeta.officers || "");
+  const [individuals, setIndividuals] = useState(opsMeta.individuals || "");
+  const [machines, setMachines] = useState(opsMeta.machines || String(vehiclesCount));
+  const [rain, setRain] = useState({});
+  const rset = (k, v) => setRain((r) => ({ ...r, [k]: v }));
+  const [valleys, setValleys] = useState("");
+  const [viol, setViol] = useState([]);
+  const addViol = () => setViol((v) => [...v, { name: "", idn: "", nat: "", vtype: "", loc: "", act: "", car: "", plate: "", time: "" }]);
+  const vset = (i, k, val) => setViol((v) => v.map((r, j) => j === i ? { ...r, [k]: val } : r));
+
+  const norm = (s) => String(s || "").replace(/[\/-]0?/g, "/").replace(/^0/, "");
+  const sameDay = (a, b) => norm(a) === norm(b);
+  const S = useMemo(() => {
+    const sel = incidents.filter((i) => sameDay(i.date, day));
+    const c = (ty) => sel.filter((i) => i.type === ty).length;
+    const traffic = sel.filter((i) => i.type === "حادث مروري");
+    const cd = sel.filter((i) => i.type !== "حادث مروري" && i.type !== "انقطاع تيار كهربائي");
+    const sum = (arr, k) => arr.reduce((s, i) => s + (+i[k] || 0), 0);
+    const top = [...sel].filter((i) => i.type !== "انقطاع تيار كهربائي").sort((a, b) => ((+b.dth || 0) * 2 + (+b.inj || 0)) - ((+a.dth || 0) * 2 + (+a.inj || 0))).slice(0, 3);
+    return { fire: c("حادث إطفاء"), resc: c("حادث إنقاذ"), amb: c("أعمال إسعاف"),
+      cdD: sum(cd, "dth"), cdI: sum(cd, "inj"), trD: sum(traffic, "dth"), trI: sum(traffic, "inj"),
+      out: c("انقطاع تيار كهربائي"), total: c("حادث إطفاء") + c("حادث إنقاذ") + c("أعمال إسعاف"),
+      totD: sum(cd, "dth") + sum(traffic, "dth"), totI: sum(cd, "inj") + sum(traffic, "inj"), top };
+  }, [incidents, day]);
+
+  const dash = (v) => (v === 0 || v === "" || v == null) ? "-" : v;
+  const bd = "1.3px solid #141A28";
+  const th = { border: bd, background: "#DCDFE7", padding: "5px 4px", fontSize: 10.5, fontWeight: 800, textAlign: "center" };
+  const td = { border: bd, padding: "5px 4px", fontSize: 12, fontWeight: 800, textAlign: "center" };
+  const rinp = (k, w) => <input className="shx" value={rain[k] || ""} onChange={(e) => rset(k, e.target.value)} placeholder="-" style={{ width: w || 40, border: "none", background: "transparent", textAlign: "center", fontFamily: "inherit", fontSize: 12, fontWeight: 800 }} />;
+  const vinp = (i, k, w) => <input className="shx" value={viol[i][k]} onChange={(e) => vset(i, k, e.target.value)} placeholder="-" style={{ width: "96%", border: "none", background: "transparent", textAlign: "center", fontFamily: "inherit", fontSize: 11, fontWeight: 700 }} />;
+  const saveMeta = () => onSaveMeta({ officers, individuals, machines });
+
+  return (
+    <div>
+      <style>{`@media print { @page { size: A4 portrait; margin: 9mm 10mm; } .shamel-wrap { zoom: 0.92; } input.shx::placeholder { color: #141A28; } }`}</style>
+      <div className="no-print" style={{ display: "flex", gap: 9, flexWrap: "wrap", alignItems: "center", background: "#F2F5FB", border: "1.5px solid #D6DDEB", borderRadius: 14, padding: 12, marginBottom: 14 }}>
+        <button onClick={onClose} style={{ background: "#5A6172", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>→ عودة للمؤشرات</button>
+        <b style={{ fontSize: 12.5 }}>يوم</b>
+        <select value={weekday} onChange={(e) => setWeekday(e.target.value)} style={{ padding: "8px 10px", borderRadius: 9, border: "1.5px solid #C9CFDD", fontFamily: "inherit", fontWeight: 800 }}>
+          {WD.map((w) => <option key={w}>{w}</option>)}
+        </select>
+        <HijriDateInput value={day} onChange={setDay} />
+        <button onClick={addViol} style={{ background: "#B45309", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>+ سطر مخالفة مجازفة</button>
+        <button onClick={() => { if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض"); return; } saveMeta(); window.print(); }} style={{ background: "#1E2952", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🖨 طباعة النموذج الشامل</button>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#5B6478" }}>الأقسام العلوية تُحتسب تلقائياً من سجل الحوادث لليوم المختار — والمطرية والمجازفون والإمكانيات حقول حرة تُطبع كما تكتبها</span>
+      </div>
+
+      <div className="shamel-wrap" style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #E4E7F0" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, border: "2px solid #141A28", borderRadius: 8, padding: "5px 14px", alignSelf: "center" }}>النموذج الشامل</div>
+          <div style={{ textAlign: "center" }}>
+            {logo && <img src={logo} alt="" style={{ height: 56 }} />}
+            <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — وزارة الداخلية</div>
+            <div style={{ fontSize: 11.5, fontWeight: 800 }}>المديرية العامة للدفاع المدني</div>
+            <div style={{ fontSize: 10.5, fontWeight: 700 }}>272/3</div>
+          </div>
+          <div style={{ width: 110 }} />
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 800, textDecoration: "underline", margin: "10px 0 2px" }}>إدارة الدفاع المدني بمحافظة جدة ليوم {weekday} {day} هـ</div>
+        <div style={{ fontSize: 12.5, fontWeight: 800, textDecoration: "underline", marginBottom: 8 }}>نموذج إحصائية الحوادث التي باشرتها فرق الدفاع المدني لمنطقة مكة المكرمة</div>
+
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={th} colSpan={3}>تصنيف العمليات</th>
+              <th style={th} colSpan={4}>الخسائر البشرية</th>
+              <th style={th} rowSpan={3}>حالات انقطاع التيار الكهربائي</th>
+            </tr>
+            <tr>
+              <th style={th} rowSpan={2}>عمليات الاطفاء</th>
+              <th style={th} rowSpan={2}>عمليات الانقاذ</th>
+              <th style={th} rowSpan={2}>عمليات الاسعاف</th>
+              <th style={th} colSpan={2}>حوادث دفاع مدني</th>
+              <th style={th} colSpan={2}>حوادث مرورية تمت مباشرتها</th>
+            </tr>
+            <tr>
+              <th style={th}>وفاة</th><th style={th}>اصابة</th>
+              <th style={th}>وفاة</th><th style={th}>اصابة</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={td}>{dash(S.fire)}</td><td style={td}>{dash(S.resc)}</td><td style={td}>{dash(S.amb)}</td>
+              <td style={td}>{dash(S.cdD)}</td><td style={td}>{dash(S.cdI)}</td>
+              <td style={td}>{dash(S.trD)}</td><td style={td}>{dash(S.trI)}</td>
+              <td style={td}>{dash(S.out)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+          <thead><tr>
+            <th style={th}>إجمالي الحوادث (اطفاء + انقاذ + اسعاف)</th>
+            <th style={th}>إجمالي الوفيات (دفاع مدني + مروري)</th>
+            <th style={th}>إجمالي الاصابات (دفاع مدني + مروري)</th>
+          </tr></thead>
+          <tbody><tr>
+            <td style={td}>{dash(S.total)}</td><td style={td}>{dash(S.totD)}</td><td style={td}>{dash(S.totI)}</td>
+          </tr></tbody>
+        </table>
+
+        <div style={{ fontSize: 12.5, fontWeight: 800, textDecoration: "underline", margin: "12px 0 6px" }}>احصائية الحالة المطرية وجريان الاودية لمنطقة مكة المكرمة</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <tbody>
+            <tr>
+              <td style={{ ...th, width: "22%" }}>عدد عمليات الإطفاء الكلية</td><td style={td}>{rinp("fireAll", 60)}</td>
+              <td style={{ ...th, width: "22%" }}>عدد عمليات الانقاذ الكلية</td><td style={td}>{rinp("rescAll", 60)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: -1 }}>
+          <thead>
+            <tr>
+              <th style={th} colSpan={3}>شدة الامطار</th>
+              <th style={th} colSpan={2}>أعمال الإنقاذ</th>
+              <th style={th} colSpan={3}>خسائر بشرية</th>
+              <th style={th} colSpan={2}>الاخلاء</th>
+              <th style={th} colSpan={2}>الايواء</th>
+              <th style={th} rowSpan={2}>عدد لجان الحصر</th>
+              <th style={th} rowSpan={2}>مخالفة المجازفة</th>
+            </tr>
+            <tr>
+              <th style={th}>خفيفة</th><th style={th}>متوسطة</th><th style={th}>غزيرة</th>
+              <th style={th}>محتجزين</th><th style={th}>مركبات</th>
+              <th style={th}>إصابة</th><th style={th}>وفاة</th><th style={th}>مفقود</th>
+              <th style={th}>شخص</th><th style={th}>أسرة</th>
+              <th style={th}>شخص</th><th style={th}>أسرة</th>
+            </tr>
+          </thead>
+          <tbody><tr>
+            {["rL","rM","rH","trapped","cars","kInj","kDth","kMis","evP","evF","shP","shF","commit","riskV"].map((k) => <td key={k} style={td}>{rinp(k)}</td>)}
+          </tr></tbody>
+        </table>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: -1 }}>
+          <tbody><tr>
+            <td style={{ ...th, width: "22%" }}>الاودية التي سالت</td>
+            <td style={{ ...td, textAlign: "right" }}><input className="shx" value={valleys} onChange={(e) => setValleys(e.target.value)} placeholder="--" style={{ width: "98%", border: "none", background: "transparent", fontFamily: "inherit", fontSize: 12, fontWeight: 800 }} /></td>
+          </tr></tbody>
+        </table>
+
+        <div style={{ fontSize: 12.5, fontWeight: 800, textDecoration: "underline", margin: "12px 0 6px" }}>بيان مخالفات المجازفين في عبور الاودية</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            {["م","اسم المخالف","هوية المخالف","الجنسية","نوع المخالفة","موقع المخالفة","الاجراء المتخذ","نوع السيارة","رقم اللوحة","الوقت"].map((h) => <th key={h} style={{ ...th, fontSize: 9.8 }}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {(viol.length ? viol : [null]).map((r, i) => (
+              <tr key={i}>
+                <td style={td}>{r ? i + 1 : "١"}</td>
+                {r ? ["name","idn","nat","vtype","loc","act","car","plate","time"].map((k) => <td key={k} style={td}>{vinp(i, k)}</td>)
+                   : Array.from({ length: 9 }).map((_, j) => <td key={j} style={td}>-</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div style={{ fontSize: 12.5, fontWeight: 800, textDecoration: "underline", margin: "12px 0 6px" }}>بيان بالإمكانيات البشرية والالية</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><th style={th}>عدد الضباط</th><th style={th}>عدد الافراد</th><th style={th}>عدد الاليات</th></tr></thead>
+          <tbody><tr>
+            <td style={td}><input className="shx" value={officers} onChange={(e) => setOfficers(e.target.value)} onBlur={saveMeta} placeholder="-" style={{ width: 90, border: "none", background: "transparent", textAlign: "center", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }} /></td>
+            <td style={td}><input className="shx" value={individuals} onChange={(e) => setIndividuals(e.target.value)} onBlur={saveMeta} placeholder="-" style={{ width: 90, border: "none", background: "transparent", textAlign: "center", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }} /></td>
+            <td style={td}><input className="shx" value={machines} onChange={(e) => setMachines(e.target.value)} onBlur={saveMeta} placeholder="-" style={{ width: 90, border: "none", background: "transparent", textAlign: "center", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }} /></td>
+          </tr></tbody>
+        </table>
+
+        {S.top.length > 0 && (
+          <div style={{ marginTop: 10, border: bd, borderRadius: 8, padding: "7px 12px" }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, textDecoration: "underline", marginBottom: 3 }}>أبرز حوادث اليوم:</div>
+            {S.top.map((i, k) => (
+              <div key={k} style={{ fontSize: 11, fontWeight: 700 }}>• {i.type} — {i.unit || ""}{i.hood ? " · " + i.hood : ""}{(+i.inj || +i.dth) ? ` (إصابات ${i.inj || 0} · وفيات ${i.dth || 0})` : ""}{i.note ? " — " + i.note : ""}</div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, fontSize: 12, fontWeight: 800 }}>
+          <div>معد الإحصائية: نقيب / أكرم بن أحمد الصبحي</div>
+          <div>التوقيع: ...........................</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, opsMeta, onSaveMeta }) {
+  const [shamel, setShamel] = useState(false);
   const t = todayHijri();
   const dayNum = (s) => {
     const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/);
@@ -839,11 +1032,17 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro }) {
   );
   const inpS = { padding: "9px 11px", borderRadius: 10, border: "1.5px solid #C9CFDD", fontSize: 13, fontWeight: 700, fontFamily: "inherit", background: "#fff" };
   const sorted = [...incidents].sort((a, b) => (dayNum(b.date)?.n || 0) - (dayNum(a.date)?.n || 0)).slice(0, 40);
+  if (shamel) return (
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+      <ShamelReport incidents={incidents} ro={ro} logo={logo} vehiclesCount={vehiclesCount} opsMeta={opsMeta} onSaveMeta={onSaveMeta} onClose={() => setShamel(false)} />
+    </div>
+  );
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <div style={{ background: "linear-gradient(120deg, #1E2952, #3D5AA9 70%, #00A3A3)", borderRadius: 22, padding: "22px 26px", color: "#fff", marginBottom: 18, boxShadow: "0 14px 40px rgba(30,41,82,0.35)" }}>
+      <div style={{ background: "linear-gradient(120deg, #1E2952, #3D5AA9 70%, #00A3A3)", borderRadius: 22, padding: "22px 26px", color: "#fff", marginBottom: 18, position: "relative", boxShadow: "0 14px 40px rgba(30,41,82,0.35)" }}>
         <div style={{ fontSize: 21, fontWeight: 800 }}>📟 إحصائيات ومؤشرات عملياتية</div>
         <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.85, marginTop: 4 }}>الحوادث المباشرة من الإدارة العامة للدفاع المدني بمحافظة جدة — تسجيل حي ومؤشرات لحظية · اليوم {t.d} / {HIJRI_MONTHS[t.m - 1]} / {t.y} هـ</div>
+        <button onClick={() => setShamel(true)} style={{ position: "absolute", top: 20, left: 22, background: "rgba(255,255,255,0.16)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 11, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🖨 النموذج الشامل</button>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
           {[["اليوم", S.per.day], ["آخر 7 أيام", S.per.week], ["الشهر الهجري", S.per.month], ["السنة الهجرية", S.per.year], ["الإجمالي المسجل", S.per.all]].map(([l, v]) => (
             <div key={l} style={{ background: "rgba(255,255,255,0.14)", borderRadius: 13, padding: "9px 16px", minWidth: 110 }}>
@@ -4206,7 +4405,8 @@ export default function FleetApp() {
         )}
 
         {view === "ops" && (
-          <OpsStatsPage incidents={db.incidents || []} ro={ro}
+          <OpsStatsPage incidents={db.incidents || []} ro={ro} logo={logo} vehiclesCount={vehicles.length}
+            opsMeta={db.opsMeta || {}} onSaveMeta={(m) => persist({ ...db, opsMeta: m }, "تحديث الإمكانيات البشرية والآلية")}
             onAdd={(inc) => persist({ ...db, incidents: [...(db.incidents || []), inc] }, "تسجيل حادث " + inc.type)}
             onDelete={(id) => persist({ ...db, incidents: (db.incidents || []).filter((x) => x.id !== id) }, "حذف حادث")} />
         )}
