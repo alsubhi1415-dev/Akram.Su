@@ -775,6 +775,183 @@ const ttStyle = {
 const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 700, fill: "#3A4152" };
 
 
+
+// ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
+const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
+const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
+function OpsStatsPage({ incidents, onAdd, onDelete, ro }) {
+  const t = todayHijri();
+  const dayNum = (s) => {
+    const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if (!m) return null;
+    return { n: (+m[1]) * 354.367 + ((+m[2]) - 1) * 29.53 + (+m[3]), y: +m[1], mo: +m[2] };
+  };
+  const todayStr = `${t.y}/${String(t.m).padStart(2, "0")}/${String(t.d).padStart(2, "0")}`;
+  const todayN = dayNum(todayStr);
+  const [period, setPeriod] = useState("month");
+  const PERIODS = [["day", "اليوم"], ["week", "الأسبوع"], ["month", "الشهر الهجري"], ["year", "السنة الهجرية"], ["all", "الكل"]];
+  const inPeriod = (inc, p) => {
+    const d = dayNum(inc.date);
+    if (!d) return false;
+    if (p === "day") return inc.date === todayStr || Math.abs(todayN.n - d.n) < 0.6;
+    if (p === "week") return todayN.n - d.n <= 6.6 && d.n <= todayN.n + 0.6;
+    if (p === "month") return d.y === t.y && d.mo === t.m;
+    if (p === "year") return d.y === t.y;
+    return true;
+  };
+  const [fDate, setFDate] = useState(todayStr);
+  const [fType, setFType] = useState(OPS_TYPES[0]);
+  const [fUnit, setFUnit] = useState("");
+  const [fHood, setFHood] = useState("");
+  const [fInj, setFInj] = useState("");
+  const [fDth, setFDth] = useState("");
+  const [fNote, setFNote] = useState("");
+  const submit = () => {
+    if (!fDate || !dayNum(fDate)) { alert("أدخل تاريخاً هجرياً صحيحاً"); return; }
+    onAdd({ id: "inc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7), date: fDate, type: fType, unit: fUnit.trim(), hood: fHood.trim(), inj: Math.max(0, parseInt(fInj) || 0), dth: Math.max(0, parseInt(fDth) || 0), note: fNote.trim() });
+    setFUnit(""); setFHood(""); setFInj(""); setFDth(""); setFNote("");
+  };
+  const S = useMemo(() => {
+    const per = { day: 0, week: 0, month: 0, year: 0, all: incidents.length };
+    incidents.forEach((i) => { ["day", "week", "month", "year"].forEach((p) => { if (inPeriod(i, p)) per[p]++; }); });
+    const sel = incidents.filter((i) => inPeriod(i, period));
+    const byType = OPS_TYPES.map((ty) => ({ type: ty, count: sel.filter((i) => i.type === ty).length })).filter((x) => x.count > 0);
+    const traffic = sel.filter((i) => i.type === "حادث مروري");
+    const cd = sel.filter((i) => i.type !== "حادث مروري" && i.type !== "انقطاع تيار كهربائي");
+    const sum = (arr, k) => arr.reduce((s, i) => s + (+i[k] || 0), 0);
+    const outages = sel.filter((i) => i.type === "انقطاع تيار كهربائي");
+    const centers = {};
+    sel.forEach((i) => { if (i.unit) centers[i.unit] = (centers[i.unit] || 0) + 1; });
+    const topCenters = Object.entries(centers).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    const trend = [];
+    for (let k = 29; k >= 0; k--) {
+      const c = incidents.filter((i) => { const d = dayNum(i.date); return d && Math.abs((todayN.n - k) - d.n) < 0.6; }).length;
+      trend.push({ day: k === 0 ? "اليوم" : "-" + k, count: c });
+    }
+    return { per, sel, byType, cdInj: sum(cd, "inj"), cdDth: sum(cd, "dth"), trInj: sum(traffic, "inj"), trDth: sum(traffic, "dth"), traffic: traffic.length, outages, topCenters, trend };
+  }, [incidents, period]);
+  const KPI = ({ label, value, sub, color }) => (
+    <div style={{ background: "#fff", borderRadius: 16, padding: "14px 18px", minWidth: 150, flex: 1, border: "1px solid #E4E7F0", boxShadow: "0 8px 24px rgba(30,41,82,0.07)" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#5B6478" }}>{label}</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color: color || "#1E2952", lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8B93A8" }}>{sub}</div>}
+    </div>
+  );
+  const inpS = { padding: "9px 11px", borderRadius: 10, border: "1.5px solid #C9CFDD", fontSize: 13, fontWeight: 700, fontFamily: "inherit", background: "#fff" };
+  const sorted = [...incidents].sort((a, b) => (dayNum(b.date)?.n || 0) - (dayNum(a.date)?.n || 0)).slice(0, 40);
+  return (
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+      <div style={{ background: "linear-gradient(120deg, #1E2952, #3D5AA9 70%, #00A3A3)", borderRadius: 22, padding: "22px 26px", color: "#fff", marginBottom: 18, boxShadow: "0 14px 40px rgba(30,41,82,0.35)" }}>
+        <div style={{ fontSize: 21, fontWeight: 800 }}>📟 إحصائيات ومؤشرات عملياتية</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.85, marginTop: 4 }}>الحوادث المباشرة من الإدارة العامة للدفاع المدني بمحافظة جدة — تسجيل حي ومؤشرات لحظية · اليوم {t.d} / {HIJRI_MONTHS[t.m - 1]} / {t.y} هـ</div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+          {[["اليوم", S.per.day], ["آخر 7 أيام", S.per.week], ["الشهر الهجري", S.per.month], ["السنة الهجرية", S.per.year], ["الإجمالي المسجل", S.per.all]].map(([l, v]) => (
+            <div key={l} style={{ background: "rgba(255,255,255,0.14)", borderRadius: 13, padding: "9px 16px", minWidth: 110 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.85 }}>{l}</div>
+              <div style={{ fontSize: 24, fontWeight: 800 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {!ro && (
+        <div style={{ background: "#F2F5FB", border: "1.5px solid #D6DDEB", borderRadius: 18, padding: 16, marginBottom: 18 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 10 }}>➕ تسجيل حادث مباشر</div>
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap", alignItems: "center" }}>
+            <HijriDateInput value={fDate} onChange={setFDate} />
+            <select value={fType} onChange={(e) => setFType(e.target.value)} style={inpS}>
+              {OPS_TYPES.map((ty) => <option key={ty}>{ty}</option>)}
+            </select>
+            <input value={fUnit} onChange={(e) => setFUnit(e.target.value)} placeholder="المركز المباشر" style={{ ...inpS, width: 160 }} />
+            <input value={fHood} onChange={(e) => setFHood(e.target.value)} placeholder="الحي / الموقع" style={{ ...inpS, width: 150 }} />
+            <input value={fInj} onChange={(e) => setFInj(e.target.value)} placeholder="الإصابات" style={{ ...inpS, width: 92 }} />
+            <input value={fDth} onChange={(e) => setFDth(e.target.value)} placeholder="الوفيات" style={{ ...inpS, width: 86 }} />
+            <input value={fNote} onChange={(e) => setFNote(e.target.value)} placeholder="ملاحظة (اختياري)" style={{ ...inpS, flex: 1, minWidth: 150 }} />
+            <button onClick={submit} style={{ background: "#1E2952", color: "#fff", border: "none", borderRadius: 11, padding: "10px 22px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تسجيل</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        {PERIODS.map(([id, lbl]) => (
+          <button key={id} onClick={() => setPeriod(id)} style={{ background: period === id ? "#1E2952" : "#EEF1F8", color: period === id ? "#fff" : "#3A4560", border: "none", borderRadius: 11, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{lbl}</button>
+        ))}
+        <span style={{ alignSelf: "center", fontSize: 12, fontWeight: 800, color: "#5B6478" }}>حوادث الفترة: {S.sel.length}</span>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+        <KPI label="إصابات حوادث الدفاع المدني" value={S.cdInj} color="#B45309" sub="غير المرورية" />
+        <KPI label="وفيات حوادث الدفاع المدني" value={S.cdDth} color="#B3121C" sub="غير المرورية" />
+        <KPI label="إصابات الحوادث المرورية المباشرة" value={S.trInj} color="#B45309" sub={S.traffic + " حادثاً مرورياً"} />
+        <KPI label="وفيات الحوادث المرورية المباشرة" value={S.trDth} color="#B3121C" sub={S.traffic + " حادثاً مرورياً"} />
+        <KPI label="بلاغات انقطاع التيار الكهربائي" value={S.outages.length} color="#6D28D9" sub="عن الأحياء السكنية" />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, marginBottom: 16 }}>
+        <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E4E7F0", padding: 16 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 8 }}>تصنيف حوادث الفترة</div>
+          {S.byType.length === 0 ? <div style={{ color: "#8B93A8", fontWeight: 700, fontSize: 12.5 }}>لا حوادث مسجلة بالفترة.</div> : (
+            <ResponsiveContainer width="100%" height={Math.max(180, S.byType.length * 42)}>
+              <BarChart data={S.byType} layout="vertical" margin={{ right: 40, left: 6 }}>
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fontWeight: 700 }} />
+                <YAxis type="category" dataKey="type" width={140} tick={{ fontSize: 11.5, fontWeight: 800 }} />
+                <Tooltip formatter={(v) => [v, "حوادث"]} />
+                <Bar dataKey="count" radius={[0, 8, 8, 0]}>
+                  <LabelList dataKey="count" position="left" style={{ fontSize: 12, fontWeight: 800 }} />
+                  {S.byType.map((x, i) => <Cell key={i} fill={OPS_COLORS[x.type]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E4E7F0", padding: 16 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 8 }}>نبض 30 يوماً — الحوادث المباشرة يومياً</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={S.trend} margin={{ left: -18 }}>
+              <defs><linearGradient id="opsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3D5AA9" stopOpacity={0.6} /><stop offset="100%" stopColor="#3D5AA9" stopOpacity={0.05} /></linearGradient></defs>
+              <XAxis dataKey="day" tick={{ fontSize: 9 }} interval={4} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+              <Tooltip formatter={(v) => [v, "حوادث"]} />
+              <Area type="monotone" dataKey="count" stroke="#1E2952" strokeWidth={2.5} fill="url(#opsG)" />
+            </AreaChart>
+          </ResponsiveContainer>
+          {S.topCenters.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#5B6478", marginBottom: 5 }}>الأكثر مباشرةً بالفترة:</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {S.topCenters.map(([c, n]) => <span key={c} style={{ background: "#EEF1F8", borderRadius: 9, padding: "4px 10px", fontSize: 11.5, fontWeight: 800, color: "#1E2952" }}>{c}: {n}</span>)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {S.outages.length > 0 && (
+        <div style={{ background: "#F6F3FE", border: "1.5px solid #DDD3F6", borderRadius: 18, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#6D28D9", marginBottom: 8 }}>⚡ بلاغات انقطاع التيار الكهربائي بالفترة ({S.outages.length})</div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {S.outages.map((o, i) => <span key={i} style={{ background: "#fff", border: "1px solid #DDD3F6", borderRadius: 10, padding: "5px 12px", fontSize: 12, fontWeight: 800, color: "#4B2A9D" }}>{o.hood || o.unit || "غير محدد"} · {o.date}</span>)}
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E4E7F0", padding: 16 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 10 }}>📜 أحدث الحوادث المسجلة</div>
+        {sorted.length === 0 ? <div style={{ color: "#8B93A8", fontWeight: 700, fontSize: 12.5 }}>ابدأ بتسجيل أول حادث من النموذج أعلاه.</div> :
+          sorted.map((inc) => (
+            <div key={inc.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 4px", borderBottom: "1px solid #F0F2F7", fontSize: 12.5, fontWeight: 700 }}>
+              <span style={{ background: OPS_COLORS[inc.type] || "#5A6172", color: "#fff", borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{inc.type}</span>
+              <span style={{ color: "#5B6478", flexShrink: 0 }}>{inc.date}</span>
+              <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{inc.unit}{inc.hood ? " · " + inc.hood : ""}{inc.note ? " — " + inc.note : ""}</span>
+              {(inc.inj > 0 || inc.dth > 0) && <span style={{ color: "#B3121C", flexShrink: 0 }}>🩹 {inc.inj || 0} · ⚫ {inc.dth || 0}</span>}
+              {!ro && <button onClick={() => { if (confirm("حذف هذا الحادث؟")) onDelete(inc.id); }} style={{ background: "transparent", border: "none", color: "#C0121C", cursor: "pointer", fontSize: 14, fontWeight: 800, fontFamily: "inherit" }}>✕</button>}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
 // ====== إحصائية عمر التوقف: الآليات الأطول تعطلاً بالأيام من تواريخ أعطالها الهجرية ======
 function DowntimeCard({ vehicles }) {
   const t = todayHijri();
@@ -3796,6 +3973,7 @@ export default function FleetApp() {
           ["list", "🚒", "سجل الآليات"],
           ["dashboard", "📊", "لوحة المعلومات"],
           ["charts", "📈", "الداشبورد"],
+          ["ops", "📟", "إحصائيات عملياتية"],
           ["reports", "🖨️", "التقارير"],
         ].map(([id, ic, lbl]) => (
           <button key={id} className={view === id ? "act" : ""}
@@ -4025,6 +4203,12 @@ export default function FleetApp() {
               )}
             </div>
           </div>
+        )}
+
+        {view === "ops" && (
+          <OpsStatsPage incidents={db.incidents || []} ro={ro}
+            onAdd={(inc) => persist({ ...db, incidents: [...(db.incidents || []), inc] }, "تسجيل حادث " + inc.type)}
+            onDelete={(id) => persist({ ...db, incidents: (db.incidents || []).filter((x) => x.id !== id) }, "حذف حادث")} />
         )}
 
         {view === "charts" && (
