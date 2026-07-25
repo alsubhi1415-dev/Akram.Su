@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.1 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1264,7 +1264,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
     const todayInc = (incidents || []).filter((i) => norm(i.date) === norm(todayStr)).length;
     return { total, ready, broken, rejee, units, todayInc, pct: total ? Math.round((ready / (total - rejee || 1)) * 100) : 0 };
   }, [vehicles, incidents]);
-  const C = ({ n, label, color, icon, go }) => {
+  const C = ({ n, label, color, icon, go, sub }) => {
     const cv = useCountUp(n);
     return (
       <div onClick={() => go && onGo(go)} style={{ background: "#fff", borderRadius: 20, padding: "20px 22px", flex: "1 1 170px", border: "1px solid #E4E7F0", boxShadow: "0 10px 30px rgba(20,26,40,0.08)", cursor: go ? "pointer" : "default", transition: "transform 0.15s" }}
@@ -1272,6 +1272,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
         <div style={{ fontSize: 26 }}>{icon}</div>
         <div style={{ fontSize: 40, fontWeight: 800, color, lineHeight: 1.15, marginTop: 4 }}>{cv}{label.includes("نسبة") ? "%" : ""}</div>
         <div style={{ fontSize: 13, fontWeight: 800, color: "#5B6478", marginTop: 2 }}>{label}</div>
+        {sub && <div style={{ fontSize: 10, fontWeight: 700, color: "#8A93A6", marginTop: 3, lineHeight: 1.5 }}>{sub}</div>}
       </div>
     );
   };
@@ -1287,7 +1288,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
         <C n={S.ready} label="الجاهزة للعمل" color="#00875A" icon="✅" go="list" />
         <C n={S.broken} label="المتعطلة حالياً" color="#B3121C" icon="🔧" go="list" />
         <C n={S.pct} label="نسبة الجاهزية" color="#1F6FB8" icon="⚡" go="charts" />
-        <C n={S.units} label="مركزاً وجهة" color="#6D28D9" icon="🏢" go="readiness" />
+        <C n={S.units} label="جهة" sub="ما بين شعب ومراكز ميدانية ومراكز سلامة وأقسام" color="#6D28D9" icon="🏢" go="readiness" />
         <C n={S.todayInc} label="حوادث اليوم المباشرة" color="#B45309" icon="📟" go="ops" />
       </div>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
