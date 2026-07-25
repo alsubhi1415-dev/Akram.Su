@@ -4526,7 +4526,7 @@ export default function FleetApp() {
     setTimeout(() => setImportMsg(""), 5000);
   };
   const backupDue = useMemo(() => {
-    if (ro) return 0;
+    if (!isOwner) return 0;
     try {
       const t = todayHijri();
       const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
@@ -4840,7 +4840,7 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
-            {!ro && <button onClick={backupNow} title="تنزيل نسخة احتياطية كاملة لقاعدة البيانات" style={{
+            {isOwner && <button onClick={backupNow} title="تنزيل نسخة احتياطية كاملة لقاعدة البيانات" style={{
               background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
               borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
             }}>💾</button>}
@@ -5059,7 +5059,7 @@ export default function FleetApp() {
           </div>
         )}
 
-        {!ro && backupDue > 7 && !backupDismiss && (
+        {isOwner && backupDue > 7 && !backupDismiss && (
           <div className="no-print" style={{ background: "#FFF6E5", border: "1.5px solid #F0C36D", borderRadius: 14, padding: "11px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontSize: 13, fontWeight: 800, color: "#8A5A00" }}>
             <span>💾 {backupDue >= 999 ? "لم تُؤخذ نسخة احتياطية بعد" : `مضى ${backupDue} أيام على آخر نسخة احتياطية`} — احرص على نسخة دورية خارج المنظومة</span>
             <button onClick={backupNow} style={{ background: "#B45309", color: "#fff", border: "none", borderRadius: 9, padding: "8px 16px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تنزيل نسخة الآن</button>
@@ -5175,8 +5175,8 @@ export default function FleetApp() {
               <MultiSelect label="الموديل" options={allModels} values={fModel} onChange={setFModel} flex="1 1 120px" />
               <MultiSelect label="الشعبة / الجهة" options={allBranches} values={fBranch} onChange={setFBranch} flex="1 1 150px" />
               <MultiSelect label="المركز التفصيلي" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
-              <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
-                style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>
+              {isOwner && <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
+                style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>}
             </div>
 
             <div style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, overflow: "hidden" }}>
