@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5211,10 +5211,6 @@ export default function FleetApp() {
                   padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                 }}>⬇ تحميل index</button>
               )}
-              <button onClick={() => { setImportMsg("🔒 ربط GitHub صلاحية المشرف — الاستعراض متاح للجميع"); setTimeout(() => setImportMsg(""), 5000); }} title="صلاحية المشرف — معروض للاطلاع" style={{
-                background: "rgba(20,26,40,0.7)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 10,
-                padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-              }}>🔑 ربط GitHub</button>
               </span>
             ) : (
               <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
@@ -5230,8 +5226,8 @@ export default function FleetApp() {
                     boxShadow: "0 3px 10px rgba(31,111,184,0.45)",
                   }}>⬇ تحميل index</button>
                 )}
-                {(isOwner || ro) && (
-                  <button onClick={() => { if (ro) { setImportMsg("🔒 ربط GitHub صلاحية المشرف — الاستعراض متاح للجميع"); setTimeout(() => setImportMsg(""), 5000); return; } setGhVal(""); setGhErr(""); setGhOpen(true); }} title="ربط GitHub لتفعيل المزامنة — مرة واحدة" style={{
+                {isOwner && (
+                  <button onClick={() => { setGhVal(""); setGhErr(""); setGhOpen(true); }} title="ربط GitHub لتفعيل المزامنة — مرة واحدة" style={{
                     background: "#141A28", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 10,
                     padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                   }}>🔑 ربط GitHub</button>
