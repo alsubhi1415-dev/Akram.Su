@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 4.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 4.1 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2462,14 +2462,16 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       const traffic = sel.filter((i) => i.type === "حادث مروري");
       const cd = sel.filter((i) => i.type !== "حادث مروري" && i.type !== "انقطاع تيار كهربائي");
       const sum = (arr, k) => arr.reduce((s2, i) => s2 + (+i[k] || 0), 0);
-      const handled = sel.length - c("انقطاع تيار كهربائي");
-      const resAmb = c("حادث إنقاذ") + c("أعمال إسعاف");
-      const oth = handled - c("حادث إطفاء") - resAmb;
+      const outage = c("انقطاع تيار كهربائي");
+      const handled = sel.length - outage;
+      const oth = handled - c("حادث إطفاء") - c("حادث إنقاذ") - c("أعمال إسعاف");
       L.push(`*${ord[sec++]} — الحوادث والبلاغات اليومية:*`,
         `عدد ما تم مباشرته من الحوادث: *${handled}* حادثاً`,
         `حوادث الإطفاء: ${c("حادث إطفاء")}`,
-        `حوادث الإنقاذ والإسعاف: ${resAmb}`,
+        `حوادث الإنقاذ: ${c("حادث إنقاذ")}`,
+        `أعمال الإسعاف: ${c("أعمال إسعاف")}`,
         `بلاغات أخرى: ${oth}`,
+        `بلاغات انقطاع التيار الكهربائي: ${outage}`,
         "",
         `الإصابات في حوادث الدفاع المدني: *${sum(cd, "inj")}*`,
         `الوفيات في حوادث الدفاع المدني: *${sum(cd, "dth")}*`,
@@ -2627,7 +2629,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
               <div style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 تقرير إشعاري شامل بالواتساب</div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", margin: "4px 0 12px" }}>اختر البنود فتُبنى الرسالة على المقاس — ثم انسخها أو افتح واتساب مباشرة</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                {[["veh", "🚒 الآليات"], ["ops", "📟 عمليات اليوم"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "⚠️ يستدعي الانتباه"]].map(([k, lbl]) => (
+                {[["veh", "🚒 الآليات"], ["ops", "📟 الحوادث والبلاغات اليومية"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "⚠️ يستدعي الانتباه"]].map(([k, lbl]) => (
                   <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: waChecks[k] ? "#E5F5EE" : "#F2F3F7", border: "1.5px solid " + (waChecks[k] ? "#0E7A5F" : "#D9DCE6"), borderRadius: 12, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, color: waChecks[k] ? "#0E7A5F" : "#5B6478", cursor: "pointer", userSelect: "none" }}>
                     <input type="checkbox" checked={waChecks[k]} onChange={() => setWaChecks({ ...waChecks, [k]: !waChecks[k] })} style={{ accentColor: "#0E7A5F" }} />{lbl}
                   </label>
