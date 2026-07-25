@@ -1277,7 +1277,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       <div style={{ background: "linear-gradient(120deg, #1B2440, #3A1A2A 60%, #7E1A2F)", borderRadius: 24, padding: "30px 32px", color: "#fff", marginBottom: 20, boxShadow: "0 16px 44px rgba(27,36,64,0.4)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", left: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(212,175,55,0.08)" }} />
         <div style={{ fontSize: 24, fontWeight: 800 }}>سجل متابعة الآليات — الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.85, marginTop: 6 }}>منظومة رقمية حية لمتابعة الأسطول والجاهزية الميدانية والعمليات · اليوم {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y} هـ</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.85, marginTop: 6 }}>منظومة رقمية حية لمتابعة الآليات والجاهزية الميدانية والعمليات · اليوم {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y} هـ</div>
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon="🚒" go="list" />
@@ -1514,7 +1514,7 @@ function TVMode({ vehicles, onClose }) {
         {[["الجاهزة", S.ready, "#39D98A"], ["المتعطلة", S.broken, "#FF5D6C"], ["بالصيانة", S.wshop, "#FFB020"], ["الرجيع", S.rejee, "#9AA3B5"]].map(([l, n, c]) => (
           <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 96, fontWeight: 800, color: c }}>{n}</div><div style={{ fontSize: 26, fontWeight: 800, color: "#C9CFDD" }}>{l}</div></div>
         ))}
-      </div>), sub: `إجمالي الأسطول ${S.total} آلية` },
+      </div>), sub: `إجمالي الآليات ${S.total} آلية` },
     { t: "أطول الآليات توقفاً", body: (
       <div style={{ textAlign: "right", maxWidth: 900 }}>
         {S.down.map((x, i) => (
@@ -5019,7 +5019,7 @@ export default function FleetApp() {
         )}
       </aside>
 
-      <header className="no-print" style={{ background: `linear-gradient(268deg, #1B2440 46%, rgba(35,42,71,0.72) 66%, rgba(74,18,24,0.38) 88%, rgba(74,18,24,0.14) 100%), url(${HEADER_BG}) left center / auto 115% no-repeat, linear-gradient(120deg, #1B2440, #4A1218)`, padding: "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.35)", boxShadow: "0 6px 22px rgba(10,14,26,0.35)" }}>
+      <header className="no-print" style={{ background: `linear-gradient(268deg, #1B2440 46%, rgba(35,42,71,0.72) 66%, rgba(74,18,24,0.38) 88%, rgba(74,18,24,0.14) 100%), url(${HEADER_BG}) left center / auto 115% no-repeat, linear-gradient(120deg, #1B2440, #4A1218)`, padding: histLen > 0 ? "12px 22px 0 86px" : "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.35)", boxShadow: "0 6px 22px rgba(10,14,26,0.35)" }}>
         {/* زر خفي: تنزيل index.html بأحدث بياناتك الحية لرفعه على GitHub */}
         
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
