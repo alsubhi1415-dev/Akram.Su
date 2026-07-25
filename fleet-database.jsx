@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 // بصمة كلمة سر المحررين (SHA-256) — تُستخدم للواجهة ولرمز الكتابة السحابي
 const PW_HASH = "6346fc1b001a16dd9e1e8b172d33847c99e6016733cb2fde11baf8d107b364ce";
@@ -719,14 +721,38 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
       </div>
 
       <div style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 20 }}>
-        {tab === "faults" && (
+        {tab === "faults" && (<>
+          {(() => {
+            const evs = [];
+            (v.faults || []).forEach((f) => {
+              if (f.date) evs.push({ n: hDayNum(f.date), d: f.date, ic: "🔴", tt: "تسجيل عطل", ds: (f.faultType ? f.faultType + " — " : "") + (f.desc || "") });
+              if (f.repairDate) evs.push({ n: hDayNum(f.repairDate), d: f.repairDate, ic: "🟢", tt: "إصلاح وعودة للخدمة", ds: f.desc || "" });
+            });
+            evs.sort((a, b) => (b.n || 0) - (a.n || 0));
+            if (!evs.length) return null;
+            return (
+              <div style={{ background: "#fff", border: "1px solid #E4E7F0", borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#1B2440", marginBottom: 12 }}>⏱ الخط الزمني للآلية</div>
+                <div style={{ position: "relative", paddingRight: 22 }}>
+                  <div style={{ position: "absolute", right: 7, top: 6, bottom: 6, width: 2.5, background: "linear-gradient(#B3121C, #D9DCE6)" , borderRadius: 2 }} />
+                  {evs.map((e, i) => (
+                    <div key={i} style={{ position: "relative", padding: "7px 0 7px 4px" }}>
+                      <span style={{ position: "absolute", right: -21, top: 12, width: 13, height: 13, borderRadius: "50%", background: e.ic === "🔴" ? "#B3121C" : "#1E9E63", border: "2.5px solid #fff", boxShadow: "0 0 0 2px " + (e.ic === "🔴" ? "#B3121C33" : "#1E9E6333") }} />
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: e.ic === "🔴" ? "#B3121C" : "#1E9E63" }}>{e.ic} {e.tt} <span style={{ color: "#8B93A8", fontWeight: 700 }}>· {hijriDisplay(e.d)}</span></div>
+                      {e.ds && <div style={{ fontSize: 12, fontWeight: 700, color: "#3A4560", marginTop: 2 }}>{e.ds}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           <LogSection title="سجل الأعطال والإصلاحات" accent="#C4353C" items={v.faults} sortKey="date"
             emptyMsg="لا توجد أعطال مسجلة على هذه الآلية."
             fields={FAULT_FIELDS}
             onAdd={(it) => mutate("faults", (a) => [...a, it])}
             onDelete={(id) => mutate("faults", (a) => a.filter((x) => x._id !== id))}
           />
-        )}
+        </>)}
         {tab === "transfers" && (
           <LogSection title="مسار التنقل بين الجهات" accent="#1F4E8C" items={v.transfers} sortKey="date"
             emptyMsg="لم تُنقل هذه الآلية بين الجهات بعد."
@@ -1151,6 +1177,110 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, ops
   );
 }
 
+
+// ====== أدوات مشتركة للمزايا الجديدة ======
+const hDayNum = (s) => {
+  const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+  if (!m) return null;
+  return (+m[1]) * 354.367 + ((+m[2]) - 1) * 29.53 + (+m[3]);
+};
+const READY_SET = ["تعمل", "تعمل بوجود ملاحظات", "تم الإصلاح"];
+const BROKEN_SET = ["عطلانة", "تحت التجهيز والتسليم"];
+function useCountUp(target, ms = 1200) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    let raf, t0;
+    const step = (t) => { if (!t0) t0 = t; const k = Math.min(1, (t - t0) / ms); setV(Math.round(target * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return v;
+}
+
+// ====== 7: صفحة النظرة العامة الافتتاحية ======
+function OverviewPage({ vehicles, incidents, onGo }) {
+  const t = todayHijri();
+  const todayStr = `${t.y}/${String(t.m).padStart(2, "0")}/${String(t.d).padStart(2, "0")}`;
+  const S = useMemo(() => {
+    const total = vehicles.length;
+    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
+    const rejee = vehicles.filter((v) => ((v.status || "").includes("الرجيع"))).length;
+    const units = new Set(vehicles.map((v) => v.unit).filter(Boolean)).size;
+    const norm = (s) => String(s || "").replace(/[\/-]0?/g, "/").replace(/^0/, "");
+    const todayInc = (incidents || []).filter((i) => norm(i.date) === norm(todayStr)).length;
+    return { total, ready, broken, rejee, units, todayInc, pct: total ? Math.round((ready / (total - rejee || 1)) * 100) : 0 };
+  }, [vehicles, incidents]);
+  const C = ({ n, label, color, icon, go }) => {
+    const cv = useCountUp(n);
+    return (
+      <div onClick={() => go && onGo(go)} style={{ background: "#fff", borderRadius: 20, padding: "20px 22px", flex: "1 1 170px", border: "1px solid #E4E7F0", boxShadow: "0 10px 30px rgba(20,26,40,0.08)", cursor: go ? "pointer" : "default", transition: "transform 0.15s" }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}>
+        <div style={{ fontSize: 26 }}>{icon}</div>
+        <div style={{ fontSize: 40, fontWeight: 800, color, lineHeight: 1.15, marginTop: 4 }}>{cv}{label.includes("نسبة") ? "%" : ""}</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#5B6478", marginTop: 2 }}>{label}</div>
+      </div>
+    );
+  };
+  return (
+    <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+      <div style={{ background: "linear-gradient(120deg, #1B2440, #3A1A2A 60%, #7E1A2F)", borderRadius: 24, padding: "30px 32px", color: "#fff", marginBottom: 20, boxShadow: "0 16px 44px rgba(27,36,64,0.4)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(212,175,55,0.08)" }} />
+        <div style={{ fontSize: 24, fontWeight: 800 }}>سجل متابعة الآليات — الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.85, marginTop: 6 }}>منظومة رقمية حية لمتابعة الأسطول والجاهزية الميدانية والعمليات · اليوم {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y} هـ</div>
+      </div>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
+        <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon="🚒" go="list" />
+        <C n={S.ready} label="الجاهزة للعمل" color="#00875A" icon="✅" go="list" />
+        <C n={S.broken} label="المتعطلة حالياً" color="#B3121C" icon="🔧" go="list" />
+        <C n={S.pct} label="نسبة الجاهزية" color="#1F6FB8" icon="⚡" go="charts" />
+        <C n={S.units} label="مركزاً وجهة" color="#6D28D9" icon="🏢" go="readiness" />
+        <C n={S.todayInc} label="حوادث اليوم المباشرة" color="#B45309" icon="📟" go="ops" />
+      </div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {[["📋", "الجاهزية الميدانية", "تغطية المراكز الميدانية الـ62 لحظياً", "readiness"],
+          ["🚒", "سجل الآليات", "639 آلية ببياناتها وأعطالها وسجلها الزمني", "list"],
+          ["📈", "الداشبورد", "مؤشرات وتحليلات ورسوم تفاعلية", "charts"],
+          ["🖨️", "التقارير الرسمية", "الأعطال الأسبوعي والنوعي والنموذج الشامل", "reports"]].map(([ic, tt, ds, go]) => (
+          <div key={go} onClick={() => onGo(go)} style={{ flex: "1 1 220px", background: "#fff", border: "1px solid #E4E7F0", borderRadius: 18, padding: "16px 18px", cursor: "pointer", boxShadow: "0 6px 20px rgba(20,26,40,0.06)" }}>
+            <div style={{ fontSize: 22 }}>{ic}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginTop: 4 }}>{tt}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#8B93A8", marginTop: 3 }}>{ds}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ====== 6: الجولة التعريفية للزائر ======
+function WelcomeTour({ onDone }) {
+  const [i, setI] = useState(0);
+  const steps = [
+    ["👋", "أهلاً بك في سجل متابعة الآليات", "منظومة رقمية حية للإدارة العامة للدفاع المدني بمحافظة جدة — تستعرض كل شيء بشفافية كاملة."],
+    ["🚒", "سجل الآليات", "639 آلية ببياناتها الكاملة: الحالة، الموقع، الأعطال وتواريخها، وخط زمني لكل آلية."],
+    ["📋", "الجاهزية والعمليات", "تغطية المراكز الميدانية لحظياً، وإحصائيات الحوادث المباشرة بمؤشراتها."],
+    ["🖨️", "التقارير الرسمية", "تقرير الأعطال الأسبوعي، تكميل الآليات النوعي، والنموذج الشامل — تُبنى تلقائياً من البيانات الحية."],
+  ];
+  const [ic, tt, ds] = steps[i];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.75)", zIndex: 900, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(3px)" }}>
+      <div style={{ background: "#fff", borderRadius: 24, padding: "34px 36px", maxWidth: 420, width: "90%", textAlign: "center", boxShadow: "0 30px 80px rgba(0,0,0,0.4)" }}>
+        <div style={{ fontSize: 46 }}>{ic}</div>
+        <div style={{ fontSize: 19, fontWeight: 800, color: "#1B2440", marginTop: 10 }}>{tt}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: "#5B6478", marginTop: 8, lineHeight: 1.8 }}>{ds}</div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "18px 0" }}>
+          {steps.map((_, k) => <span key={k} style={{ width: k === i ? 22 : 8, height: 8, borderRadius: 6, background: k === i ? "#B3121C" : "#D9DCE6", transition: "all 0.25s" }} />)}
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+          <button onClick={onDone} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تخطي</button>
+          <button onClick={() => i < steps.length - 1 ? setI(i + 1) : onDone()} style={{ background: "linear-gradient(120deg,#B3121C,#7E1A2F)", color: "#fff", border: "none", borderRadius: 12, padding: "11px 28px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{i < steps.length - 1 ? "التالي ←" : "ابدأ الاستعراض 🚀"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ====== إحصائية عمر التوقف: الآليات الأطول تعطلاً بالأيام من تواريخ أعطالها الهجرية ======
 function DowntimeCard({ vehicles }) {
   const t = todayHijri();
@@ -1236,7 +1366,136 @@ function DowntimeCard({ vehicles }) {
   );
 }
 
+
+// ====== 9: مقارنة أسبوع بأسبوع ======
+function WeekCompareCard({ vehicles }) {
+  const t = todayHijri();
+  const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+  const S = useMemo(() => {
+    let fw = 0, fp = 0, rw = 0, rp = 0;
+    vehicles.forEach((v) => (v.faults || []).forEach((f) => {
+      const d = hDayNum(f.date), r = hDayNum(f.repairDate);
+      if (d != null) { const k = now - d; if (k >= 0 && k <= 6.6) fw++; else if (k > 6.6 && k <= 13.6) fp++; }
+      if (r != null) { const k = now - r; if (k >= 0 && k <= 6.6) rw++; else if (k > 6.6 && k <= 13.6) rp++; }
+    }));
+    return { fw, fp, rw, rp };
+  }, [vehicles]);
+  const Row = ({ label, a, b, goodDown }) => {
+    const d = a - b;
+    const up = d > 0;
+    const good = d === 0 ? null : (goodDown ? !up : up);
+    const col = d === 0 ? "#5A6172" : good ? "#00875A" : "#B3121C";
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 4px", borderBottom: "1px solid #F0F2F7" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>{label}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#8B93A8" }}>الأسبوع الماضي: {b}</span>
+          <b style={{ fontSize: 22, color: "#141A28" }}>{a}</b>
+          <b style={{ background: col + "18", color: col, borderRadius: 9, padding: "4px 10px", fontSize: 13 }}>{d === 0 ? "＝" : (up ? "▲" : "▼") + " " + Math.abs(d)}</b>
+        </span>
+      </div>
+    );
+  };
+  return (
+    <ChartCard title="هذا الأسبوع مقارنة بسابقه" icon="⚖️" grad="linear-gradient(120deg,#1F6FB8,#00A3A3)">
+      <div style={{ padding: "8px 18px 14px" }}>
+        <Row label="أعطال جديدة مسجلة" a={S.fw} b={S.fp} goodDown={true} />
+        <Row label="إصلاحات منجزة" a={S.rw} b={S.rp} goodDown={false} />
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A8", marginTop: 10 }}>المقارنة بتواريخ الأعطال والإصلاحات الهجرية: آخر 7 أيام مقابل السبعة قبلها</div>
+      </div>
+    </ChartCard>
+  );
+}
+
+// ====== 10: الخريطة الحرارية للمراكز ======
+function HeatmapCard({ vehicles }) {
+  const rows = useMemo(() => {
+    const m = {};
+    vehicles.forEach((v) => {
+      const u = (v.unit || "").trim();
+      if (!u) return;
+      m[u] = m[u] || { t: 0, r: 0 };
+      m[u].t++;
+      if (READY_SET.includes((v.status || "").trim())) m[u].r++;
+    });
+    return Object.entries(m).map(([u, x]) => ({ u, t: x.t, r: x.r, p: Math.round((x.r / x.t) * 100) })).sort((a, b) => a.p - b.p);
+  }, [vehicles]);
+  const col = (p) => p >= 85 ? "#1E9E63" : p >= 70 ? "#7DBB42" : p >= 50 ? "#E3A008" : p >= 30 ? "#E06818" : "#B3121C";
+  return (
+    <ChartCard title="الخريطة الحرارية لجاهزية الجهات والمراكز" icon="🗺️" grad="linear-gradient(120deg,#B3121C,#E3A008)">
+      <div style={{ padding: "12px 18px 16px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {rows.map((r) => (
+            <div key={r.u} title={`${r.u} — ${r.p}% (${r.r}/${r.t} جاهزة)`}
+              style={{ width: 26, height: 26, borderRadius: 7, background: col(r.p), cursor: "help", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 8.5, fontWeight: 800 }}>{r.p}</div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, fontSize: 11, fontWeight: 800, color: "#5B6478", flexWrap: "wrap" }}>
+          <span>الأدنى جاهزية أولاً — مرر المؤشر لاسم الجهة:</span>
+          {[["#B3121C", "أقل من 30%"], ["#E06818", "30-50%"], ["#E3A008", "50-70%"], ["#7DBB42", "70-85%"], ["#1E9E63", "85%+"]].map(([c, l]) => (
+            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 12, height: 12, borderRadius: 4, background: c }} />{l}</span>
+          ))}
+        </div>
+      </div>
+    </ChartCard>
+  );
+}
+
+// ====== 8: وضع العرض للشاشات الكبيرة ======
+function TVMode({ vehicles, onClose }) {
+  const [idx, setIdx] = useState(0);
+  const S = useMemo(() => {
+    const total = vehicles.length;
+    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
+    const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
+    const wshop = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()) && ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes((v.location || "").trim())).length;
+    const t = todayHijri();
+    const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+    const down = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()))
+      .map((v) => { const f = (v.faults || []).filter((x) => !x.repairDate && hDayNum(x.date)).sort((a, b) => hDayNum(a.date) - hDayNum(b.date))[0]; return f ? { v, d: Math.round(now - hDayNum(f.date)) } : null; })
+      .filter(Boolean).sort((a, b) => b.d - a.d).slice(0, 3);
+    return { total, ready, broken, rejee, wshop, pct: Math.round((ready / (total - rejee || 1)) * 100), down };
+  }, [vehicles]);
+  const slides = [
+    { t: "الجاهزية التشغيلية العامة", body: <div style={{ fontSize: 170, fontWeight: 800, color: "#39D98A" }}>{S.pct}%</div>, sub: `${S.ready} آلية جاهزة من ${S.total - S.rejee} (بعد استبعاد الرجيع)` },
+    { t: "الموقف الحالي للأسطول", body: (
+      <div style={{ display: "flex", gap: 50, justifyContent: "center" }}>
+        {[["الجاهزة", S.ready, "#39D98A"], ["المتعطلة", S.broken, "#FF5D6C"], ["بالصيانة", S.wshop, "#FFB020"], ["الرجيع", S.rejee, "#9AA3B5"]].map(([l, n, c]) => (
+          <div key={l} style={{ textAlign: "center" }}><div style={{ fontSize: 96, fontWeight: 800, color: c }}>{n}</div><div style={{ fontSize: 26, fontWeight: 800, color: "#C9CFDD" }}>{l}</div></div>
+        ))}
+      </div>), sub: `إجمالي الأسطول ${S.total} آلية` },
+    { t: "أطول الآليات توقفاً", body: (
+      <div style={{ textAlign: "right", maxWidth: 900 }}>
+        {S.down.map((x, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 30, padding: "16px 0", borderBottom: "1px solid rgba(255,255,255,0.12)", fontSize: 30, fontWeight: 800 }}>
+            <span style={{ color: "#E7EAF3" }}>{x.v.type} — {x.v.plate}</span>
+            <span style={{ color: "#FF5D6C", flexShrink: 0 }}>{x.d} يوماً</span>
+          </div>
+        ))}
+      </div>), sub: "من تواريخ الأعطال المفتوحة" },
+  ];
+  useEffect(() => {
+    const h = setInterval(() => setIdx((i) => (i + 1) % slides.length), 15000);
+    return () => clearInterval(h);
+  }, []);
+  const s = slides[idx];
+  return (
+    <div className="no-print" style={{ position: "fixed", inset: 0, zIndex: 950, background: "linear-gradient(140deg, #0E1322, #1B2440 55%, #2A1218)", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+      <button onClick={onClose} style={{ position: "absolute", top: 22, left: 26, background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 12, padding: "10px 18px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕ خروج</button>
+      <div style={{ position: "absolute", top: 26, right: 30, fontSize: 15, fontWeight: 800, color: "rgba(255,255,255,0.55)" }}>سجل متابعة الآليات — الدفاع المدني بجدة</div>
+      <div style={{ fontSize: 34, fontWeight: 800, color: "#D4AF37", marginBottom: 26 }}>{s.t}</div>
+      {s.body}
+      <div style={{ fontSize: 20, fontWeight: 700, color: "#9AA3B5", marginTop: 24 }}>{s.sub}</div>
+      <div style={{ position: "absolute", bottom: 30, display: "flex", gap: 8 }}>
+        {slides.map((_, k) => <span key={k} onClick={() => setIdx(k)} style={{ width: k === idx ? 30 : 10, height: 10, borderRadius: 6, background: k === idx ? "#D4AF37" : "rgba(255,255,255,0.25)", cursor: "pointer", transition: "all 0.3s" }} />)}
+      </div>
+    </div>
+  );
+}
+
 function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, equip, supportCounts, prio, prioWeights }) {
+  const [tv, setTv] = useState(false);
   const statusData = STATUSES.map((s) => ({ name: s, value: counts[s] || 0 })).filter((d) => d.value > 0);
 
   // ====== إحصائيات صفحة الجاهزية (قراءة فقط) ======
@@ -1326,6 +1585,13 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
 
   return (
     <div>
+      {tv && <TVMode vehicles={vehicles} onClose={() => setTv(false)} />}
+      <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", maxWidth: 980, margin: "0 auto 12px" }}>
+        <button onClick={() => setTv(true)} style={{
+          background: "linear-gradient(120deg,#1B2440,#3D5AA9)", color: "#fff", border: "none", borderRadius: 12,
+          padding: "10px 20px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(27,36,64,0.35)",
+        }}>📺 وضع العرض للشاشات الكبيرة</button>
+      </div>
       {/* شريط المؤشرات الملونة */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(135px,1fr))", gap: 12, maxWidth: 980, margin: "0 auto 18px", width: "100%" }}>
         {kpis.map((k) => (
@@ -1355,6 +1621,10 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         </ChartCard>
 
         <DowntimeCard vehicles={vehicles} />
+
+        <WeekCompareCard vehicles={vehicles} />
+
+        <HeatmapCard vehicles={vehicles} />
 
         {/* عداد الجاهزية */}
         <ChartCard title="نسبة الجاهزية التشغيلية" icon="⚡" grad="linear-gradient(120deg,#00875A,#00C48C)">
@@ -1900,6 +2170,64 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
   const [rGroup, setRGroup] = useState("الكل");
   const [title, setTitle] = useState("تقرير حالة الآليات");
   const [repMode, setRepMode] = useState(initialMode || "vehicles"); // vehicles | readiness
+  const [waCopied, setWaCopied] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const waSummary = () => {
+    const t = todayHijri();
+    const total = vehicles.length;
+    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+    const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
+    const wshop = broken.filter((v) => ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes((v.location || "").trim())).length;
+    const pct = Math.round((ready / (total - rejee || 1)) * 100);
+    const txt = [
+      "*الموقف اليومي للآليات — الدفاع المدني بجدة*",
+      `التاريخ: ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y} هـ`,
+      "─────────────",
+      `إجمالي الملاك: *${total}* آلية`,
+      `الجاهزة للعمل: *${ready}*`,
+      `المتعطلة بالمقر: *${broken.length - wshop}*`,
+      `المتعطلة بالصيانة: *${wshop}*`,
+      `الرجيع بقراريه: *${rejee}*`,
+      `نسبة الجاهزية: *${pct}%*`,
+      "─────────────",
+      "_سجل متابعة الآليات — شعبة الاطفاء والانقاذ_",
+    ].join("\n");
+    const done = () => { setWaCopied(true); setTimeout(() => setWaCopied(false), 2500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+    } else fallbackCopy(txt, done);
+  };
+  const fallbackCopy = (txt, done) => {
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { alert("تعذر النسخ التلقائي"); }
+    document.body.removeChild(ta);
+  };
+  const exportPdf = async () => {
+    if (ro) { alert("🔒 تصدير PDF غير متاح بوضع الاستعراض — تسجيل الدخول يتيحه للمحرر والمشرف"); return; }
+    const el = document.getElementById("print-area");
+    if (!el || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const land = repMode === "weekly" || repMode === "nawi";
+      const pdf = new jsPDF({ orientation: land ? "landscape" : "portrait", unit: "mm", format: "a4" });
+      const pw = land ? 297 : 210, ph = land ? 210 : 297;
+      const ih = (canvas.height * pw) / canvas.width;
+      let off = 0, page = 0;
+      while (off < ih) {
+        if (page > 0) pdf.addPage();
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, -off, pw, ih);
+        off += ph; page++;
+      }
+      const t = todayHijri();
+      const nm = repMode === "weekly" ? "تقرير-الأعطال-الأسبوعي" : repMode === "nawi" ? "تكميل-الآليات-النوعي" : repMode === "readiness" ? "تقرير-الجاهزية" : "تقرير-الآليات";
+      pdf.save(`${nm}-${t.y}-${String(t.m).padStart(2, "0")}-${String(t.d).padStart(2, "0")}.pdf`);
+    } catch (e) { alert("تعذر إنشاء الملف: " + e.message); }
+    setPdfBusy(false);
+  };
 
   const branches = useMemo(() => [...new Set(vehicles.map((v) => unifyUnit(v.unit)))].sort((a, b) => a.localeCompare(b, "ar")), [vehicles]);
   const unitsList = useMemo(() => [...new Set(vehicles.map((v) => v.unit).filter(Boolean))].sort(), [vehicles]);
@@ -1979,6 +2307,14 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
             background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 30px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
           }}>📄 حفظ التقرير PDF / طباعة</button>
+          <button onClick={exportPdf} disabled={pdfBusy} style={{
+            background: pdfBusy ? "#8B93A8" : "#1E2952", color: "#fff", border: "none", borderRadius: 10,
+            padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: pdfBusy ? "wait" : "pointer", fontFamily: "inherit",
+          }}>{pdfBusy ? "⏳ جارٍ الإنشاء..." : "⬇ تنزيل PDF مباشرة"}</button>
+          <button onClick={waSummary} style={{
+            background: waCopied ? "#1E9E63" : "#0E7A5F", color: "#fff", border: "none", borderRadius: 10,
+            padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s",
+          }}>{waCopied ? "✓ نُسخ الملخص — الصقه بالقروب" : "📱 نسخ ملخص واتساب"}</button>
           {repMode === "vehicles" && <span style={{ fontSize: 13, color: "#5A6172", fontWeight: 700 }}>عدد الآليات في التقرير: {rows.length}</span>}
           <span style={{ fontSize: 12, color: "#8B93A3", fontWeight: 700, flexBasis: "100%" }}>
             💡 عند فتح النافذة اختر الوجهة «حفظ بصيغة PDF» لحفظ الملف على جهازك أو الفلاشة، أو اختر طابعتك للطباعة الورقية مباشرة — والتقرير يخرج مقسماً على صفحات A4 ويتكرر رأس الجدول أعلى كل صفحة.
@@ -3706,6 +4042,12 @@ export default function FleetApp() {
   const [db, setDb] = useState(null);
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("readiness");
+  const [bellOpen, setBellOpen] = useState(false);
+  const [dark, setDark] = useState(() => { try { return localStorage.getItem("fd_dark") === "1"; } catch (e) { return false; } });
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    try { document.body.classList.toggle("dark", dark); localStorage.setItem("fd_dark", dark ? "1" : "0"); } catch (e) {}
+  }, [dark]);
   const [reportsInit, setReportsInit] = useState("vehicles");
   const [selectedId, setSelectedId] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -3984,6 +4326,34 @@ export default function FleetApp() {
     setTimeout(() => setImportMsg(""), 4000);
   };
   const vehicles = db?.vehicles || [];
+  useEffect(() => {
+    if (ro) {
+      setView("overview");
+      try { if (!localStorage.getItem("fd_tour_done")) setTourOpen(true); } catch (e) {}
+    }
+  }, []);
+  const alerts = useMemo(() => {
+    const t = todayHijri();
+    const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+    const long = [], warr = [];
+    vehicles.forEach((v) => {
+      const st = (v.status || "").trim();
+      if (BROKEN_SET.includes(st)) {
+        const open = (v.faults || []).filter((f) => !f.repairDate && hDayNum(f.date)).sort((a, b) => hDayNum(a.date) - hDayNum(b.date))[0];
+        if (open) {
+          const d = Math.round(now - hDayNum(open.date));
+          if (d > 90) long.push({ v, d });
+        }
+        const rep = (v.faults || []).map((f) => hDayNum(f.repairDate)).filter(Boolean).sort((a, b) => b - a)[0];
+        const od = (v.faults || []).filter((f) => !f.repairDate).map((f) => hDayNum(f.date)).filter(Boolean).sort((a, b) => b - a)[0];
+        if (rep && od && od >= rep && od - rep <= 30) warr.push({ v, gap: Math.round(od - rep) });
+      }
+    });
+    long.sort((a, b) => b.d - a.d);
+    const rej = vehicles.filter((v) => (v.status || "").trim() === "تحت إجراءات الرجيع");
+    return { long, warr, rej, total: long.length + warr.length + rej.length };
+  }, [vehicles]);
+
 
   const vehGuard = () => {
     if (isOwner) return true;
@@ -4154,6 +4524,10 @@ export default function FleetApp() {
           #print-area table { min-width: 620px; }
           h3 { font-size: 14.5px !important; }
         }
+        body.dark { background: #0B0E14; }
+        body.dark main { filter: invert(0.93) hue-rotate(180deg); }
+        body.dark main img { filter: invert(1) hue-rotate(180deg); }
+        @media print { body.dark main { filter: none !important; } }
         @media print {
           @page { size: A4; margin: 12mm; }
           .no-print, header { display: none !important; }
@@ -4171,6 +4545,7 @@ export default function FleetApp() {
       <aside className="side-rail no-print" aria-label="التنقل">
         <div className="rail-title">جاهزية المراكز الميدانية</div>
         {[
+          ["overview", "🏠", "نظرة عامة"],
           ["readiness", "📋", "الجاهزية الميدانية"],
           ["list", "🚒", "سجل الآليات"],
           ["dashboard", "📊", "لوحة المعلومات"],
@@ -4231,6 +4606,35 @@ export default function FleetApp() {
               {cloud === "on" ? "🟢" : cloud === "off" ? "⚪" : cloud === "notoken" ? "🔑" : "🟡"}
               {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
             </span>
+            <span style={{ position: "relative", display: "inline-flex" }}>
+              <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
+                background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+                borderRadius: 10, padding: "8px 12px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", position: "relative",
+              }}>🔔{alerts.total > 0 && <span style={{ position: "absolute", top: -6, left: -6, background: "#FF4D57", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1.5px 6px", boxShadow: "0 2px 8px rgba(255,77,87,0.6)" }}>{alerts.total}</span>}</button>
+              {bellOpen && (
+                <div className="no-print" style={{ position: "absolute", top: 44, left: 0, width: 330, maxHeight: 420, overflowY: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500, padding: "14px 16px", textAlign: "right" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#1B2440", marginBottom: 8 }}>🔔 التنبيهات الذكية ({alerts.total})</div>
+                  {alerts.total === 0 && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8B93A8" }}>لا تنبيهات حالياً — الوضع مستقر ✅</div>}
+                  {alerts.long.length > 0 && (<div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#B3121C" }}>⏳ توقف تجاوز 90 يوماً ({alerts.long.length})</div>
+                    {alerts.long.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 11.5, fontWeight: 700, color: "#3A4560", padding: "3px 0" }}>{x.v.type} — {x.v.plate} <b style={{ color: "#B3121C" }}>({x.d} يوماً)</b></div>)}
+                    {alerts.long.length > 5 && <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A8" }}>و{alerts.long.length - 5} أخرى...</div>}
+                  </div>)}
+                  {alerts.warr.length > 0 && (<div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#D97706" }}>🔁 معاودة تعطل خلال فترة الضمان ({alerts.warr.length})</div>
+                    {alerts.warr.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 11.5, fontWeight: 700, color: "#3A4560", padding: "3px 0" }}>{x.v.type} — {x.v.plate} <b style={{ color: "#D97706" }}>(بعد {x.gap} يوماً)</b></div>)}
+                  </div>)}
+                  {alerts.rej.length > 0 && (<div>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5A6172" }}>↩️ تحت إجراءات الرجيع المعلقة ({alerts.rej.length})</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", padding: "3px 0" }}>آليات بانتظار إتمام قرارها النهائي</div>
+                  </div>)}
+                </div>
+              )}
+            </span>
+            <button onClick={() => setDark(!dark)} title={dark ? "الوضع النهاري" : "الوضع الليلي"} style={{
+              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+            }}>{dark ? "☀️" : "🌙"}</button>
             {ro ? (
               <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
               <button onClick={loginEditor} style={{
@@ -4273,6 +4677,8 @@ export default function FleetApp() {
           </nav>
         </div>
       </header>
+
+      {tourOpen && <WelcomeTour onDone={() => { try { localStorage.setItem("fd_tour_done", "1"); } catch (e) {} setTourOpen(false); }} />}
 
       {pwOpen && (
         <div className="no-print" onClick={() => setPwOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,22,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
@@ -4407,6 +4813,11 @@ export default function FleetApp() {
           </div>
         )}
 
+        {view === "overview" && (
+          <OverviewPage vehicles={vehicles} incidents={db.incidents || []}
+            onGo={(g) => { if (g === "reports") setReportsInit("vehicles"); setView(g); }} />
+        )}
+
         {view === "ops" && (
           <OpsStatsPage incidents={db.incidents || []} ro={ro} logo={logo} vehiclesCount={vehicles.length}
             opsMeta={db.opsMeta || {}} onSaveMeta={(m) => persist({ ...db, opsMeta: m }, "تحديث الإمكانيات البشرية والآلية")}
@@ -4487,6 +4898,22 @@ export default function FleetApp() {
 
         {view === "list" && !adding && (
           <div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
+              {[["الكل", []],
+                ["🔧 المتعطلة", ["عطلانة", "تحت التجهيز والتسليم"]],
+                ["↩️ الرجيع", ["صدر قرار الرجيع", "تحت إجراءات الرجيع"]],
+                ["⚠️ بملاحظات", ["تعمل بوجود ملاحظات"]],
+                ["✅ تم الإصلاح", ["تم الإصلاح"]]].map(([lbl, arr]) => {
+                const act = arr.length === 0 ? fStatus.length === 0 : arr.length === fStatus.length && arr.every((x) => fStatus.includes(x));
+                return (
+                  <button key={lbl} onClick={() => setFStatus(arr)} style={{
+                    background: act ? "linear-gradient(120deg,#B3121C,#7E1A2F)" : "#EEF0F5", color: act ? "#fff" : "#3A4560",
+                    border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: act ? "0 3px 10px rgba(158,27,34,0.4)" : "none",
+                  }}>{lbl}</button>
+                );
+              })}
+            </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
               <input style={{ ...inputStyle, flex: "2 1 240px" }} placeholder="🔍 الأرقام تبحث في اللوحات حصراً — والنص في كل الحقول..." value={q} onChange={(e) => setQ(e.target.value)} />
               <MultiSelect label="الحالة" options={STATUSES} values={fStatus} onChange={setFStatus} flex="1 1 130px" />
