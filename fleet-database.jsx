@@ -4051,10 +4051,10 @@ export default function FleetApp() {
     document.addEventListener("touchstart", h);
     return () => { document.removeEventListener("mousedown", h); document.removeEventListener("touchstart", h); };
   }, [bellOpen]);
-  const [dark, setDark] = useState(() => { try { return localStorage.getItem("fd_dark") === "1"; } catch (e) { return false; } });
+  const [dark, setDark] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   useEffect(() => {
-    try { document.body.classList.toggle("dark", dark); localStorage.setItem("fd_dark", dark ? "1" : "0"); } catch (e) {}
+    try { document.body.classList.toggle("dark", dark); } catch (e) {}
   }, [dark]);
   const [reportsInit, setReportsInit] = useState("vehicles");
   const [selectedId, setSelectedId] = useState(null);
@@ -4532,9 +4532,8 @@ export default function FleetApp() {
           #print-area table { min-width: 620px; }
           h3 { font-size: 14.5px !important; }
         }
-        body.dark { background: #0B0E14; }
-        body.dark main { filter: invert(0.93) hue-rotate(180deg); }
-        body.dark main img { filter: invert(1) hue-rotate(180deg); }
+        body.dark { background: #DDE1E8; }
+        body.dark main { filter: brightness(0.9) saturate(0.95); }
         @media print { body.dark main { filter: none !important; } }
         @media print {
           @page { size: A4; margin: 12mm; }
