@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.9 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2470,13 +2470,36 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     }
     if (ck.rdy) {
       const cr = centerReadiness || {};
-      let g = 0, y = 0, r = 0;
+      const eq = equip || {};
+      let g = 0, y = 0, r = 0, dFire = 0, dRes = 0, dOth = 0;
       MANUAL_CENTERS.forEach(({ centers }) => centers.forEach((cn) => {
-        const lv = fullCenterStatus(cn, cr[cn], equip || {}).level;
-        if (lv === "green") g++; else if (lv === "yellow") y++; else r++;
+        const s = cr[cn] || {};
+        const lv = fullCenterStatus(cn, s, eq).level;
+        if (lv === "green") { g++; return; }
+        if (lv === "red") { r++; return; }
+        y++;
+        const rule = CENTER_RULES[cn] || {};
+        const need = rule.need || [];
+        const fireCount = FIRE_SLOTS.filter(([k]) => s[k]).length;
+        const hasRescueFull = ["res_fordS", "res_fordB", "res_rosen", "res_merc"].some((k) => s[k]);
+        const fireDef = (rule.twoWhits && fireCount < 2) || need.some((k) => k.indexOf("fire_") === 0 && !s[k]);
+        const resDef = !rule.fireOnly && (!hasRescueFull || need.some((k) => k.indexOf("res_") === 0 && !s[k]));
+        const strapDef = ANIMAL_STRAP_CENTERS.includes(cn) && !(eq.animalStrap || {})[cn];
+        const dd = (eq.duals || {})[cn] || {};
+        const dualDef = !!dd.has && !(dd.pump && dd.qala);
+        const othDef = need.some((k) => k.indexOf("fire_") !== 0 && k.indexOf("res_") !== 0 && !s[k]) || strapDef || dualDef;
+        if (fireDef) dFire++;
+        if (resDef) dRes++;
+        if (othDef) dOth++;
       }));
       L.push(`*${ord[sec++]} — الجاهزية الميدانية:*`,
-        `مراكز خضراء ${g} · صفراء ${y} · حمراء ${r}`, "");
+        `🟢 المراكز الميدانية مكتملة الجاهزية: *${g}*`,
+        `🟡 المراكز الميدانية التي بها عجز جزئي: *${y}*`,
+        `- عجز في آليات الإطفاء: ${dFire}`,
+        `- عجز في آليات الإنقاذ: ${dRes}`,
+        `- عجز في آليات نوعية أخرى: ${dOth}`);
+      if (dFire + dRes + dOth > y) L.push(`_قد يجتمع بالمركز الواحد أكثر من سبب_`);
+      L.push(`🔴 المراكز الميدانية التي بها عجز كلي: *${r}*`, "");
     }
     if (ck.att) {
       const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
