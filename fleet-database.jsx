@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 4.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 4.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2513,19 +2513,32 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     }
     if (ck.att) {
       const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
-      let long = 0, warr = 0;
+      let y1 = 0, m6 = 0, m3 = 0;
       vehicles.forEach((v) => {
-        const st = (v.status || "").trim();
-        if (!BROKEN_SET.includes(st)) return;
+        const stt = (v.status || "").trim();
+        if (!BROKEN_SET.includes(stt)) return;
         const open = (v.faults || []).filter((f) => !f.repairDate && hDayNum(f.date)).sort((a, b) => hDayNum(a.date) - hDayNum(b.date))[0];
-        if (open && now - hDayNum(open.date) > 90) long++;
-        const rp = (v.faults || []).map((f) => hDayNum(f.repairDate)).filter(Boolean).sort((a, b) => b - a)[0];
-        const od = (v.faults || []).filter((f) => !f.repairDate).map((f) => hDayNum(f.date)).filter(Boolean).sort((a, b) => b - a)[0];
-        if (rp && od && od >= rp && od - rp <= 30) warr++;
+        if (!open) return;
+        const dd = now - hDayNum(open.date);
+        if (dd > 354) y1++; else if (dd > 177) m6++; else if (dd > 89) m3++;
       });
-      L.push(`*${ord[sec++]} — يستدعي الانتباه:*`,
-        `⏳ ${long} آليات توقفها +90 يوماً`,
-        `🔁 ${warr} معاودات ضمان`, "");
+      const NAWI_DOWN = ["عطلانة", "صدر قرار الرجيع", "تحت إجراءات الرجيع", "تحت التجهيز والتسليم"];
+      const nawiDown = [];
+      NAWI_COLS.forEach((col) => {
+        const n = vehicles.filter((v) => col.p.indexOf(normPlate(v.plate)) >= 0 && NAWI_DOWN.includes((v.status || "").trim())).length;
+        if (n > 0) nawiDown.push([col.n.replace("|", " "), n]);
+      });
+      const nawiTotal = nawiDown.reduce((a, b) => a + b[1], 0);
+      L.push(`*${ord[sec++]} — ملاحظات هامة:*`,
+        `عدد الآليات المتعطلة منذ فترة زمنية طويلة: *${y1 + m6 + m3}*`,
+        `- أكثر من سنة: ${y1}`,
+        `- أكثر من ستة أشهر: ${m6}`,
+        `- أكثر من ثلاثة أشهر: ${m3}`,
+        "",
+        `عدد الآليات النوعية الهامة المتوقفة عن العمل: *${nawiTotal}*`);
+      nawiDown.forEach(([nm, n]) => L.push(`- ${nm}: ${n}`));
+      if (!nawiTotal) L.push("لا توجد آليات نوعية متوقفة");
+      L.push("");
     }
     L.push("_سجل متابعة الآليات الرقمي_");
     return L.join("\n");
@@ -2629,7 +2642,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
               <div style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 تقرير إشعاري شامل بالواتساب</div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", margin: "4px 0 12px" }}>اختر البنود فتُبنى الرسالة على المقاس — ثم انسخها أو افتح واتساب مباشرة</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                {[["veh", "🚒 الآليات"], ["ops", "📟 الحوادث والبلاغات اليومية"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "⚠️ يستدعي الانتباه"]].map(([k, lbl]) => (
+                {[["veh", "🚒 الآليات"], ["ops", "📟 الحوادث والبلاغات اليومية"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "📌 ملاحظات هامة"]].map(([k, lbl]) => (
                   <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: waChecks[k] ? "#E5F5EE" : "#F2F3F7", border: "1.5px solid " + (waChecks[k] ? "#0E7A5F" : "#D9DCE6"), borderRadius: 12, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, color: waChecks[k] ? "#0E7A5F" : "#5B6478", cursor: "pointer", userSelect: "none" }}>
                     <input type="checkbox" checked={waChecks[k]} onChange={() => setWaChecks({ ...waChecks, [k]: !waChecks[k] })} style={{ accentColor: "#0E7A5F" }} />{lbl}
                   </label>
