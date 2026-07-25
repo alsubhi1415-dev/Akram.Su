@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.7 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2421,21 +2421,37 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
   const WD_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   const buildWa = (ck) => {
     const t = todayHijri();
-    const L = ["*🚨 الموقف اليومي الشامل*", "*الدفاع المدني بجدة — شعبة الاطفاء والانقاذ*",
+    const L = ["*🚨 تقرير إشعاري شامل*", "*الدفاع المدني بجدة — شعبة الاطفاء والانقاذ*",
       `📅 ${WD_AR[new Date().getDay()]} ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y}هـ`, ""];
     let sec = 0;
     const ord = ["أولاً", "ثانياً", "ثالثاً", "رابعاً"];
     if (ck.veh) {
+      const st = (x) => vehicles.filter((v) => (v.status || "").trim() === x).length;
       const total = vehicles.length;
-      const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
-      const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+      const readyWork = st("تعمل") + st("تم الإصلاح");
+      const brokenArr = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+      const brokenN = brokenArr.length;
+      const wshop = brokenArr.filter((v) => ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes((v.location || "").trim())).length;
+      const notes = st("تعمل بوجود ملاحظات");
       const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
-      const wshop = broken.filter((v) => ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes((v.location || "").trim())).length;
-      const pct = Math.round((ready / (total - rejee || 1)) * 100);
-      L.push(`*${ord[sec++]} — الآليات:*`,
-        `الملاك ${total} | الجاهزة ${ready} ✅`,
-        `متعطلة: مقر ${broken.length - wshop} · صيانة ${wshop} 🔧`,
-        `الرجيع ${rejee} | الجاهزية *${pct}%*`, "");
+      const base = total - rejee || 1;
+      const pctBroken = Math.round((brokenN / base) * 100);
+      const pctGood = Math.round((readyWork / base) * 100);
+      const pctRejee = Math.round((rejee / (total || 1)) * 100);
+      const pctNotes = Math.round((notes / base) * 100);
+      L.push(`*${ord[sec++]} — الموقف العام للآليات:*`,
+        `عدد ملاك الإدارة من الآليات: *${total}*`,
+        `عدد الآليات الجاهزة للعمل (تعمل وتم الإصلاح): *${readyWork}* ✅`,
+        `عدد الآليات العطلانة: *${brokenN}* ⚠️`,
+        `- المتعطلة بالصيانة: ${wshop}`,
+        `- المتوقفة بالمراكز: ${brokenN - wshop}`,
+        `عدد الآليات التي تعمل بوجود ملاحظات: *${notes}* 📋`,
+        `عدد الآليات المحالة للرجيع: *${rejee}* ↩️`,
+        `*النسب المئوية:*`,
+        `نسبة الآليات المتعطلة: *${pctBroken}%*`,
+        `نسبة الصالح: *${pctGood}%*`,
+        `نسبة الرجيع: *${pctRejee}%*`,
+        `نسبة الآليات التي تعمل بوجود ملاحظات: *${pctNotes}%*`, "");
     }
     if (ck.ops) {
       const norm = (s) => { const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/); return m ? `${+m[1]}/${+m[2]}/${+m[3]}` : ""; };
@@ -2576,7 +2592,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         {waOpen && (
           <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.62)", zIndex: 880, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setWaOpen(false)}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "22px 24px", width: 520, maxWidth: "94%", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 26px 80px rgba(0,0,0,0.45)" }}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 منقّح الموقف اليومي الشامل</div>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 تقرير إشعاري شامل بالواتساب</div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", margin: "4px 0 12px" }}>اختر البنود فتُبنى الرسالة على المقاس — ثم انسخها أو افتح واتساب مباشرة</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                 {[["veh", "🚒 الآليات"], ["ops", "📟 عمليات اليوم"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "⚠️ يستدعي الانتباه"]].map(([k, lbl]) => (
