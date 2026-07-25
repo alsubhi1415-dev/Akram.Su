@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import QRCode from "qrcode";
 
 // بصمة كلمة سر المحررين (SHA-256) — تُستخدم للواجهة ولرمز الكتابة السحابي
 const PW_HASH = "6346fc1b001a16dd9e1e8b172d33847c99e6016733cb2fde11baf8d107b364ce";
@@ -637,11 +638,48 @@ const TRANSFER_FIELDS = [
 // ====== صفحة تفاصيل الآلية ======
 function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
   const [tab, setTab] = useState("faults");
+  const [qrUrl, setQrUrl] = useState(null);
+  const openQr = () => {
+    const link = "https://alsubhi1415-dev.github.io/Akram.Su/#veh=" + encodeURIComponent(vehicle.plate || vehicle.id);
+    QRCode.toString(link, { type: "svg", margin: 1, color: { dark: "#141A28" } })
+      .then((svg) => setQrUrl("data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg)))
+      .catch(() => alert("تعذر توليد الرمز"));
+  };
+  const printQr = () => {
+    const w2 = window.open("", "_blank", "width=420,height=560");
+    if (!w2) { alert("اسمح بالنوافذ المنبثقة للطباعة"); return; }
+    w2.document.write(`<html dir="rtl"><head><title>بطاقة آلية</title></head><body style="font-family:Tajawal,Arial;text-align:center;padding:26px">
+      <div style="border:2.5px solid #141A28;border-radius:16px;padding:22px;display:inline-block">
+        <div style="font-size:14px;font-weight:800">الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+        <div style="font-size:12px;font-weight:800;color:#7E1A2F">شعبة الاطفاء والانقاذ — سجل متابعة الآليات</div>
+        <img src="${qrUrl}" style="width:230px;margin:14px 0"/>
+        <div style="font-size:17px;font-weight:800">${vehicle.type || ""}</div>
+        <div style="font-size:15px;font-weight:800;margin-top:3px">لوحة: ${vehicle.plate || "—"}</div>
+        <div style="font-size:12px;font-weight:700;margin-top:3px;color:#555">${vehicle.unit || ""}</div>
+        <div style="font-size:10px;color:#888;margin-top:8px">امسح الرمز بكاميرا الجوال لفتح صفحة الآلية مباشرة</div>
+      </div><script>setTimeout(()=>window.print(),400)<\/script></body></html>`);
+    w2.document.close();
+  };
   const [editing, setEditing] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const v = vehicle;
 
   const mutate = (key, fn) => onUpdate({ ...v, [key]: fn(v[key]) });
+
+  const qrModal = qrUrl && (
+    <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.65)", zIndex: 860, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQrUrl(null)}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "26px 30px", textAlign: "center", boxShadow: "0 24px 70px rgba(0,0,0,0.45)" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440" }}>🏷 بطاقة الآلية</div>
+        <img src={qrUrl} alt="QR" style={{ width: 230, margin: "14px 0", border: "1px solid #E4E7F0", borderRadius: 12 }} />
+        <div style={{ fontSize: 14.5, fontWeight: 800 }}>{v.type} — {v.plate}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#8B93A8", marginTop: 3 }}>مسح الرمز بالجوال يفتح صفحة هذه الآلية مباشرة</div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
+          <button onClick={() => setQrUrl(null)} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+          <button onClick={printQr} style={{ background: "#141A28", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🖨 طباعة البطاقة اللاصقة</button>
+        </div>
+      </div>
+    </div>
+  );
 
   const info = [
     ["نوع الآلية", v.type], ["رقم اللوحة", v.plate], ["جهة الآلية", v.unit],
@@ -659,9 +697,13 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
 
   return (
     <div>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: "#9E1B22", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit", padding: 0, marginBottom: 14 }}>
-        → العودة لسجل الآليات
-      </button>
+      {qrModal}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "#9E1B22", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+          → العودة لسجل الآليات
+        </button>
+        <button onClick={openQr} title="بطاقة QR تُطبع وتلصق على الآلية" style={{ background: "#EEF1F8", color: "#1B2440", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "8px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🏷 بطاقة QR</button>
+      </div>
 
       <div style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 22, marginBottom: 16 }}>
         {editing ? (
@@ -2160,6 +2202,84 @@ function ReadinessReport({ centerReadiness, equip, supportCounts, prio, prioWeig
   );
 }
 
+// ====== تقرير موقف مركز واحد ======
+function CenterReport({ vehicles, logo }) {
+  const units = useMemo(() => [...new Set(vehicles.map((v) => (v.unit || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ar")), [vehicles]);
+  const [unit, setUnit] = useState("");
+  const t = todayHijri();
+  const rows = vehicles.filter((v) => (v.unit || "").trim() === unit);
+  const ready = rows.filter((v) => READY_SET.includes((v.status || "").trim()));
+  const broken = rows.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+  const cell = { border: "1px solid #141A28", padding: "6px 8px", fontSize: 12, textAlign: "center" };
+  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800 };
+  return (
+    <div>
+      <div className="no-print" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>🏢 اختر المركز / الجهة:</span>
+        <select value={unit} onChange={(e) => setUnit(e.target.value)} style={{ ...inputStyle, minWidth: 260, padding: "9px 12px" }}>
+          <option value="">— اختر —</option>
+          {units.map((u) => <option key={u} value={u}>{u}</option>)}
+        </select>
+        {unit && <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0E7A5F" }}>✓ {rows.length} آلية بهذه الجهة</span>}
+      </div>
+      {!unit ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر مركزاً من القائمة أعلاه ليُبنى بيان موقفه الكامل جاهزاً للطباعة</div>
+      ) : (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 4 }}>
+            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
+            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان موقف آليات: {unit}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0" }}>
+            {[["الإجمالي", rows.length, "#1B2440"], ["الجاهزة", ready.length, "#0E7A5F"], ["المتعطلة", broken.length, "#B3121C"], ["نسبة الجاهزية", rows.length ? Math.round((ready.length / rows.length) * 100) + "%" : "—", "#1F6FB8"]].map(([l, n, c]) => (
+              <div key={l} style={{ border: "1.5px solid " + c, borderRadius: 10, padding: "6px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: c }}>{n}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 6 }}>
+            <thead><tr>
+              <th style={hcell}>م</th><th style={hcell}>نوع الآلية</th><th style={hcell}>رقم اللوحة</th><th style={hcell}>الموديل</th>
+              <th style={hcell}>الحالة الفنية</th><th style={hcell}>الموقع الحالي</th><th style={hcell}>آخر عطل مسجل</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((v, i) => {
+                const lf = (v.faults || []).slice().sort((a, b) => (hDayNum(b.date) || 0) - (hDayNum(a.date) || 0))[0];
+                return (
+                  <tr key={v.id}>
+                    <td style={cell}>{i + 1}</td><td style={cell}>{v.type}</td><td style={cell}>{v.plate}</td>
+                    <td style={cell}>{v.model || "—"}</td><td style={{ ...cell, fontWeight: 800, color: BROKEN_SET.includes((v.status || "").trim()) ? "#B3121C" : "#141A28" }}>{v.status}</td>
+                    <td style={cell}>{v.location || "—"}</td>
+                    <td style={{ ...cell, textAlign: "right" }}>{lf ? (lf.desc || "").slice(0, 60) + (lf.date ? " (" + lf.date + ")" : "") : "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {broken.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>بيان الآليات المتعطلة وتفاصيلها:</div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr><th style={hcell}>م</th><th style={hcell}>النوع</th><th style={hcell}>اللوحة</th><th style={hcell}>تاريخ العطل</th><th style={hcell}>وصف العطل</th><th style={hcell}>الموقع</th></tr></thead>
+                <tbody>
+                  {broken.map((v, i) => {
+                    const f = (v.faults || []).filter((x) => !x.repairDate).sort((a, b) => (hDayNum(a.date) || 0) - (hDayNum(b.date) || 0))[0] || {};
+                    return (<tr key={v.id}><td style={cell}>{i + 1}</td><td style={cell}>{v.type}</td><td style={cell}>{v.plate}</td><td style={cell}>{f.date || "—"}</td><td style={{ ...cell, textAlign: "right" }}>{f.desc || "—"}</td><td style={cell}>{v.location || "—"}</td></tr>);
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner }) {
   const [rBranch, setRBranch] = useState([]);
   const [rUnit, setRUnit] = useState([]);
@@ -2274,7 +2394,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -2326,6 +2446,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       <div id="print-area" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: "26px 30px", position: "relative", overflow: "hidden" }}>
         {repMode === "weekly" && <WeeklyReport vehicles={vehicles} logo={logo} />}
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
+        {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
         {ro && (
           <div className="draft-wm" aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
             {Array.from({ length: 30 }, (_, i) => (
@@ -4059,6 +4180,12 @@ export default function FleetApp() {
   const [reportsInit, setReportsInit] = useState("vehicles");
   const [selectedId, setSelectedId] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [sortK, setSortK] = useState(null);
+  const [sortD, setSortD] = useState(1);
+  const [quick, setQuick] = useState(null); // {v, mode:'fault'|'fix', date, desc}
+  const [saveBar, setSaveBar] = useState(null);
+  const saveBarT = useRef(null);
+  const [backupDismiss, setBackupDismiss] = useState(false);
   const [importMsg, setImportMsg] = useState("");
   const [q, setQ] = useState("");
   const [fStatus, setFStatus] = useState([]);
@@ -4324,6 +4451,9 @@ export default function FleetApp() {
     setUndoCount(undoStack.current.length);
     setDb(next); saveDB(next);
     queueCloud(next);
+    setSaveBar({ label });
+    clearTimeout(saveBarT.current);
+    saveBarT.current = setTimeout(() => setSaveBar(null), 10000);
   };
   const undo = () => {
     const prev = undoStack.current.pop();
@@ -4334,12 +4464,25 @@ export default function FleetApp() {
     setTimeout(() => setImportMsg(""), 4000);
   };
   const vehicles = db?.vehicles || [];
+  const bootRef = useRef(false);
   useEffect(() => {
+    if (bootRef.current) return;
+    const m = (window.location.hash || "").match(/#veh=(.+)/);
+    if (m) {
+      if (!vehicles.length) return; // القاعدة لم تُحمل بعد — سيعاد التنفيذ عند وصولها
+      try {
+        const key = decodeURIComponent(m[1]);
+        const nz = (s) => String(s || "").replace(/\s+/g, "");
+        const v = vehicles.find((x) => nz(x.plate) === nz(key) || String(x.id) === key);
+        if (v) { bootRef.current = true; setSelectedId(v.id); setView("detail"); return; }
+      } catch (e) {}
+    }
+    bootRef.current = true;
     if (ro) {
       setView("overview");
       try { if (!localStorage.getItem("fd_tour_done")) setTourOpen(true); } catch (e) {}
     }
-  }, []);
+  }, [vehicles.length]);
   const alerts = useMemo(() => {
     const t = todayHijri();
     const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
@@ -4361,6 +4504,65 @@ export default function FleetApp() {
     const rej = vehicles.filter((v) => (v.status || "").trim() === "تحت إجراءات الرجيع");
     return { long, warr, rej, total: long.length + warr.length + rej.length };
   }, [vehicles]);
+  const SORT_KEYS = { "نوع الآلية": "type", "رقم اللوحة": "plate", "جهة الآلية": "unit", "رقم الصنف": "itemNo", "رقم الشاصية": "chassis", "اللون": "color", "الموديل": "model", "الموقع الحالي": "location", "الحالة الفنية": "status", "أعطال": "__f" };
+  const sortRows = (arr) => {
+    if (!sortK) return arr;
+    const g = (v) => sortK === "__f" ? v.faults.length : String(v[sortK] || "");
+    return [...arr].sort((a, b) => {
+      const A = g(a), B = g(b);
+      return (typeof A === "number" ? A - B : A.localeCompare(B, "ar")) * sortD;
+    });
+  };
+  const backupNow = () => {
+    const t = todayHijri();
+    const blob = new Blob([JSON.stringify(db, null, 1)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `نسخة-احتياطية-سجل-الآليات-${t.y}-${String(t.m).padStart(2, "0")}-${String(t.d).padStart(2, "0")}هـ.json`;
+    a.click(); URL.revokeObjectURL(a.href);
+    try { localStorage.setItem("fd_backup_last", String(t.y * 354.367 + (t.m - 1) * 29.53 + t.d)); } catch (e) {}
+    setBackupDismiss(true);
+    setImportMsg("💾 نُزلت النسخة الاحتياطية الكاملة — احفظها بمكان آمن");
+    setTimeout(() => setImportMsg(""), 5000);
+  };
+  const backupDue = useMemo(() => {
+    if (ro) return 0;
+    try {
+      const t = todayHijri();
+      const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+      const last = parseFloat(localStorage.getItem("fd_backup_last") || "0");
+      if (!last) return 999;
+      return Math.round(now - last);
+    } catch (e) { return 0; }
+  }, [db, ro]);
+  const exportCsv = (rows) => {
+    const cols = [["نوع الآلية", "type"], ["رقم اللوحة", "plate"], ["جهة الآلية", "unit"], ["رقم الصنف", "itemNo"], ["رقم الشاصية", "chassis"], ["اللون", "color"], ["الموديل", "model"], ["الموقع الحالي", "location"], ["الحالة الفنية", "status"], ["عدد الأعطال", "__f"]];
+    const esc = (s) => '"' + String(s == null ? "" : s).replace(/"/g, '""') + '"';
+    const lines = [cols.map((c) => esc(c[0])).join(",")];
+    rows.forEach((v) => lines.push(cols.map(([_, k]) => esc(k === "__f" ? v.faults.length : v[k])).join(",")));
+    const t = todayHijri();
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `سجل-الآليات-${t.y}-${String(t.m).padStart(2, "0")}-${String(t.d).padStart(2, "0")}هـ.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+  const quickSave = () => {
+    if (!quick || !quick.date) { alert("أدخل التاريخ الهجري أولاً"); return; }
+    const v = quick.v;
+    let nv;
+    if (quick.mode === "fault") {
+      if (!quick.desc.trim()) { alert("أدخل وصف العطل"); return; }
+      nv = { ...v, status: "عطلانة", faults: [...v.faults, { _id: "q" + Date.now(), date: quick.date, desc: quick.desc.trim(), faultType: quick.ftype || "ميكانيكي" }] };
+    } else {
+      const open = v.faults.filter((f) => !f.repairDate);
+      if (!open.length) { alert("لا عطل مفتوحاً على هذه الآلية"); return; }
+      const target = open.sort((a, b) => (hDayNum(b.date) || 0) - (hDayNum(a.date) || 0))[0];
+      nv = { ...v, status: "تم الإصلاح", faults: v.faults.map((f) => f._id === target._id ? { ...f, repairDate: quick.date } : f) };
+    }
+    persist({ ...db, vehicles: vehicles.map((x) => x.id === v.id ? nv : x) }, quick.mode === "fault" ? "تسجيل عطل سريع" : "تسجيل إصلاح سريع");
+    setQuick(null);
+  };
 
 
   const vehGuard = () => {
@@ -4638,6 +4840,10 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
+            {!ro && <button onClick={backupNow} title="تنزيل نسخة احتياطية كاملة لقاعدة البيانات" style={{
+              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+            }}>💾</button>}
             <button onClick={() => setDark(!dark)} title={dark ? "الوضع النهاري" : "الوضع الليلي"} style={{
               background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
               borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
@@ -4684,6 +4890,39 @@ export default function FleetApp() {
           </nav>
         </div>
       </header>
+
+      {saveBar && !ro && (
+        <div className="no-print" style={{ position: "fixed", bottom: 18, right: "50%", transform: "translateX(50%)", zIndex: 800, background: "#141A28", color: "#fff", borderRadius: 14, padding: "11px 18px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 12px 34px rgba(10,14,26,0.5)", fontSize: 13, fontWeight: 800 }}>
+          <span>✓ تم الحفظ: {saveBar.label}</span>
+          <button onClick={() => { undo(); setSaveBar(null); }} style={{ background: "#FFD166", color: "#141A28", border: "none", borderRadius: 9, padding: "7px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>↩ تراجع</button>
+          <span onClick={() => setSaveBar(null)} style={{ cursor: "pointer", opacity: 0.6 }}>✕</span>
+        </div>
+      )}
+
+      {quick && (
+        <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 850, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQuick(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "22px 24px", width: 380, maxWidth: "92%", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: quick.mode === "fault" ? "#B3121C" : "#0E7A5F", marginBottom: 4 }}>
+              {quick.mode === "fault" ? "🔧 تسجيل عطل فوري" : "✅ تسجيل إصلاح فوري"}
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5B6478", marginBottom: 14 }}>{quick.v.type} — {quick.v.plate} · {quick.v.unit}</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#3A4560", marginBottom: 4 }}>{quick.mode === "fault" ? "تاريخ العطل الهجري:" : "تاريخ الإصلاح الهجري:"}</div>
+            <HijriDateInput value={quick.date} onChange={(d) => setQuick({ ...quick, date: d })} />
+            {quick.mode === "fault" && (<div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#3A4560", marginBottom: 4 }}>وصف العطل:</div>
+              <textarea value={quick.desc} onChange={(e) => setQuick({ ...quick, desc: e.target.value })} rows={2}
+                style={{ ...inputStyle, width: "100%", resize: "vertical", fontFamily: "inherit" }} placeholder="مثال: عطل بمضخة المياه الرئيسية" />
+            </div>)}
+            {quick.mode === "fix" && (
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginTop: 8 }}>سيُغلق أحدث عطل مفتوح وتتحول الحالة إلى «تم الإصلاح»</div>
+            )}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+              <button onClick={() => setQuick(null)} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إلغاء</button>
+              <button onClick={quickSave} style={{ background: quick.mode === "fault" ? "#B3121C" : "#0E7A5F", color: "#fff", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>حفظ</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {tourOpen && <WelcomeTour onDone={() => { try { localStorage.setItem("fd_tour_done", "1"); } catch (e) {} setTourOpen(false); }} />}
 
@@ -4820,6 +5059,14 @@ export default function FleetApp() {
           </div>
         )}
 
+        {!ro && backupDue > 7 && !backupDismiss && (
+          <div className="no-print" style={{ background: "#FFF6E5", border: "1.5px solid #F0C36D", borderRadius: 14, padding: "11px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontSize: 13, fontWeight: 800, color: "#8A5A00" }}>
+            <span>💾 {backupDue >= 999 ? "لم تُؤخذ نسخة احتياطية بعد" : `مضى ${backupDue} أيام على آخر نسخة احتياطية`} — احرص على نسخة دورية خارج المنظومة</span>
+            <button onClick={backupNow} style={{ background: "#B45309", color: "#fff", border: "none", borderRadius: 9, padding: "8px 16px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تنزيل نسخة الآن</button>
+            <span onClick={() => setBackupDismiss(true)} style={{ cursor: "pointer", opacity: 0.65, marginRight: "auto" }}>✕</span>
+          </div>
+        )}
+
         {view === "overview" && (
           <OverviewPage vehicles={vehicles} incidents={db.incidents || []}
             onGo={(g) => { if (g === "reports") setReportsInit("vehicles"); setView(g); }} />
@@ -4928,16 +5175,25 @@ export default function FleetApp() {
               <MultiSelect label="الموديل" options={allModels} values={fModel} onChange={setFModel} flex="1 1 120px" />
               <MultiSelect label="الشعبة / الجهة" options={allBranches} values={fBranch} onChange={setFBranch} flex="1 1 150px" />
               <MultiSelect label="المركز التفصيلي" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
+              <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
+                style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>
             </div>
 
             <div style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, overflow: "hidden" }}>
-              <div style={{ overflowX: "auto" }}>
+              <div style={{ overflowX: "auto", maxHeight: "72vh", overflowY: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 900 }}>
                   <thead>
-                    <tr style={{ background: "#141A28", color: "#fff", textAlign: "right" }}>
-                      {["نوع الآلية", "رقم اللوحة", "جهة الآلية", "رقم الصنف", "رقم الشاصية", "اللون", "الموديل", "الموقع الحالي", "الحالة الفنية", "أعطال"].map((h) => (
-                        <th key={h} style={{ padding: "12px 12px", fontWeight: 800, whiteSpace: "nowrap" }}>{h}</th>
-                      ))}
+                    <tr style={{ textAlign: "right" }}>
+                      {["نوع الآلية", "رقم اللوحة", "جهة الآلية", "رقم الصنف", "رقم الشاصية", "اللون", "الموديل", "الموقع الحالي", "الحالة الفنية", "أعطال", ...(isOwner ? ["إجراء سريع"] : [])].map((h) => {
+                        const k = SORT_KEYS[h];
+                        return (
+                          <th key={h} onClick={() => { if (!k) return; if (sortK === k) { if (sortD === 1) setSortD(-1); else { setSortK(null); setSortD(1); } } else { setSortK(k); setSortD(1); } }}
+                            title={k ? "اضغط للفرز" : ""}
+                            style={{ padding: "12px 12px", fontWeight: 800, whiteSpace: "nowrap", position: "sticky", top: 0, background: "#141A28", color: sortK === k ? "#FFD166" : "#fff", zIndex: 2, cursor: k ? "pointer" : "default", userSelect: "none" }}>
+                            {h}{sortK === k ? (sortD === 1 ? " ▲" : " ▼") : ""}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -4945,7 +5201,7 @@ export default function FleetApp() {
                       <tr><td colSpan={10} style={{ padding: 30, textAlign: "center", color: "#8B93A3" }}>
                         {vehicles.length === 0 ? "قاعدة البيانات فارغة — اضغط «+ إضافة آلية» لبدء التسجيل." : "لا توجد نتائج مطابقة للبحث."}
                       </td></tr>
-                    ) : filtered.map((v) => (
+                    ) : sortRows(filtered).map((v) => (
                       <tr key={v.id} className="row-hover" onClick={() => { setSelectedId(v.id); setView("detail"); }} style={{ borderBottom: "1px solid #E6E8EC", cursor: "pointer" }}>
                         <td style={{ padding: "11px 12px", fontWeight: 800 }}>{v.type}</td>
                         <td style={{ padding: "11px 12px", fontWeight: 700 }}>{v.plate}</td>
@@ -4957,6 +5213,12 @@ export default function FleetApp() {
                         <td style={{ padding: "11px 12px" }}>{v.location || "—"}</td>
                         <td style={{ padding: "11px 12px" }}><StatusBadge status={v.status} /></td>
                         <td style={{ padding: "11px 12px", textAlign: "center", fontWeight: 700 }}>{v.faults.length}</td>
+                        {isOwner && (
+                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+                            <button title="تسجيل عطل فوري" onClick={() => setQuick({ v, mode: "fault", date: "", desc: "", ftype: "ميكانيكي" })} style={{ background: "#FBE9EB", color: "#B3121C", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}>🔧</button>
+                            <button title="تسجيل إصلاح فوري" onClick={() => setQuick({ v, mode: "fix", date: "", desc: "" })} style={{ background: "#E5F5EE", color: "#0E7A5F", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}>✅</button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
