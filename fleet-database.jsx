@@ -4043,6 +4043,14 @@ export default function FleetApp() {
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("readiness");
   const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef(null);
+  useEffect(() => {
+    if (!bellOpen) return;
+    const h = (e) => { if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false); };
+    document.addEventListener("mousedown", h);
+    document.addEventListener("touchstart", h);
+    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("touchstart", h); };
+  }, [bellOpen]);
   const [dark, setDark] = useState(() => { try { return localStorage.getItem("fd_dark") === "1"; } catch (e) { return false; } });
   const [tourOpen, setTourOpen] = useState(false);
   useEffect(() => {
@@ -4606,7 +4614,7 @@ export default function FleetApp() {
               {cloud === "on" ? "🟢" : cloud === "off" ? "⚪" : cloud === "notoken" ? "🔑" : "🟡"}
               {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
             </span>
-            <span style={{ position: "relative", display: "inline-flex" }}>
+            <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
               <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
                 background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
                 borderRadius: 10, padding: "8px 12px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", position: "relative",
