@@ -853,6 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
+const APP_BUILD = "الإصدار 3.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5155,6 +5156,7 @@ export default function FleetApp() {
                 display: "inline-flex", alignItems: "center", gap: 5, boxShadow: "0 3px 12px rgba(0,0,0,0.18)",
               }}>→ رجوع</button>
             )}
+            <span title="نسخة التطبيق الحالية" style={{ fontSize: 9.5, fontWeight: 800, color: "rgba(255,255,255,0.5)", alignSelf: "center", background: "rgba(255,255,255,0.07)", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{APP_BUILD}</span>
             <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
               <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
                 background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
