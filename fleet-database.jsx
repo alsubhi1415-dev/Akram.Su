@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.4 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1262,7 +1262,8 @@ function OverviewPage({ vehicles, incidents, onGo }) {
     const units = new Set(vehicles.map((v) => v.unit).filter(Boolean)).size;
     const norm = (s) => String(s || "").replace(/[\/-]0?/g, "/").replace(/^0/, "");
     const todayInc = (incidents || []).filter((i) => norm(i.date) === norm(todayStr)).length;
-    return { total, ready, broken, rejee, units, todayInc, pct: total ? Math.round((ready / (total - rejee || 1)) * 100) : 0 };
+    const notes = vehicles.filter((v) => (v.status || "").trim() === "تعمل بوجود ملاحظات").length;
+    return { total, ready, broken, rejee, notes, units, todayInc, pct: total ? Math.round((ready / (total - rejee || 1)) * 100) : 0 };
   }, [vehicles, incidents]);
   const C = ({ n, label, color, icon, go, sub }) => {
     const cv = useCountUp(n);
@@ -1286,9 +1287,11 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon="🚒" go="list" />
         <C n={S.ready} label="الآليات الجاهزة للعمل" color="#00875A" icon="✅" go="list" />
-        <C n={S.broken} label="الآليات المتعطلة حالياً" color="#B3121C" icon="🔧" go="list" />
+        <C n={S.notes} label="آليات تعمل بوجود ملاحظات" color="#B45309" icon="📋" go="list" />
+        <C n={S.broken} label="الآليات المتعطلة حالياً" color="#B3121C" icon="⚠️" go="list" />
+        <C n={S.rejee} label="آليات الرجيع" sub="ما بين تحت الإجراءات وصدر القرار" color="#4E3D80" icon="↩️" go="list" />
         <C n={S.pct} label="نسبة الجاهزية" color="#1F6FB8" icon="⚡" go="charts" />
-        <C n={S.units} label="جهة" sub="ما بين شعب ومراكز ميدانية ومراكز سلامة وأقسام" color="#6D28D9" icon="🏢" go="readiness" />
+        <C n={S.units} label="جهة" sub="ما بين شعب ومراكز ميدانية ومراكز سلامة وأقسام داخلية" color="#6D28D9" icon="🏢" go="readiness" />
         <C n={S.todayInc} label="حوادث اليوم المباشرة" color="#B45309" icon="📟" go="ops" />
       </div>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
