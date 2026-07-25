@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1285,8 +1285,8 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon="🚒" go="list" />
-        <C n={S.ready} label="الجاهزة للعمل" color="#00875A" icon="✅" go="list" />
-        <C n={S.broken} label="المتعطلة حالياً" color="#B3121C" icon="🔧" go="list" />
+        <C n={S.ready} label="الآليات الجاهزة للعمل" color="#00875A" icon="✅" go="list" />
+        <C n={S.broken} label="الآليات المتعطلة حالياً" color="#B3121C" icon="🔧" go="list" />
         <C n={S.pct} label="نسبة الجاهزية" color="#1F6FB8" icon="⚡" go="charts" />
         <C n={S.units} label="جهة" sub="ما بين شعب ومراكز ميدانية ومراكز سلامة وأقسام" color="#6D28D9" icon="🏢" go="readiness" />
         <C n={S.todayInc} label="حوادث اليوم المباشرة" color="#B45309" icon="📟" go="ops" />
@@ -1523,7 +1523,10 @@ function TVMode({ vehicles, incidents, centerReadiness, equip, onClose }) {
       brokenArr.forEach((v) => { const k = (v[key] || "غير محدد").trim() || "غير محدد"; m[k] = (m[k] || 0) + 1; });
       return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 5);
     };
-    const stDist = STATUSES.map((st) => [st, vehicles.filter((v) => (v.status || "").trim() === st).length]).filter(([, n]) => n > 0);
+    const stCnt = (st) => vehicles.filter((v) => (v.status || "").trim() === st).length;
+    const stDist = STATUSES.filter((st) => st !== "تم الإصلاح")
+      .map((st) => [st, st === "تعمل" ? stCnt("تعمل") + stCnt("تم الإصلاح") : stCnt(st)])
+      .filter(([, n]) => n > 0);
     // العمليات
     const norm = (s) => { const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/); return m ? { y: +m[1], mo: +m[2], d: +m[3] } : null; };
     const dnum = (o) => o ? o.y * 354.367 + (o.mo - 1) * 29.53 + o.d : -1;
@@ -1634,7 +1637,10 @@ function TVMode({ vehicles, incidents, centerReadiness, equip, onClose }) {
 
 function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, equip, supportCounts, prio, prioWeights, incidents }) {
   const [tv, setTv] = useState(false);
-  const statusData = STATUSES.map((s) => ({ name: s, value: counts[s] || 0 })).filter((d) => d.value > 0);
+  const statusData = STATUSES
+    .filter((s) => s !== "تم الإصلاح")
+    .map((s) => ({ name: s, value: s === "تعمل" ? (counts["تعمل"] || 0) + (counts["تم الإصلاح"] || 0) : counts[s] || 0 }))
+    .filter((d) => d.value > 0);
 
   // ====== إحصائيات صفحة الجاهزية (قراءة فقط) ======
   const rdy = useMemo(() => {
@@ -1712,13 +1718,12 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
 
   const kpis = [
     { label: "إجمالي الآليات", value: counts.total, grad: "linear-gradient(135deg,#1F4E8C,#00A8E8)", icon: "🚒" },
-    { label: "تعمل", value: counts["تعمل"], grad: "linear-gradient(135deg,#00875A,#00C48C)", icon: "✅" },
-    { label: "عطلانة", value: counts["عطلانة"], grad: "linear-gradient(135deg,#C4353C,#FF5D73)", icon: "⚠️" },
-    { label: "تم الإصلاح", value: counts["تم الإصلاح"], grad: "linear-gradient(135deg,#1F5A7A,#38BDF8)", icon: "🔧" },
-    { label: "بوجود ملاحظات", value: counts["تعمل بوجود ملاحظات"], grad: "linear-gradient(135deg,#B45309,#FFB800)", icon: "📋" },
-    { label: "تحت التجهيز والتسليم", value: counts["تحت التجهيز والتسليم"], grad: "linear-gradient(135deg,#0B5A52,#12B8A6)", icon: "📦" },
-    { label: "إجراءات الرجيع", value: counts["تحت إجراءات الرجيع"], grad: "linear-gradient(135deg,#4E3D80,#7C5CFF)", icon: "↩️" },
-    { label: "صدر قرار الرجيع", value: counts["صدر قرار الرجيع"], grad: "linear-gradient(135deg,#475569,#94A3B8)", icon: "🗄️" },
+    { label: "آليات تعمل بدون ملاحظات", value: (counts["تعمل"] || 0) + (counts["تم الإصلاح"] || 0), grad: "linear-gradient(135deg,#00875A,#00C48C)", icon: "✅" },
+    { label: "الآليات العطلانة", value: counts["عطلانة"], grad: "linear-gradient(135deg,#C4353C,#FF5D73)", icon: "⚠️" },
+    { label: "آليات تعمل بوجود ملاحظات", value: counts["تعمل بوجود ملاحظات"], grad: "linear-gradient(135deg,#B45309,#FFB800)", icon: "📋" },
+    { label: "آليات تحت التجهيز والتسليم", value: counts["تحت التجهيز والتسليم"], grad: "linear-gradient(135deg,#0B5A52,#12B8A6)", icon: "📦" },
+    { label: "آليات تحت إجراءات الرجيع", value: counts["تحت إجراءات الرجيع"], grad: "linear-gradient(135deg,#4E3D80,#7C5CFF)", icon: "↩️" },
+    { label: "آليات صدر قرار الرجيع", value: counts["صدر قرار الرجيع"], grad: "linear-gradient(135deg,#475569,#94A3B8)", icon: "🗄️" },
   ];
 
   return (
@@ -5115,7 +5120,7 @@ export default function FleetApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
             <Logo logoSrc={logo} onUpload={uploadLogo} />
             <div style={{ flex: 1, minWidth: 210 }}>
-              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>جاهزية المراكز الميدانية</div>
+              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "الداشبورد" : "جاهزية المراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
