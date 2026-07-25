@@ -5061,10 +5061,12 @@ export default function FleetApp() {
               {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
             </span>
             {histLen > 0 && (
-              <button onClick={goBack} title="العودة للصفحة السابقة" style={{
-                background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-                borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                display: "inline-flex", alignItems: "center", gap: 6,
+              <button className="no-print" onClick={goBack} title="العودة للصفحة السابقة" style={{
+                position: "fixed", top: 8, left: 8, zIndex: 840,
+                background: "rgba(20,26,40,0.32)", color: "rgba(255,255,255,0.92)",
+                border: "1px solid rgba(255,255,255,0.28)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+                borderRadius: 999, padding: "5px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: 5, boxShadow: "0 3px 12px rgba(0,0,0,0.18)",
               }}>→ رجوع</button>
             )}
             <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
