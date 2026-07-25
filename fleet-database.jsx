@@ -547,9 +547,17 @@ function VehicleForm({ initial, onSave, onCancel }) {
 
 // ====== سجل عام (أعطال / تنقلات) ======
 function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, sortKey }) {
-  const [draft, setDraft] = useState({});
-  const [open, setOpen] = useState(false);
-  const reset = () => { setDraft({}); setOpen(false); };
+  const dKey = "fd_draft_" + title;
+  const [draft, setDraft] = useState(() => { try { return JSON.parse(localStorage.getItem(dKey) || "{}"); } catch (e) { return {}; } });
+  const [open, setOpen] = useState(() => { try { return Object.keys(JSON.parse(localStorage.getItem(dKey) || "{}")).some((k) => JSON.parse(localStorage.getItem(dKey))[k]); } catch (e) { return false; } });
+  useEffect(() => {
+    try {
+      const hasContent = Object.keys(draft).some((k) => draft[k]);
+      if (hasContent) localStorage.setItem(dKey, JSON.stringify(draft));
+      else localStorage.removeItem(dKey);
+    } catch (e) {}
+  }, [draft]);
+  const reset = () => { setDraft({}); setOpen(false); try { localStorage.removeItem(dKey); } catch (e) {} };
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -4285,6 +4293,30 @@ export default function FleetApp() {
   const saveBarT = useRef(null);
   const [backupDismiss, setBackupDismiss] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const purgedRef = useRef(false);
+  useEffect(() => {
+    if (purgedRef.current || !db || !(db.trash || []).length) return;
+    purgedRef.current = true;
+    const t = todayHijri();
+    const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+    const kept = (db.trash || []).filter((e) => now - (e.dn || now) <= 30);
+    if (kept.length !== (db.trash || []).length) {
+      const nd = { ...db, trash: kept };
+      setDb(nd); saveDB(nd); queueCloud(nd);
+    }
+  }, [db]);
+  const restoreTrash = (id) => {
+    const e = (db.trash || []).find((x, i) => i === id);
+    if (!e || !e.item) return;
+    const rest = (db.trash || []).filter((x, i) => i !== id);
+    if (e.k === "veh") persist({ ...db, vehicles: [...vehicles, e.item], trash: rest }, "استعادة آلية " + (e.item.plate || "") + " من السلة");
+    else persist({ ...db, incidents: [...(db.incidents || []), e.item], trash: rest }, "استعادة حادث من السلة");
+  };
+  const hardDelete = (id) => {
+    if (!window.confirm("حذف نهائي لا رجعة فيه — متأكد؟")) return;
+    persist({ ...db, trash: (db.trash || []).filter((x, i) => i !== id) }, "حذف نهائي من السلة");
+  };
   const [importMsg, setImportMsg] = useState("");
   const [q, setQ] = useState("");
   const [fStatus, setFStatus] = useState([]);
@@ -4690,7 +4722,15 @@ export default function FleetApp() {
     return false;
   };
   const updateVehicle = (nv) => { if (!vehGuard()) return; persist({ ...db, vehicles: vehicles.map((x) => (x.id === nv.id ? nv : x)) }, "تعديل بيانات آلية " + (nv.plate || "")); };
-  const deleteVehicle = (id) => { if (!vehGuard()) return; const dv = vehicles.find((x) => x.id === id); persist({ ...db, vehicles: vehicles.filter((x) => x.id !== id) }, "حذف آلية " + (dv?.plate || "")); setView("list"); setSelectedId(null); };
+  const trashDayNum = () => { const t = todayHijri(); return t.y * 354.367 + (t.m - 1) * 29.53 + t.d; };
+  const deleteVehicle = (id) => {
+    if (!vehGuard()) return;
+    const dv = vehicles.find((x) => x.id === id);
+    persist({ ...db, vehicles: vehicles.filter((x) => x.id !== id),
+      trash: [...(db.trash || []), { k: "veh", dn: trashDayNum(), item: dv }] },
+      "حذف آلية " + (dv?.plate || "") + " (إلى سلة المحذوفات)");
+    setView("list"); setSelectedId(null);
+  };
   const addVehicle = (v) => { if (!vehGuard()) return; persist({ ...db, vehicles: [...vehicles, v] }, "إضافة آلية " + (v.plate || "")); setAdding(false); setView("list"); };
 
   const uploadLogo = async (dataUrl) => {
@@ -4958,6 +4998,10 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
+            {isOwner && <button onClick={() => setTrashOpen(true)} title="سلة المحذوفات — استعادة خلال 30 يوماً" style={{
+              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit", position: "relative",
+            }}>🗑{(db.trash || []).length > 0 && <span style={{ position: "absolute", top: -6, left: -6, background: "#8B93A8", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1.5px 6px" }}>{(db.trash || []).length}</span>}</button>}
             {isOwner && <button onClick={() => setAuditOpen(true)} title="سجل التدقيق — من فعل ماذا ومتى" style={{
               background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
               borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
@@ -5012,6 +5056,28 @@ export default function FleetApp() {
           </nav>
         </div>
       </header>
+
+      {trashOpen && (
+        <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setTrashOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: 520, maxWidth: "94%", maxHeight: "78vh", overflowY: "auto", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginBottom: 4 }}>🗑 سلة المحذوفات ({(db.trash || []).length})</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginBottom: 12 }}>المحذوفات تبقى هنا 30 يوماً قابلة للاستعادة ثم تُطهر تلقائياً — لا فقدان بالخطأ أبداً</div>
+            {(db.trash || []).length === 0 ? (
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#8B93A8", padding: 12 }}>السلة فارغة ✨</div>
+            ) : (db.trash || []).map((e, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 4px", borderBottom: "1px solid #F0F2F7", fontSize: 12.5, flexWrap: "wrap" }}>
+                <span style={{ background: e.k === "veh" ? "#FBE9EB" : "#EDE8FB", color: e.k === "veh" ? "#B3121C" : "#6D28D9", borderRadius: 8, padding: "3px 10px", fontWeight: 800, flexShrink: 0 }}>{e.k === "veh" ? "🚒 آلية" : "📟 حادث"}</span>
+                <span style={{ fontWeight: 800, color: "#1B2440", flex: 1, minWidth: 140 }}>{e.k === "veh" ? (e.item?.type || "") + " — " + (e.item?.plate || "") : (e.item?.type || "") + " · " + (e.item?.loc || e.item?.date || "")}</span>
+                <button onClick={() => restoreTrash(i)} style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>↩ استعادة</button>
+                <button onClick={() => hardDelete(i)} style={{ background: "#EEF1F8", color: "#B3121C", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>حذف نهائي</button>
+              </div>
+            ))}
+            <div style={{ textAlign: "left", marginTop: 12 }}>
+              <button onClick={() => setTrashOpen(false)} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {auditOpen && (
         <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setAuditOpen(false)}>
@@ -5218,7 +5284,7 @@ export default function FleetApp() {
           <OpsStatsPage incidents={db.incidents || []} ro={ro} logo={logo} vehiclesCount={vehicles.length}
             opsMeta={db.opsMeta || {}} onSaveMeta={(m) => persist({ ...db, opsMeta: m }, "تحديث الإمكانيات البشرية والآلية")}
             onAdd={(inc) => persist({ ...db, incidents: [...(db.incidents || []), inc] }, "تسجيل حادث " + inc.type)}
-            onDelete={(id) => persist({ ...db, incidents: (db.incidents || []).filter((x) => x.id !== id) }, "حذف حادث")} />
+            onDelete={(id) => { const di = (db.incidents || []).find((x) => x.id === id); persist({ ...db, incidents: (db.incidents || []).filter((x) => x.id !== id), trash: [...(db.trash || []), { k: "inc", dn: trashDayNum(), item: di }] }, "حذف حادث (إلى سلة المحذوفات)"); }} />
         )}
 
         {view === "charts" && (
