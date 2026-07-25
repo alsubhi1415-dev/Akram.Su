@@ -4334,6 +4334,27 @@ export default function FleetApp() {
   const [db, setDb] = useState(null);
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("readiness");
+  const histRef = useRef([]);
+  const prevViewRef = useRef(null);
+  const backingRef = useRef(false);
+  const [histLen, setHistLen] = useState(0);
+  useEffect(() => {
+    if (prevViewRef.current !== null && prevViewRef.current !== view) {
+      if (backingRef.current) backingRef.current = false;
+      else { histRef.current.push(prevViewRef.current); if (histRef.current.length > 60) histRef.current.shift(); }
+      setHistLen(histRef.current.length);
+    }
+    prevViewRef.current = view;
+  }, [view]);
+  const goBack = () => {
+    const h = histRef.current;
+    if (!h.length) return;
+    backingRef.current = true;
+    const v = h.pop();
+    if (v !== "detail") setSelectedId(null);
+    setAdding(false);
+    setView(v);
+  };
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef(null);
   useEffect(() => {
@@ -4689,11 +4710,12 @@ export default function FleetApp() {
         const key = decodeURIComponent(m[1]);
         const nz = (s) => String(s || "").replace(/\s+/g, "");
         const v = vehicles.find((x) => nz(x.plate) === nz(key) || String(x.id) === key);
-        if (v) { bootRef.current = true; setSelectedId(v.id); setView("detail"); return; }
+        if (v) { bootRef.current = true; backingRef.current = true; setSelectedId(v.id); setView("detail"); return; }
       } catch (e) {}
     }
     bootRef.current = true;
     if (ro) {
+      backingRef.current = true;
       setView("overview");
       try { if (!localStorage.getItem("fd_tour_done")) setTourOpen(true); } catch (e) {}
     }
@@ -5038,6 +5060,13 @@ export default function FleetApp() {
               {cloud === "on" ? "🟢" : cloud === "off" ? "⚪" : cloud === "notoken" ? "🔑" : "🟡"}
               {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
             </span>
+            {histLen > 0 && (
+              <button onClick={goBack} title="العودة للصفحة السابقة" style={{
+                background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+                borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}>→ رجوع</button>
+            )}
             <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
               <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
                 background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
