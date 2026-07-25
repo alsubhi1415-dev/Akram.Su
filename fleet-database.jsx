@@ -2280,7 +2280,7 @@ function CenterReport({ vehicles, logo }) {
   );
 }
 
-function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner }) {
+function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive }) {
   const [rBranch, setRBranch] = useState([]);
   const [rUnit, setRUnit] = useState([]);
   const [rStatus, setRStatus] = useState([]);
@@ -2291,6 +2291,26 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
   const [title, setTitle] = useState("تقرير حالة الآليات");
   const [repMode, setRepMode] = useState(initialMode || "vehicles"); // vehicles | readiness
   const [waCopied, setWaCopied] = useState(false);
+  const [archMsg, setArchMsg] = useState("");
+  const [archSel, setArchSel] = useState(null);
+  const doArchive = () => {
+    const el = document.getElementById("print-area");
+    if (!el) return;
+    const t = todayHijri();
+    const total = vehicles.length;
+    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
+    const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
+    onArchive({
+      id: "a" + Date.now(),
+      d: `${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y} هـ`,
+      n: t.y * 354.367 + (t.m - 1) * 29.53 + t.d,
+      sum: { total, ready, broken, rejee, pct: Math.round((ready / (total - rejee || 1)) * 100) },
+      html: el.innerHTML,
+    });
+    setArchMsg("🗂 اعتُمد التقرير وأُرشف بلقطته الكاملة — تجده بتبويب الأرشيف");
+    setTimeout(() => setArchMsg(""), 6000);
+  };
   const [pdfBusy, setPdfBusy] = useState(false);
   const waSummary = () => {
     const t = todayHijri();
@@ -2332,7 +2352,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     setPdfBusy(true);
     try {
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const land = repMode === "weekly" || repMode === "nawi";
+      const land = repMode === "weekly" || repMode === "nawi" || repMode === "archive";
       const pdf = new jsPDF({ orientation: land ? "landscape" : "portrait", unit: "mm", format: "a4" });
       const pw = land ? 297 : 210, ph = land ? 210 : 297;
       const ih = (canvas.height * pw) / canvas.width;
@@ -2394,7 +2414,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -2444,9 +2464,87 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
 
       {/* منطقة التقرير القابلة للطباعة */}
       <div id="print-area" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: "26px 30px", position: "relative", overflow: "hidden" }}>
-        {repMode === "weekly" && <WeeklyReport vehicles={vehicles} logo={logo} />}
+        {repMode === "weekly" && (
+          <div>
+            {isOwner && (
+              <div className="no-print" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+                <button onClick={doArchive} style={{ background: "#6D28D9", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📥 اعتماد وأرشفة هذا الأسبوع</button>
+                {archMsg && <span style={{ fontSize: 12.5, fontWeight: 800, color: "#6D28D9" }}>{archMsg}</span>}
+              </div>
+            )}
+            <WeeklyReport vehicles={vehicles} logo={logo} />
+          </div>
+        )}
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
         {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
+        {repMode === "archive" && (
+          <div>
+            {archSel ? (
+              <div>
+                <div className="no-print" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+                  <button onClick={() => setArchSel(null)} style={{ background: "none", border: "none", color: "#9E1B22", fontWeight: 800, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>→ العودة لقائمة الأرشيف</button>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#6D28D9" }}>🗂 لقطة أرشيفية معتمدة بتاريخ {archSel.d} — اطبعها كما كانت تماماً</span>
+                </div>
+                <div dangerouslySetInnerHTML={{ __html: archSel.html }} />
+              </div>
+            ) : (
+              <div>
+                {(archive || []).length >= 2 && (
+                  <div style={{ background: "#fff", border: "1px solid #E4E7F0", borderRadius: 16, padding: "16px 18px", marginBottom: 16 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1B2440", marginBottom: 10 }}>📈 منحنى تطور نسبة الجاهزية أسبوعاً بأسبوع</div>
+                    {(() => {
+                      const pts = (archive || []).slice(-26);
+                      const W = 720, H = 180, P2 = 34;
+                      const xs = (i) => P2 + (i * (W - 2 * P2)) / Math.max(1, pts.length - 1);
+                      const ys = (p2) => H - P2 - ((p2 / 100) * (H - 2 * P2));
+                      return (
+                        <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", direction: "ltr" }}>
+                          {[0, 25, 50, 75, 100].map((g) => (
+                            <g key={g}>
+                              <line x1={P2} x2={W - P2} y1={ys(g)} y2={ys(g)} stroke="#EEF0F5" strokeWidth="1.4" />
+                              <text x={P2 - 7} y={ys(g) + 4} fontSize="10" fill="#8B93A8" textAnchor="end" fontWeight="700">{g}%</text>
+                            </g>
+                          ))}
+                          <polyline fill="none" stroke="#6D28D9" strokeWidth="3" strokeLinejoin="round"
+                            points={pts.map((e, i) => xs(i) + "," + ys(e.sum.pct)).join(" ")} />
+                          {pts.map((e, i) => (
+                            <g key={e.id}>
+                              <circle cx={xs(i)} cy={ys(e.sum.pct)} r="4.5" fill="#6D28D9" />
+                              <text x={xs(i)} y={ys(e.sum.pct) - 9} fontSize="10.5" fill="#141A28" textAnchor="middle" fontWeight="800">{e.sum.pct}%</text>
+                            </g>
+                          ))}
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                )}
+                {(archive || []).length === 0 ? (
+                  <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>
+                    الأرشيف فارغ — من تبويب «التقرير الأسبوعي» يضغط المشرف «📥 اعتماد وأرشفة» فتُحفظ لقطة الأسبوع مختومة هنا
+                  </div>
+                ) : (
+                  <div style={{ background: "#fff", border: "1px solid #E4E7F0", borderRadius: 16, overflow: "hidden" }}>
+                    {(archive || []).slice().reverse().map((e) => (
+                      <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: "1px solid #F0F2F7", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440", minWidth: 160 }}>🗓 {e.d}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: "#0E7A5F" }}>جاهزة {e.sum.ready}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: "#B3121C" }}>متعطلة {e.sum.broken}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: "#1F6FB8" }}>النسبة {e.sum.pct}%</span>
+                        <span style={{ marginRight: "auto" }}>
+                          {e.html ? (
+                            <button onClick={() => setArchSel(e)} style={{ background: "#6D28D9", color: "#fff", border: "none", borderRadius: 9, padding: "7px 16px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>عرض وطباعة اللقطة</button>
+                          ) : (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#8B93A8" }}>ملخص رقمي (اللقطات الكاملة لآخر 8 أسابيع)</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {ro && (
           <div className="draft-wm" aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
             {Array.from({ length: 30 }, (_, i) => (
@@ -4186,6 +4284,7 @@ export default function FleetApp() {
   const [saveBar, setSaveBar] = useState(null);
   const saveBarT = useRef(null);
   const [backupDismiss, setBackupDismiss] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [importMsg, setImportMsg] = useState("");
   const [q, setQ] = useState("");
   const [fStatus, setFStatus] = useState([]);
@@ -4446,6 +4545,25 @@ export default function FleetApp() {
       setTimeout(() => setImportMsg(""), 4500);
       return;
     }
+    // 5: تحقق ذكي — منع استحداث لوحة مكررة
+    if (next.vehicles !== db.vehicles) {
+      const nz = (s) => String(s || "").replace(/\s+/g, "");
+      const cnt = (arr) => { const m = {}; let d = 0; arr.forEach((v) => { const k = nz(v.plate); if (!k) return; if (m[k]) d++; m[k] = 1; }); return d; };
+      if (cnt(next.vehicles) > cnt(db.vehicles)) {
+        setImportMsg("⚠️ رقم اللوحة مسجل مسبقاً لآلية أخرى — أُلغي الحفظ لحماية السجل");
+        setTimeout(() => setImportMsg(""), 5000);
+        return;
+      }
+    }
+    // 3: ختم التدقيق — من فعل ماذا ومتى (سقف 500 حركة)
+    const _t = todayHijri();
+    const _c = new Date();
+    const auditEntry = {
+      t: `${_t.d}/${_t.m}/${_t.y}هـ ${String(_c.getHours()).padStart(2, "0")}:${String(_c.getMinutes()).padStart(2, "0")}`,
+      r: roleRef.current === "owner" ? "المشرف" : "محرر",
+      a: label,
+    };
+    next = { ...next, audit: [...(db.audit || []), auditEntry].slice(-500) };
     undoStack.current.push({ db, label });
     if (undoStack.current.length > 30) undoStack.current.shift();
     setUndoCount(undoStack.current.length);
@@ -4840,6 +4958,10 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
+            {isOwner && <button onClick={() => setAuditOpen(true)} title="سجل التدقيق — من فعل ماذا ومتى" style={{
+              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+            }}>🕘</button>}
             {isOwner && <button onClick={backupNow} title="تنزيل نسخة احتياطية كاملة لقاعدة البيانات" style={{
               background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
               borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
@@ -4890,6 +5012,26 @@ export default function FleetApp() {
           </nav>
         </div>
       </header>
+
+      {auditOpen && (
+        <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setAuditOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: 480, maxWidth: "94%", maxHeight: "78vh", overflowY: "auto", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginBottom: 10 }}>🕘 سجل التدقيق — آخر {Math.min((db.audit || []).length, 200)} حركة</div>
+            {(db.audit || []).length === 0 ? (
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#8B93A8", padding: 12 }}>لا حركات مسجلة بعد — كل حفظ قادم سيُختم تلقائياً بصفة منفذه ووقته</div>
+            ) : (db.audit || []).slice(-200).reverse().map((e, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 4px", borderBottom: "1px solid #F0F2F7", fontSize: 12.5 }}>
+                <span style={{ background: e.r === "المشرف" ? "#FBE9EB" : "#E8F0FB", color: e.r === "المشرف" ? "#B3121C" : "#1F6FB8", borderRadius: 8, padding: "3px 10px", fontWeight: 800, flexShrink: 0 }}>{e.r}</span>
+                <span style={{ fontWeight: 800, color: "#1B2440", flex: 1 }}>{e.a}</span>
+                <span style={{ fontWeight: 700, color: "#8B93A8", flexShrink: 0, fontSize: 11.5 }}>{e.t}</span>
+              </div>
+            ))}
+            <div style={{ textAlign: "left", marginTop: 12 }}>
+              <button onClick={() => setAuditOpen(false)} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {saveBar && !ro && (
         <div className="no-print" style={{ position: "fixed", bottom: 18, right: "50%", transform: "translateX(50%)", zIndex: 800, background: "#141A28", color: "#fff", borderRadius: 14, padding: "11px 18px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 12px 34px rgba(10,14,26,0.5)", fontSize: 13, fontWeight: 800 }}>
@@ -5143,6 +5285,8 @@ export default function FleetApp() {
 
         {view === "reports" && (
           <ReportsPage vehicles={vehicles} logo={logo} initialMode={reportsInit} ro={ro} isOwner={isOwner}
+            archive={db.archive || []}
+            onArchive={(entry) => persist({ ...db, archive: [...(db.archive || []), entry].map((x, i, a) => i < a.length - 8 ? { ...x, html: undefined } : x).slice(-52) }, "اعتماد وأرشفة التقرير الأسبوعي")}
             centerReadiness={db.centerReadiness || {}}
             equip={db.equipReadiness || {}}
             supportCounts={db.supportReadiness || {}}
