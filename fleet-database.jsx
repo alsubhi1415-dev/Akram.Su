@@ -2288,7 +2288,7 @@ function CenterReport({ vehicles, logo }) {
   );
 }
 
-function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive }) {
+function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents }) {
   const [rBranch, setRBranch] = useState([]);
   const [rUnit, setRUnit] = useState([]);
   const [rStatus, setRStatus] = useState([]);
@@ -2320,31 +2320,75 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     setTimeout(() => setArchMsg(""), 6000);
   };
   const [pdfBusy, setPdfBusy] = useState(false);
-  const waSummary = () => {
+  const [waOpen, setWaOpen] = useState(false);
+  const [waChecks, setWaChecks] = useState({ veh: true, ops: true, rdy: true, att: true });
+  const WD_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const buildWa = (ck) => {
     const t = todayHijri();
-    const total = vehicles.length;
-    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
-    const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
-    const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
-    const wshop = broken.filter((v) => ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes((v.location || "").trim())).length;
-    const pct = Math.round((ready / (total - rejee || 1)) * 100);
-    const txt = [
-      "*الموقف اليومي للآليات — الدفاع المدني بجدة*",
-      `التاريخ: ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y} هـ`,
-      "─────────────",
-      `إجمالي الملاك: *${total}* آلية`,
-      `الجاهزة للعمل: *${ready}*`,
-      `المتعطلة بالمقر: *${broken.length - wshop}*`,
-      `المتعطلة بالصيانة: *${wshop}*`,
-      `الرجيع بقراريه: *${rejee}*`,
-      `نسبة الجاهزية: *${pct}%*`,
-      "─────────────",
-      "_سجل متابعة الآليات — شعبة الاطفاء والانقاذ_",
-    ].join("\n");
+    const L = ["*🚨 الموقف اليومي الشامل*", "*الدفاع المدني بجدة — شعبة الاطفاء والانقاذ*",
+      `📅 ${WD_AR[new Date().getDay()]} ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y}هـ`, ""];
+    let sec = 0;
+    const ord = ["أولاً", "ثانياً", "ثالثاً", "رابعاً"];
+    if (ck.veh) {
+      const total = vehicles.length;
+      const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+      const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+      const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
+      const wshop = broken.filter((v) => ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes((v.location || "").trim())).length;
+      const pct = Math.round((ready / (total - rejee || 1)) * 100);
+      L.push(`*${ord[sec++]} — الآليات:*`,
+        `الملاك ${total} | الجاهزة ${ready} ✅`,
+        `متعطلة: مقر ${broken.length - wshop} · صيانة ${wshop} 🔧`,
+        `الرجيع ${rejee} | الجاهزية *${pct}%*`, "");
+    }
+    if (ck.ops) {
+      const norm = (s) => { const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/); return m ? `${+m[1]}/${+m[2]}/${+m[3]}` : ""; };
+      const tk = `${t.y}/${t.m}/${t.d}`;
+      const sel = (incidents || []).filter((i) => norm(i.date) === tk);
+      const c = (ty) => sel.filter((i) => i.type === ty).length;
+      const traffic = sel.filter((i) => i.type === "حادث مروري");
+      const cd = sel.filter((i) => i.type !== "حادث مروري" && i.type !== "انقطاع تيار كهربائي");
+      const sum = (arr, k) => arr.reduce((s2, i) => s2 + (+i[k] || 0), 0);
+      const oth = sel.length - c("حادث إطفاء") - c("حادث إنقاذ") - c("أعمال إسعاف") - c("انقطاع تيار كهربائي");
+      L.push(`*${ord[sec++]} — عمليات اليوم:*`,
+        `المباشرة ${sel.length - c("انقطاع تيار كهربائي")} حادثاً`,
+        `إطفاء ${c("حادث إطفاء")} · إنقاذ ${c("حادث إنقاذ")} · إسعاف ${c("أعمال إسعاف")} · أخرى ${oth}`,
+        `الضحايا: دم ${sum(cd, "dth") + sum(cd, "inj")} · مروري ${sum(traffic, "dth") + sum(traffic, "inj")}`, "");
+    }
+    if (ck.rdy) {
+      const cr = centerReadiness || {};
+      let g = 0, y = 0, r = 0;
+      MANUAL_CENTERS.forEach(({ centers }) => centers.forEach((cn) => {
+        const lv = fullCenterStatus(cn, cr[cn], equip || {}).level;
+        if (lv === "green") g++; else if (lv === "yellow") y++; else r++;
+      }));
+      L.push(`*${ord[sec++]} — الجاهزية الميدانية:*`,
+        `مراكز خضراء ${g} · صفراء ${y} · حمراء ${r}`, "");
+    }
+    if (ck.att) {
+      const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+      let long = 0, warr = 0;
+      vehicles.forEach((v) => {
+        const st = (v.status || "").trim();
+        if (!BROKEN_SET.includes(st)) return;
+        const open = (v.faults || []).filter((f) => !f.repairDate && hDayNum(f.date)).sort((a, b) => hDayNum(a.date) - hDayNum(b.date))[0];
+        if (open && now - hDayNum(open.date) > 90) long++;
+        const rp = (v.faults || []).map((f) => hDayNum(f.repairDate)).filter(Boolean).sort((a, b) => b - a)[0];
+        const od = (v.faults || []).filter((f) => !f.repairDate).map((f) => hDayNum(f.date)).filter(Boolean).sort((a, b) => b - a)[0];
+        if (rp && od && od >= rp && od - rp <= 30) warr++;
+      });
+      L.push(`*${ord[sec++]} — يستدعي الانتباه:*`,
+        `⏳ ${long} آليات توقفها +90 يوماً`,
+        `🔁 ${warr} معاودات ضمان`, "");
+    }
+    L.push("_سجل متابعة الآليات الرقمي_");
+    return L.join("\n");
+  };
+  const waCopy = () => {
+    const txt = buildWa(waChecks);
     const done = () => { setWaCopied(true); setTimeout(() => setWaCopied(false), 2500); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
-    } else fallbackCopy(txt, done);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+    else fallbackCopy(txt, done);
   };
   const fallbackCopy = (txt, done) => {
     const ta = document.createElement("textarea");
@@ -2433,6 +2477,27 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800 }}>
           {repMode === "vehicles" ? "إعداد التقرير — اختر البيانات المطلوبة ثم اطبع" : repMode === "weekly" ? "تقرير الأعطال الأسبوعي (نموذج رقم 2) — حدد الفترة ثم اطبع" : repMode === "nawi" ? "بيان الموقف الأسبوعي للآليات النوعية — حدد الفترة ثم اطبع" : "تقرير الجاهزية الميدانية الشامل — جاهز للطباعة مباشرة من واقع تعبئتك"}
         </h3>
+        {waOpen && (
+          <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.62)", zIndex: 880, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setWaOpen(false)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "22px 24px", width: 520, maxWidth: "94%", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 26px 80px rgba(0,0,0,0.45)" }}>
+              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 منقّح الموقف اليومي الشامل</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", margin: "4px 0 12px" }}>اختر البنود فتُبنى الرسالة على المقاس — ثم انسخها أو افتح واتساب مباشرة</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                {[["veh", "🚒 الآليات"], ["ops", "📟 عمليات اليوم"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "⚠️ يستدعي الانتباه"]].map(([k, lbl]) => (
+                  <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: waChecks[k] ? "#E5F5EE" : "#F2F3F7", border: "1.5px solid " + (waChecks[k] ? "#0E7A5F" : "#D9DCE6"), borderRadius: 12, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, color: waChecks[k] ? "#0E7A5F" : "#5B6478", cursor: "pointer", userSelect: "none" }}>
+                    <input type="checkbox" checked={waChecks[k]} onChange={() => setWaChecks({ ...waChecks, [k]: !waChecks[k] })} style={{ accentColor: "#0E7A5F" }} />{lbl}
+                  </label>
+                ))}
+              </div>
+              <textarea readOnly value={buildWa(waChecks)} style={{ width: "100%", minHeight: 260, resize: "vertical", border: "1.5px solid #D9DCE6", borderRadius: 14, padding: "12px 14px", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, lineHeight: 1.9, background: "#FAFBFD", color: "#1B2440" }} />
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14, flexWrap: "wrap" }}>
+                <button onClick={() => setWaOpen(false)} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+                <button onClick={waCopy} style={{ background: waCopied ? "#1E9E63" : "#141A28", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{waCopied ? "✓ نُسخت" : "📋 نسخ الرسالة"}</button>
+                <button onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(buildWa(waChecks)), "_blank")} style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🟢 فتح واتساب مباشرة</button>
+              </div>
+            </div>
+          </div>
+        )}
         {repMode === "vehicles" && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <input style={{ ...inputStyle, flex: "2 1 220px" }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان التقرير" readOnly={ro} />
@@ -2459,10 +2524,10 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
             background: pdfBusy ? "#8B93A8" : "#1E2952", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: pdfBusy ? "wait" : "pointer", fontFamily: "inherit",
           }}>{pdfBusy ? "⏳ جارٍ الإنشاء..." : "⬇ تنزيل PDF مباشرة"}</button>
-          <button onClick={waSummary} style={{
-            background: waCopied ? "#1E9E63" : "#0E7A5F", color: "#fff", border: "none", borderRadius: 10,
-            padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s",
-          }}>{waCopied ? "✓ نُسخ الملخص — الصقه بالقروب" : "📱 نسخ ملخص واتساب"}</button>
+          <button onClick={() => setWaOpen(true)} style={{
+            background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 10,
+            padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+          }}>📱 الموقف الشامل لواتساب</button>
           {repMode === "vehicles" && <span style={{ fontSize: 13, color: "#5A6172", fontWeight: 700 }}>عدد الآليات في التقرير: {rows.length}</span>}
           <span style={{ fontSize: 12, color: "#8B93A3", fontWeight: 700, flexBasis: "100%" }}>
             💡 عند فتح النافذة اختر الوجهة «حفظ بصيغة PDF» لحفظ الملف على جهازك أو الفلاشة، أو اختر طابعتك للطباعة الورقية مباشرة — والتقرير يخرج مقسماً على صفحات A4 ويتكرر رأس الجدول أعلى كل صفحة.
@@ -5352,6 +5417,7 @@ export default function FleetApp() {
         {view === "reports" && (
           <ReportsPage vehicles={vehicles} logo={logo} initialMode={reportsInit} ro={ro} isOwner={isOwner}
             archive={db.archive || []}
+            incidents={db.incidents || []}
             onArchive={(entry) => persist({ ...db, archive: [...(db.archive || []), entry].map((x, i, a) => i < a.length - 8 ? { ...x, html: undefined } : x).slice(-52) }, "اعتماد وأرشفة التقرير الأسبوعي")}
             centerReadiness={db.centerReadiness || {}}
             equip={db.equipReadiness || {}}
