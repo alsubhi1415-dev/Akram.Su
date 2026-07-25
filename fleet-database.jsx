@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 3.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 3.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1282,7 +1282,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       <div style={{ background: "linear-gradient(120deg, #1B2440, #3A1A2A 60%, #7E1A2F)", borderRadius: 24, padding: "30px 32px", color: "#fff", marginBottom: 20, boxShadow: "0 16px 44px rgba(27,36,64,0.4)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", left: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(212,175,55,0.08)" }} />
         <div style={{ fontSize: 24, fontWeight: 800 }}>سجل متابعة الآليات — الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.85, marginTop: 6 }}>منظومة رقمية حية لمتابعة الآليات والجاهزية الميدانية والعمليات · اليوم {["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][new Date().getDay()]} {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y}هـ - {new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric" })}م</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.85, marginTop: 6 }}>منظومة رقمية حية لمتابعة الآليات والجاهزية الميدانية والعمليات · اليوم <span style={{ color: "#FFD75E", fontWeight: 800, textShadow: "0 1px 8px rgba(255,215,94,0.35)" }}>{["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][new Date().getDay()]} {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y}هـ - {new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric" })}م</span></div>
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon="🚒" go="list" />
