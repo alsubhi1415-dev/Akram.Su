@@ -675,9 +675,9 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
   const mutate = (key, fn) => onUpdate({ ...v, [key]: fn(v[key]) });
 
   const qrModal = qrUrl && (
-    <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.65)", zIndex: 860, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQrUrl(null)}>
+    <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.65)", zIndex: 860, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQrUrl(null)}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "26px 30px", textAlign: "center", boxShadow: "0 24px 70px rgba(0,0,0,0.45)" }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440" }}>🏷 بطاقة الآلية</div>
+        <div className="modal-card" style={{ fontSize: 15, fontWeight: 800, color: "#1B2440" }}>🏷 بطاقة الآلية</div>
         <img src={qrUrl} alt="QR" style={{ width: 230, margin: "14px 0", border: "1px solid #E4E7F0", borderRadius: 12 }} />
         <div style={{ fontSize: 14.5, fontWeight: 800 }}>{v.type} — {v.plate}</div>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#8B93A8", marginTop: 3 }}>مسح الرمز بالجوال يفتح صفحة هذه الآلية مباشرة</div>
@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1326,8 +1326,8 @@ function WelcomeTour({ onDone }) {
   ];
   const [ic, tt, ds] = steps[i];
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.75)", zIndex: 900, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(3px)" }}>
-      <div style={{ background: "#fff", borderRadius: 24, padding: "34px 36px", maxWidth: 420, width: "90%", textAlign: "center", boxShadow: "0 30px 80px rgba(0,0,0,0.4)" }}>
+    <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.75)", zIndex: 900, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(3px)" }}>
+      <div className="modal-card" style={{ background: "#fff", borderRadius: 24, padding: "34px 36px", maxWidth: 420, width: "90%", textAlign: "center", boxShadow: "0 30px 80px rgba(0,0,0,0.4)" }}>
         <div style={{ fontSize: 46 }}>{ic}</div>
         <div style={{ fontSize: 19, fontWeight: 800, color: "#1B2440", marginTop: 10 }}>{tt}</div>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: "#5B6478", marginTop: 8, lineHeight: 1.8 }}>{ds}</div>
@@ -1624,12 +1624,12 @@ function TVMode({ vehicles, incidents, centerReadiness, equip, onClose }) {
   const s = slides[idx];
   const arrowSt = { position: "absolute", top: "50%", transform: "translateY(-50%)", zIndex: 5, background: "rgba(255,255,255,0.10)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 999, width: F(52, 40), height: F(52, 40), fontSize: F(24, 18), fontWeight: 800, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center" };
   return (
-    <div className="no-print"
+    <div className="modal-overlay no-print"
       onTouchStart={(e) => { tRef.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => { if (tRef.current == null) return; const dx = e.changedTouches[0].clientX - tRef.current; tRef.current = null; if (dx > 45) go(1); else if (dx < -45) go(-1); }}
       style={{ position: "fixed", inset: 0, zIndex: 950, background: "linear-gradient(140deg, #0E1322, #1B2440 55%, #2A1218)", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: F("0 70px", "0 14px"), overflow: "hidden" }}>
       <button onClick={onClose} style={{ position: "absolute", top: F(22, 10), left: F(26, 10), zIndex: 6, background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 12, padding: F("10px 18px", "7px 12px"), fontSize: F(14, 11.5), fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕ خروج</button>
-      <div style={{ position: "absolute", top: F(26, 12), right: F(30, 12), fontSize: F(15, 10), fontWeight: 800, color: "rgba(255,255,255,0.55)", maxWidth: mob ? "55%" : "none" }}>سجل متابعة الآليات — الدفاع المدني بجدة</div>
+      <div className="modal-card" style={{ position: "absolute", top: F(26, 12), right: F(30, 12), fontSize: F(15, 10), fontWeight: 800, color: "rgba(255,255,255,0.55)", maxWidth: mob ? "55%" : "none" }}>سجل متابعة الآليات — الدفاع المدني بجدة</div>
       <button onClick={() => go(1)} title="السابق" style={{ ...arrowSt, right: F(16, 6) }}>‹</button>
       <button onClick={() => go(-1)} title="التالي" style={{ ...arrowSt, left: F(16, 6) }}>›</button>
       <div style={{ fontSize: F(33, 18.5), fontWeight: 800, color: "#D4AF37", marginBottom: F(26, 16) }}>{s.t}</div>
@@ -2028,13 +2028,13 @@ function MultiSelect({ label, options, values, onChange, flex }) {
       </button>
       {open && (
         <>
-          <div onClick={() => { setOpen(false); setQ2(""); }} style={{ position: "fixed", inset: 0, zIndex: 55 }} />
+          <div className="modal-overlay" onClick={() => { setOpen(false); setQ2(""); }} style={{ position: "fixed", inset: 0, zIndex: 55 }} />
           <div style={{
             position: "absolute", top: "calc(100% + 4px)", right: 0, minWidth: "100%", width: "max-content",
             maxWidth: "min(320px, calc(100vw - 28px))", background: "#F4F5F7", border: "1.5px solid #C9CDD6", borderRadius: 12,
             maxHeight: 300, overflowY: "auto", zIndex: 60, boxShadow: "0 12px 28px rgba(20,26,40,0.14)",
           }}>
-            <div style={{ position: "sticky", top: 0, background: "#F4F5F7", padding: "8px 10px", borderBottom: "1px solid #E6E8EC", zIndex: 1 }}>
+            <div className="modal-card" style={{ position: "sticky", top: 0, background: "#F4F5F7", padding: "8px 10px", borderBottom: "1px solid #E6E8EC", zIndex: 1 }}>
               {options.length > 8 && (
                 <input value={q2} onChange={(e) => setQ2(e.target.value)} placeholder="🔍 بحث في القائمة..."
                   style={{ ...inputStyle, padding: "7px 10px", fontSize: 12.5, marginBottom: 7 }} />
@@ -2979,9 +2979,9 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
           {repMode === "vehicles" ? "إعداد التقرير — اختر البيانات المطلوبة ثم اطبع" : repMode === "weekly" ? "تقرير الأعطال الأسبوعي (نموذج رقم 2) — حدد الفترة ثم اطبع" : repMode === "nawi" ? "بيان الموقف الأسبوعي للآليات النوعية — حدد الفترة ثم اطبع" : "تقرير الجاهزية الميدانية الشامل — جاهز للطباعة مباشرة من واقع تعبئتك"}
         </h3>
         {waOpen && (
-          <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.62)", zIndex: 880, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setWaOpen(false)}>
+          <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.62)", zIndex: 880, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setWaOpen(false)}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, padding: "22px 24px", width: 520, maxWidth: "94%", maxHeight: "88vh", overflowY: "auto", boxShadow: "0 26px 80px rgba(0,0,0,0.45)" }}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 تقرير إشعاري شامل بالواتساب</div>
+              <div className="modal-card" style={{ fontSize: 15.5, fontWeight: 800, color: "#0E7A5F" }}>📱 تقرير إشعاري شامل بالواتساب</div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", margin: "4px 0 12px" }}>اختر البنود فتُبنى الرسالة على المقاس — ثم انسخها أو افتح واتساب مباشرة</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                 {[["veh", "🚒 الآليات"], ["ops", "📟 الحوادث والبلاغات اليومية"], ["rdy", "📋 الجاهزية الميدانية"], ["att", "📌 ملاحظات هامة"]].map(([k, lbl]) => (
@@ -3866,8 +3866,8 @@ function ExcelImport({ vehicles, onApply }) {
         </div>
       )}
       {preview && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(10,13,20,0.55)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div dir="rtl" style={{ background: "#F4F5F7", borderRadius: 18, padding: 24, maxWidth: 520, width: "100%", fontFamily: "'Tajawal',sans-serif", boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}>
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(10,13,20,0.55)", zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div className="modal-card" dir="rtl" style={{ background: "#F4F5F7", borderRadius: 18, padding: 24, maxWidth: 520, width: "100%", fontFamily: "'Tajawal',sans-serif", boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}>
             <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 800, color: "#141A28" }}>تأكيد الاستيراد من الإكسل</h3>
             <div style={{ fontSize: 14, color: "#3A4152", lineHeight: 2, marginBottom: 16 }}>
               الملف يحتوي <b>{preview.recs.length}</b> آلية:
@@ -4431,11 +4431,11 @@ function CenterEditor({ name, branch, state, onToggle, onBoats, onSetSlots, equi
   );
 
   return (
-    <div className="no-print" onClick={onClose} style={{
+    <div className="modal-overlay no-print" onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(15,18,25,0.55)", zIndex: 60,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 14,
     }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
+      <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{
         background: "#F4F5F7", borderRadius: 18, width: "100%", maxWidth: 600,
         maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
         border: "2px solid " + colors.border, display: "flex", flexDirection: "column",
@@ -5818,6 +5818,13 @@ export default function FleetApp() {
           #print-area { padding: 14px 10px !important; }
           h3 { font-size: 14.5px !important; }
         }
+        /* النوافذ المنبثقة: احترام حدود الشاشة الفعلية وعدم قص أي طرف */
+        .modal-card { max-height: 88dvh !important; overflow-y: auto !important; overflow-x: hidden !important; }
+        @media screen and (max-width: 700px) {
+          .modal-overlay { align-items: flex-start !important; padding: max(10px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom)) 10px !important; overflow-y: auto !important; }
+          .modal-card { width: 100% !important; max-width: 100% !important; max-height: 86dvh !important; margin-top: 8px; }
+          .modal-card input, .modal-card select, .modal-card textarea { max-width: 100% !important; box-sizing: border-box !important; }
+        }
         /* تمرير أفقي سلس لكل جداول التقارير على الشاشات الصغيرة */
         @media screen and (max-width: 900px) {
           #print-area { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
@@ -6024,9 +6031,9 @@ export default function FleetApp() {
       </header>
 
       {trashOpen && (
-        <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setTrashOpen(false)}>
+        <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setTrashOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: 520, maxWidth: "94%", maxHeight: "78vh", overflowY: "auto", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginBottom: 4 }}>🗑 سلة المحذوفات ({(db.trash || []).length})</div>
+            <div className="modal-card" style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginBottom: 4 }}>🗑 سلة المحذوفات ({(db.trash || []).length})</div>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginBottom: 12 }}>المحذوفات تبقى هنا 30 يوماً قابلة للاستعادة ثم تُطهر تلقائياً — لا فقدان بالخطأ أبداً</div>
             {(db.trash || []).length === 0 ? (
               <div style={{ fontSize: 13, fontWeight: 700, color: "#8B93A8", padding: 12 }}>السلة فارغة ✨</div>
@@ -6046,9 +6053,9 @@ export default function FleetApp() {
       )}
 
       {auditOpen && (
-        <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setAuditOpen(false)}>
+        <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setAuditOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: 480, maxWidth: "94%", maxHeight: "78vh", overflowY: "auto", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginBottom: 10 }}>🕘 سجل التدقيق — آخر {Math.min((db.audit || []).length, 200)} حركة</div>
+            <div className="modal-card" style={{ fontSize: 15, fontWeight: 800, color: "#1B2440", marginBottom: 10 }}>🕘 سجل التدقيق — آخر {Math.min((db.audit || []).length, 200)} حركة</div>
             {(db.audit || []).length === 0 ? (
               <div style={{ fontSize: 13, fontWeight: 700, color: "#8B93A8", padding: 12 }}>لا حركات مسجلة بعد — كل حفظ قادم سيُختم تلقائياً بصفة منفذه ووقته</div>
             ) : (db.audit || []).slice(-200).reverse().map((e, i) => (
@@ -6074,9 +6081,9 @@ export default function FleetApp() {
       )}
 
       {quick && (
-        <div className="no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 850, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQuick(null)}>
+        <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 850, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQuick(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "22px 24px", width: 380, maxWidth: "92%", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
-            <div style={{ fontSize: 15.5, fontWeight: 800, color: quick.mode === "fault" ? "#B3121C" : "#0E7A5F", marginBottom: 4 }}>
+            <div className="modal-card" style={{ fontSize: 15.5, fontWeight: 800, color: quick.mode === "fault" ? "#B3121C" : "#0E7A5F", marginBottom: 4 }}>
               {quick.mode === "fault" ? "🔧 تسجيل عطل فوري" : "✅ تسجيل إصلاح فوري"}
             </div>
             <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5B6478", marginBottom: 14 }}>{quick.v.type} — {quick.v.plate} · {quick.v.unit}</div>
@@ -6120,8 +6127,8 @@ export default function FleetApp() {
           </div>
         );
         return (
-          <div className="no-print" onClick={() => setCmdOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.55)", zIndex: 900, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "9vh 14px 0", backdropFilter: "blur(3px)" }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(620px,100%)", maxHeight: "76vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", padding: 14 }}>
+          <div className="modal-overlay no-print" onClick={() => setCmdOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.55)", zIndex: 900, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "9vh 14px 0", backdropFilter: "blur(3px)" }}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(620px,100%)", maxHeight: "76vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", padding: 14 }}>
               <input autoFocus value={cmdQ} onChange={(e) => setCmdQ(e.target.value)} placeholder="ابحث بلوحة أو نوع آلية أو مركز أو صفحة…" style={{
                 width: "100%", boxSizing: "border-box", border: "2px solid #C9CDD6", borderRadius: 12, padding: "11px 14px",
                 fontSize: 14, fontWeight: 800, fontFamily: "inherit", color: "#141A28", outline: "none",
@@ -6147,8 +6154,8 @@ export default function FleetApp() {
       })()}
 
       {alertOpen && (
-        <div className="no-print" onClick={() => setAlertOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.5)", zIndex: 890, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 18, width: "min(420px,100%)" }}>
+        <div className="modal-overlay no-print" onClick={() => setAlertOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.5)", zIndex: 890, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 18, width: "min(420px,100%)" }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "#141A28", marginBottom: 8 }}>⚙️ عتبة تنبيه الجاهزية</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", marginBottom: 12 }}>يظهر شريط تنبيه بأعلى التطبيق متى هبطت نسبة الجاهزية العامة تحت هذا الحد. اجعله صفراً لإيقافه.</div>
             <input type="number" min="0" max="100" value={alertPct} onChange={(e) => setAlertPct(Math.max(0, Math.min(100, +e.target.value || 0)))}
@@ -6163,8 +6170,8 @@ export default function FleetApp() {
       )}
 
       {pwOpen && (
-        <div className="no-print" onClick={() => setPwOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,22,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#F4F5F7", borderRadius: 16, padding: "22px 20px", width: "100%", maxWidth: 360, boxShadow: "0 18px 50px rgba(0,0,0,0.45)" }}>
+        <div className="modal-overlay no-print" onClick={() => setPwOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,22,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#F4F5F7", borderRadius: 16, padding: "22px 20px", width: "100%", maxWidth: 360, boxShadow: "0 18px 50px rgba(0,0,0,0.45)" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#141A28", marginBottom: 4 }}>🔐 دخول المحررين</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", marginBottom: 14 }}>أدخل كلمة السر</div>
             <input type="password" value={pwVal} autoFocus inputMode="text"
@@ -6182,8 +6189,8 @@ export default function FleetApp() {
       )}
 
       {ghOpen && (
-        <div className="no-print" onClick={() => !ghBusy && setGhOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,22,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#F4F5F7", borderRadius: 16, padding: "22px 20px", width: "100%", maxWidth: 430, boxShadow: "0 18px 50px rgba(0,0,0,0.45)" }}>
+        <div className="modal-overlay no-print" onClick={() => !ghBusy && setGhOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,22,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#F4F5F7", borderRadius: 16, padding: "22px 20px", width: "100%", maxWidth: 430, boxShadow: "0 18px 50px rgba(0,0,0,0.45)" }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#141A28", marginBottom: 4 }}>🔑 ربط GitHub — مرة واحدة فقط</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", lineHeight: 1.9, marginBottom: 12 }}>
               الصق رمز الربط من GitHub:
