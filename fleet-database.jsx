@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 4.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 4.8 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2389,6 +2389,198 @@ function CenterReport({ vehicles, logo }) {
   );
 }
 
+function CenterWa({ vehicles, centerReadiness, equip }) {
+  const [cn, setCn] = useState("");
+  const [copied, setCopied] = useState(false);
+  const t = todayHijri();
+  const WD = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const msg = useMemo(() => {
+    if (!cn) return "";
+    const s = (centerReadiness || {})[cn] || {};
+    const eq = equip || {};
+    const miss = CRIT_ITEMS.filter((it) => critStateOf(it, cn, s, eq) === "miss");
+    const own = vehicles.filter((v) => (v.unit || "").trim() === cn);
+    const down = own.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+    const rdy = own.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const L = ["*🚨 موقف الجاهزية*", "*" + cn + "*",
+      `📅 ${WD[new Date().getDay()]} ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y}هـ`, "",
+      `*أولاً — آليات المركز:*`,
+      `عدد الآليات المسجلة عدد ${own.length} آلية`,
+      `عدد الجاهزة للعمل عدد ${rdy} آلية`,
+      `عدد المتعطلة عدد ${down.length} آلية`];
+    if (down.length) { L.push(""); down.slice(0, 12).forEach((v) => L.push(`- ${v.type} — ${v.plate} (${v.location || "المقر"})`)); }
+    L.push("", `*ثانياً — بنود الجاهزية الناقصة:*`);
+    if (!miss.length) L.push("لا يوجد نقص — جميع البنود المطلوبة مكتملة ✅");
+    else miss.forEach((it) => L.push(`- ${it.l}`));
+    L.push("", "_يرجى استكمال ما سبق وموافاتنا بالمستجدات_");
+    return L.join("\n");
+  }, [cn, centerReadiness, equip, vehicles]);
+  const allCenters = MANUAL_CENTERS.flatMap(({ branch, centers }) => centers.map((c) => ({ c, branch })));
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>📱 اختر المركز لتوليد رسالته:</span>
+        <select value={cn} onChange={(e) => { setCn(e.target.value); setCopied(false); }} style={{ ...inputStyle, minWidth: 280, padding: "9px 12px" }}>
+          <option value="">— اختر —</option>
+          {MANUAL_CENTERS.map(({ branch, centers }) => (
+            <optgroup key={branch} label={branch}>
+              {centers.map((c) => <option key={c} value={c}>{c}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+      {!cn ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر مركزاً لتُبنى رسالة موجزة بموقفه ونواقصه جاهزة للإرسال لقائده</div>
+      ) : (
+        <div>
+          <textarea readOnly value={msg} style={{
+            width: "100%", boxSizing: "border-box", minHeight: 320, border: "1.5px solid #C9CDD6", borderRadius: 12,
+            padding: 14, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", lineHeight: 1.9, color: "#141A28", background: "#F9FAFB", resize: "vertical",
+          }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button onClick={() => {
+              try { navigator.clipboard.writeText(msg); } catch (e) {
+                const ta = document.createElement("textarea"); ta.value = msg; document.body.appendChild(ta); ta.select();
+                try { document.execCommand("copy"); } catch (e2) {} document.body.removeChild(ta);
+              }
+              setCopied(true); setTimeout(() => setCopied(false), 3000);
+            }} style={{ background: "#141A28", color: "#fff", border: "none", borderRadius: 11, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📋 {copied ? "تم النسخ ✓" : "نسخ الرسالة"}</button>
+            <button onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank")}
+              style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 11, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🟢 إرسال عبر واتساب</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompareReport({ archive, vehicles, logo }) {
+  const snaps = (archive || []).filter((a) => a && a.sum).slice().sort((a, b) => (b.n || 0) - (a.n || 0));
+  const t = todayHijri();
+  const live = (() => {
+    const total = vehicles.length;
+    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const broken = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
+    const rejee = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
+    return { id: "__live", d: `${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y} هـ (الوضع الحالي)`, sum: { total, ready, broken, rejee, pct: Math.round((ready / (total - rejee || 1)) * 100) } };
+  })();
+  const opts = [live, ...snaps];
+  const [aId, setAId] = useState("__live");
+  const [bId, setBId] = useState(snaps[0] ? snaps[0].id : "__live");
+  const A = opts.find((x) => x.id === aId), B = opts.find((x) => x.id === bId);
+  const cell = { border: "1px solid #141A28", padding: "6px 8px", fontSize: 12, textAlign: "center" };
+  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800 };
+  const rows = [["ملاك الآليات", "total", false], ["الجاهزة للعمل", "ready", false], ["المتعطلة", "broken", true], ["المحالة للرجيع", "rejee", true], ["نسبة الجاهزية %", "pct", false]];
+  return (
+    <div>
+      <div className="no-print" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>📊 قارن بين فترتين:</span>
+        <select value={aId} onChange={(e) => setAId(e.target.value)} style={{ ...inputStyle, minWidth: 230, padding: "9px 12px" }}>
+          {opts.map((o) => <option key={o.id} value={o.id}>{o.d}</option>)}
+        </select>
+        <span style={{ fontWeight: 800, color: "#8B93A3" }}>مقابل</span>
+        <select value={bId} onChange={(e) => setBId(e.target.value)} style={{ ...inputStyle, minWidth: 230, padding: "9px 12px" }}>
+          {opts.map((o) => <option key={o.id} value={o.id}>{o.d}</option>)}
+        </select>
+      </div>
+      {snaps.length === 0 ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>لا توجد لقطات مؤرشفة بعد — اعتمد تقريراً أسبوعياً ليُحفظ بالأرشيف ثم قارن بينه وبين الوضع الحالي</div>
+      ) : (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 4 }}>
+            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
+            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان المقارنة بين فترتين</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>الفترة الأولى: {A.d} — الفترة الثانية: {B.d}</div>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+            <thead><tr>
+              <th style={hcell}>البيان</th><th style={hcell}>{A.d}</th><th style={hcell}>{B.d}</th><th style={hcell}>الفرق</th><th style={hcell}>الاتجاه</th>
+            </tr></thead>
+            <tbody>
+              {rows.map(([lbl, k, lowerBetter]) => {
+                const a = A.sum[k] || 0, b = B.sum[k] || 0, diff = a - b;
+                const good = lowerBetter ? diff < 0 : diff > 0;
+                const arrow = diff === 0 ? "—" : diff > 0 ? "▲" : "▼";
+                const clr = diff === 0 ? "#5A6172" : good ? "#0E7A5F" : "#B3121C";
+                return (
+                  <tr key={k}>
+                    <td style={{ ...cell, textAlign: "right", fontWeight: 800 }}>{lbl}</td>
+                    <td style={cell}>{a}</td><td style={cell}>{b}</td>
+                    <td style={{ ...cell, fontWeight: 800, color: clr }}>{diff > 0 ? "+" + diff : diff}</td>
+                    <td style={{ ...cell, fontWeight: 800, color: clr }}>{arrow}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontSize: 12, fontWeight: 800 }}>
+            <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
+            <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TourSheet({ logo }) {
+  const [br, setBr] = useState("");
+  const t = todayHijri();
+  const centers = br ? (MANUAL_CENTERS.find((x) => x.branch === br) || { centers: [] }).centers : [];
+  const cell = { border: "1px solid #141A28", padding: "5px 6px", fontSize: 10.5, textAlign: "center" };
+  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800 };
+  return (
+    <div>
+      <div className="no-print" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>📝 اختر الشعبة لطباعة كشوف جولتها:</span>
+        <select value={br} onChange={(e) => setBr(e.target.value)} style={{ ...inputStyle, minWidth: 240, padding: "9px 12px" }}>
+          <option value="">— اختر —</option>
+          {MANUAL_CENTERS.map(({ branch }) => <option key={branch} value={branch}>{branch}</option>)}
+        </select>
+        {br && <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0E7A5F" }}>✓ {centers.length} مركزاً — كل مركز بصفحة</span>}
+      </div>
+      {!br ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر شعبة ليُبنى كشف جولة ميدانية فارغ لكل مركز من مراكزها جاهزاً للطباعة والتعبئة يدوياً</div>
+      ) : (
+        <div>
+          {centers.map((c, ci) => (
+            <div key={c} style={{ pageBreakAfter: ci < centers.length - 1 ? "always" : "auto", marginBottom: 26 }}>
+              <div style={{ textAlign: "center", marginBottom: 4 }}>
+                {logo && <img src={logo} alt="" style={{ height: 52 }} />}
+                <div style={{ fontSize: 13, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+                <div style={{ fontSize: 11.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
+                <div style={{ fontSize: 14, fontWeight: 800, marginTop: 6, textDecoration: "underline" }}>كشف جولة ميدانية: {c}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 3 }}>{br} · التاريخ: ....... / ....... / {t.y} هـ</div>
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
+                <thead><tr><th style={hcell}>م</th><th style={hcell}>البند</th><th style={hcell}>التصنيف</th><th style={hcell}>متوفر</th><th style={hcell}>غير متوفر</th><th style={hcell}>ملاحظات المفتش</th></tr></thead>
+                <tbody>
+                  {CRIT_ITEMS.map((it, i) => (
+                    <tr key={it.k}>
+                      <td style={cell}>{i + 1}</td>
+                      <td style={{ ...cell, textAlign: "right" }}>{it.l}</td>
+                      <td style={{ ...cell, fontSize: 9.5 }}>{it.g}</td>
+                      <td style={{ ...cell, width: 42 }}>☐</td>
+                      <td style={{ ...cell, width: 42 }}>☐</td>
+                      <td style={{ ...cell, width: 150 }}></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18, fontSize: 11.5, fontWeight: 800 }}>
+                <div style={{ textAlign: "center" }}>قائد المركز<div style={{ marginTop: 22 }}>...................................</div></div>
+                <div style={{ textAlign: "center" }}>المفتش<div style={{ marginTop: 22 }}>...................................</div></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CritReport({ centerReadiness, equip, logo }) {
   const [ck, setCk] = useState("");
   const t = todayHijri();
@@ -2747,7 +2939,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -2808,7 +3000,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
           <button onClick={() => setWaOpen(true)} style={{
             background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>📱 الموقف الشامل لواتساب</button>
+          }}>📱 التقرير الإشعاري الشامل</button>
           {repMode === "vehicles" && <span style={{ fontSize: 13, color: "#5A6172", fontWeight: 700 }}>عدد الآليات في التقرير: {rows.length}</span>}
           <span style={{ fontSize: 12, color: "#8B93A3", fontWeight: 700, flexBasis: "100%" }}>
             💡 عند فتح النافذة اختر الوجهة «حفظ بصيغة PDF» لحفظ الملف على جهازك أو الفلاشة، أو اختر طابعتك للطباعة الورقية مباشرة — والتقرير يخرج مقسماً على صفحات A4 ويتكرر رأس الجدول أعلى كل صفحة.
@@ -2832,6 +3024,9 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
         {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
         {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} />}
+        {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} />}
+        {repMode === "tour" && <TourSheet logo={logo} />}
+        {repMode === "cwa" && <CenterWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
         {repMode === "archive" && (
           <div>
             {archSel ? (
@@ -4418,6 +4613,162 @@ function PriorityBoard({ centerReadiness, prio, weights, onPrio, onWeight }) {
   );
 }
 
+// ====== مركز القرار: أولويات الإصلاح · انكشاف التغطية · الآليات المزمنة ======
+const FIRE_RE = /وايت|اطفاء|إطفاء/;
+const RESC_RE = /انقاذ|إنقاذ|مزدوجة/;
+const NAWI_PLATES = (() => { const s = {}; NAWI_COLS.forEach((c) => c.p.forEach((x) => (s[x] = c.n.replace("|", " ")))); return s; })();
+
+function decisionData(vehicles) {
+  const t = todayHijri();
+  const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+  const isBroken = (v) => BROKEN_SET.includes((v.status || "").trim());
+  const isReady = (v) => READY_SET.includes((v.status || "").trim());
+  const openDays = (v) => {
+    const f = (v.faults || []).filter((x) => !x.repairDate && hDayNum(x.date)).sort((a, b) => hDayNum(a.date) - hDayNum(b.date))[0];
+    return f ? Math.max(0, Math.round(now - hDayNum(f.date))) : 0;
+  };
+  // انكشاف التغطية: مركز لديه آليات من فئة لكن لا جاهز منها
+  const byUnit = {};
+  vehicles.forEach((v) => { const u = (v.unit || "").trim(); if (u) (byUnit[u] = byUnit[u] || []).push(v); });
+  const exposure = [];
+  Object.entries(byUnit).forEach(([u, list]) => {
+    if (!FIELD_ENTITIES.includes(unifyUnit(u))) return; // المراكز الميدانية فقط
+    const cats = [["إطفاء", FIRE_RE], ["إنقاذ", RESC_RE]];
+    cats.forEach(([nm, re]) => {
+      const own = list.filter((v) => re.test(v.type || ""));
+      if (!own.length) return;
+      const rdy = own.filter(isReady).length;
+      if (rdy === 0) exposure.push({ unit: u, cat: nm, total: own.length, down: own.filter(isBroken) });
+    });
+  });
+  const exposedUnits = new Set(exposure.map((e) => e.unit));
+  // أولويات الإصلاح
+  const scored = vehicles.filter(isBroken).map((v) => {
+    const d = openDays(v);
+    const np = normPlate(v.plate);
+    const nawi = NAWI_PLATES[np];
+    const u = (v.unit || "").trim();
+    const sameCat = (byUnit[u] || []).filter((x) => (FIRE_RE.test(v.type || "") ? FIRE_RE : RESC_RE).test(x.type || ""));
+    const soleReady = sameCat.length > 0 && sameCat.filter(isReady).length === 0 && (FIRE_RE.test(v.type || "") || RESC_RE.test(v.type || ""));
+    const reasons = [];
+    let sc = 0;
+    if (nawi) { sc += 40; reasons.push("آلية نوعية: " + nawi); }
+    if (soleReady) { sc += 30; reasons.push("المركز بلا بديل جاهز"); }
+    if (exposedUnits.has(u) && !soleReady) { sc += 10; reasons.push("مركز مكشوف"); }
+    const dayPts = Math.min(30, Math.round(d / 12));
+    sc += dayPts;
+    if (d > 0) reasons.push("متوقفة " + d + " يوماً");
+    const loc = (v.location || "").trim();
+    if (loc && !["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"].includes(loc)) { sc += 8; reasons.push("موقوفة بالمقر"); }
+    return { v, score: sc, days: d, reasons, nawi };
+  }).sort((a, b) => b.score - a.score);
+  // الآليات المزمنة: 3 أعطال أو أكثر خلال 90 يوماً
+  const chronic = vehicles.map((v) => {
+    const recent = (v.faults || []).filter((f) => { const n = hDayNum(f.date); return n && now - n <= 90; });
+    return { v, n: recent.length, last: recent.map((f) => f.date).sort().slice(-1)[0] || "—" };
+  }).filter((x) => x.n >= 3).sort((a, b) => b.n - a.n);
+  return { top: scored.slice(0, 10), exposure, chronic, brokenTotal: scored.length };
+}
+
+function DecisionPage({ vehicles, onOpenVehicle }) {
+  const D = useMemo(() => decisionData(vehicles), [vehicles]);
+  const [tab, setTab] = useState("top");
+  const card = { background: "#fff", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: "13px 15px", boxShadow: "0 3px 12px rgba(20,26,40,0.05)" };
+  const Tabs = [["top", "🎯 أولويات الإصلاح", D.top.length], ["exp", "🚨 انكشاف التغطية", D.exposure.length], ["chr", "🔁 الآليات المزمنة", D.chronic.length]];
+  return (
+    <div>
+      <div style={{ background: "linear-gradient(135deg,#141A28,#2A3350)", color: "#fff", borderRadius: 16, padding: "16px 20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 21, fontWeight: 800 }}>🎯 مركز القرار</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.85, marginTop: 4 }}>
+          ترتيب ما يستحق الإصلاح أولاً، ورصد المراكز التي فقدت تغطيتها، والآليات متكررة الأعطال — من بيانات السجل لحظياً
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+        {Tabs.map(([id, lbl, n]) => (
+          <button key={id} onClick={() => setTab(id)} style={{
+            background: tab === id ? "#9E1B22" : "#F4F5F7", color: tab === id ? "#fff" : "#3A4152",
+            border: tab === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 12, padding: "9px 18px",
+            fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+          }}>{lbl} ({n})</button>
+        ))}
+      </div>
+
+      {tab === "top" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: "#EEF0F3", border: "1px solid #D9DCE2", borderRadius: 10, padding: "8px 13px" }}>
+            الترتيب محسوب من: نوعية الآلية، وخلوّ مركزها من بديل جاهز، ومدة توقفها، وموقعها الحالي — من إجمالي {D.brokenTotal} آلية متعطلة.
+          </div>
+          {D.top.map(({ v, score, reasons, nawi }, i) => (
+            <div key={v.id} onClick={() => onOpenVehicle && onOpenVehicle(v.id)} style={{ ...card, cursor: "pointer", display: "flex", gap: 12, alignItems: "center", borderRight: "5px solid " + (i < 3 ? "#B3121C" : i < 6 ? "#C77F1A" : "#1F6FB8") }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#8B93A3", minWidth: 26, textAlign: "center" }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#141A28" }}>{v.type} — {v.plate}{nawi ? " ⭐" : ""}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 2 }}>{v.unit || "—"} · {v.location || "—"} · {v.status}</div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                  {reasons.map((r, k) => (
+                    <span key={k} style={{ fontSize: 10, fontWeight: 800, background: "#EEF2F8", border: "1px solid #D3DDEA", color: "#33507A", borderRadius: 8, padding: "2px 8px" }}>{r}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{ textAlign: "center", minWidth: 54 }}>
+                <div style={{ fontSize: 19, fontWeight: 800, color: "#9E1B22" }}>{score}</div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, color: "#8B93A3" }}>الأولوية</div>
+              </div>
+            </div>
+          ))}
+          {!D.top.length && <div style={{ ...card, textAlign: "center", color: "#8B93A3", fontWeight: 800 }}>لا توجد آليات متعطلة</div>}
+        </div>
+      )}
+
+      {tab === "exp" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: "#FBE9EA", border: "1px solid #F0BFC2", borderRadius: 10, padding: "8px 13px" }}>
+            المراكز التالية لديها آليات من الفئة المذكورة لكن **لا يوجد منها جاهز واحد** — أي أن تغطيتها من هذه الفئة مفقودة فعلياً الآن.
+          </div>
+          {D.exposure.map((e, i) => (
+            <div key={i} style={{ ...card, borderRight: "5px solid #B3121C" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#141A28" }}>{e.unit}</div>
+                <span style={{ fontSize: 11, fontWeight: 800, background: "#B3121C", color: "#fff", borderRadius: 9, padding: "3px 10px" }}>انكشاف {e.cat}</span>
+              </div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 4 }}>
+                لديه {e.total} آلية من فئة {e.cat} — لا جاهز منها
+              </div>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                {e.down.map((v) => (
+                  <span key={v.id} style={{ fontSize: 10, fontWeight: 800, background: "#F6F7F9", border: "1px solid #DDE1E8", color: "#3A4152", borderRadius: 8, padding: "2px 8px" }}>{v.type} — {v.plate}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+          {!D.exposure.length && <div style={{ ...card, textAlign: "center", color: "#0E7A5F", fontWeight: 800 }}>لا يوجد مركز فقد تغطيته — كل المراكز لديها جاهز من فئاتها</div>}
+        </div>
+      )}
+
+      {tab === "chr" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: "#FCF3E2", border: "1px solid #EBD5A8", borderRadius: 10, padding: "8px 13px" }}>
+            آليات سُجل لها ثلاثة أعطال فأكثر خلال التسعين يوماً الماضية — تستحق فحصاً جذرياً لا إصلاحاً متكرراً.
+          </div>
+          {D.chronic.map(({ v, n, last }) => (
+            <div key={v.id} onClick={() => onOpenVehicle && onOpenVehicle(v.id)} style={{ ...card, cursor: "pointer", borderRight: "5px solid #C77F1A", display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#141A28" }}>{v.type} — {v.plate}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 2 }}>{v.unit || "—"} · الحالة: {v.status} · آخر عطل {last}</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 19, fontWeight: 800, color: "#C77F1A" }}>{n}</div>
+                <div style={{ fontSize: 9.5, fontWeight: 800, color: "#8B93A3" }}>عطل / 90 يوماً</div>
+              </div>
+            </div>
+          ))}
+          {!D.chronic.length && <div style={{ ...card, textAlign: "center", color: "#0E7A5F", fontWeight: 800 }}>لا توجد آليات متكررة الأعطال خلال التسعين يوماً الماضية</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlots, ro, supportCounts, onSupportChange, equip, onEquip, prio, prioWeights, onPrio, onPrioWeight, onOpenReport }) {
   const [mode, setMode] = useState("centers");
   const [expanded, setExpanded] = useState({});
@@ -4762,6 +5113,12 @@ export default function FleetApp() {
   const [db, setDb] = useState(null);
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("readiness");
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [cmdQ, setCmdQ] = useState("");
+  const [alertPct, setAlertPct] = useState(() => {
+    try { return +(localStorage.getItem("fd_alert_pct") || 0); } catch (e) { return 0; }
+  });
+  const [alertOpen, setAlertOpen] = useState(false);
   const histRef = useRef([]);
   const prevViewRef = useRef(null);
   const backingRef = useRef(false);
@@ -4774,6 +5131,14 @@ export default function FleetApp() {
     }
     prevViewRef.current = view;
   }, [view]);
+  useEffect(() => {
+    const h = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) { e.preventDefault(); setCmdQ(""); setCmdOpen(true); }
+      if (e.key === "Escape") { setCmdOpen(false); }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
   const goBack = () => {
     const h = histRef.current;
     if (!h.length) return;
@@ -5432,6 +5797,7 @@ export default function FleetApp() {
           ["list", "🚒", "سجل الآليات"],
           ["dashboard", "📊", "لوحة المعلومات"],
           ["charts", "📈", "الداشبورد"],
+          ["decision", "🎯", "مركز القرار"],
           ["ops", "📟", "إحصائيات عملياتية"],
           ["reports", "🖨️", "التقارير"],
         ].map(([id, ic, lbl]) => (
@@ -5497,6 +5863,16 @@ export default function FleetApp() {
                 display: "inline-flex", alignItems: "center", gap: 5, boxShadow: "0 3px 12px rgba(0,0,0,0.18)",
               }}>→ رجوع</button>
             )}
+            {!ro && (
+              <button onClick={() => setAlertOpen(true)} title="عتبة تنبيه الجاهزية" style={{
+                background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+                borderRadius: 10, padding: "7px 10px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+              }}>⚙️</button>
+            )}
+            <button onClick={() => { setCmdQ(""); setCmdOpen(true); }} title="بحث سريع وتنقّل (Ctrl+K)" style={{
+              background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.28)",
+              borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            }}>🔍 بحث سريع</button>
             <span title="نسخة التطبيق الحالية" style={{ fontSize: 9.5, fontWeight: 800, color: "rgba(255,255,255,0.5)", alignSelf: "center", background: "rgba(255,255,255,0.07)", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{APP_BUILD}</span>
             <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
               <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
@@ -5655,6 +6031,68 @@ export default function FleetApp() {
 
       {tourOpen && <WelcomeTour onDone={() => { try { localStorage.setItem("fd_tour_done", "1"); } catch (e) {} setTourOpen(false); }} />}
 
+      {cmdOpen && (() => {
+        const q = cmdQ.trim();
+        const nq = normPlate(q);
+        const pages = [["overview", "🏠 نظرة عامة"], ["readiness", "📋 الجاهزية الميدانية"], ["list", "🚒 سجل الآليات"],
+          ["dashboard", "📊 لوحة المعلومات"], ["charts", "📈 الداشبورد"], ["decision", "🎯 مركز القرار"],
+          ["ops", "📟 إحصائيات عملياتية"], ["reports", "🖨️ التقارير"]]
+          .filter(([, l]) => !q || l.includes(q));
+        const vres = !q ? [] : vehicles.filter((v) => normPlate(v.plate).includes(nq) || (v.type || "").includes(q) || (v.unit || "").includes(q)).slice(0, 8);
+        const cres = !q ? [] : MANUAL_CENTERS.flatMap(({ branch, centers }) => centers.map((c) => ({ c, branch })))
+          .filter(({ c, branch }) => c.includes(q) || branch.includes(q)).slice(0, 6);
+        const Row = ({ ic, t1, t2, onClick }) => (
+          <div onClick={onClick} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 12px", borderRadius: 10, cursor: "pointer", background: "#F7F8FA", border: "1px solid #E6E9EF" }}>
+            <span style={{ fontSize: 15 }}>{ic}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: "#141A28" }}>{t1}</div>
+              {t2 && <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8B93A3" }}>{t2}</div>}
+            </div>
+          </div>
+        );
+        return (
+          <div className="no-print" onClick={() => setCmdOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.55)", zIndex: 900, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "9vh 14px 0", backdropFilter: "blur(3px)" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(620px,100%)", maxHeight: "76vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", padding: 14 }}>
+              <input autoFocus value={cmdQ} onChange={(e) => setCmdQ(e.target.value)} placeholder="ابحث بلوحة أو نوع آلية أو مركز أو صفحة…" style={{
+                width: "100%", boxSizing: "border-box", border: "2px solid #C9CDD6", borderRadius: 12, padding: "11px 14px",
+                fontSize: 14, fontWeight: 800, fontFamily: "inherit", color: "#141A28", outline: "none",
+              }} />
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8B93A3", margin: "7px 3px 10px" }}>Ctrl+K للفتح · Esc للإغلاق</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {vres.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#5A6172", marginTop: 4 }}>الآليات</div>}
+                {vres.map((v) => <Row key={v.id} ic="🚒" t1={`${v.type} — ${v.plate}`} t2={`${v.unit || "—"} · ${v.status}`}
+                  onClick={() => { setSelectedId(v.id); setView("detail"); setCmdOpen(false); }} />)}
+                {cres.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#5A6172", marginTop: 6 }}>المراكز</div>}
+                {cres.map(({ c, branch }) => <Row key={c} ic="📋" t1={c} t2={branch}
+                  onClick={() => { setView("readiness"); setCmdOpen(false); }} />)}
+                {pages.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#5A6172", marginTop: 6 }}>الصفحات</div>}
+                {pages.map(([id, l]) => <Row key={id} ic="➜" t1={l}
+                  onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); setCmdOpen(false); }} />)}
+                {q && !vres.length && !cres.length && !pages.length && (
+                  <div style={{ padding: 22, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 13 }}>لا نتائج مطابقة</div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {alertOpen && (
+        <div className="no-print" onClick={() => setAlertOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.5)", zIndex: 890, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 18, width: "min(420px,100%)" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#141A28", marginBottom: 8 }}>⚙️ عتبة تنبيه الجاهزية</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", marginBottom: 12 }}>يظهر شريط تنبيه بأعلى التطبيق متى هبطت نسبة الجاهزية العامة تحت هذا الحد. اجعله صفراً لإيقافه.</div>
+            <input type="number" min="0" max="100" value={alertPct} onChange={(e) => setAlertPct(Math.max(0, Math.min(100, +e.target.value || 0)))}
+              style={{ width: "100%", boxSizing: "border-box", border: "2px solid #C9CDD6", borderRadius: 10, padding: "10px 12px", fontSize: 15, fontWeight: 800, fontFamily: "inherit" }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end" }}>
+              <button onClick={() => setAlertOpen(false)} style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+              <button onClick={() => { try { localStorage.setItem("fd_alert_pct", String(alertPct)); } catch (e) {} setAlertOpen(false); }}
+                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>حفظ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pwOpen && (
         <div className="no-print" onClick={() => setPwOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,22,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#F4F5F7", borderRadius: 16, padding: "22px 20px", width: "100%", maxWidth: 360, boxShadow: "0 18px 50px rgba(0,0,0,0.45)" }}>
@@ -5700,6 +6138,21 @@ export default function FleetApp() {
           ✓ {importMsg}
         </div>
       )}
+
+      {alertPct > 0 && counts && (() => {
+        const tot = vehicles.length;
+        const rej = vehicles.filter((v) => (v.status || "").includes("الرجيع")).length;
+        const rdy = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+        const pct = Math.round((rdy / (tot - rej || 1)) * 100);
+        if (pct >= alertPct) return null;
+        return (
+          <div className="no-print" style={{ background: "linear-gradient(90deg,#B3121C,#8A0E16)", color: "#fff", padding: "8px 16px", fontSize: 13, fontWeight: 800, display: "flex", gap: 10, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+            <span>⚠️ نسبة الجاهزية الحالية {pct}% — دون العتبة المحددة ({alertPct}%)</span>
+            <button onClick={() => setView("decision")} style={{ background: "rgba(255,255,255,0.16)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 9, padding: "4px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>عرض أولويات الإصلاح</button>
+            <button onClick={() => setAlertOpen(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.85)", border: "1px solid rgba(255,255,255,0.35)", borderRadius: 9, padding: "4px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تعديل العتبة</button>
+          </div>
+        );
+      })()}
 
       <main className="app-main" style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 40px", width: "100%", boxSizing: "border-box", flex: 1 }}>
         {view === "dashboard" && (
@@ -5808,6 +6261,9 @@ export default function FleetApp() {
             onDelete={(id) => { const di = (db.incidents || []).find((x) => x.id === id); persist({ ...db, incidents: (db.incidents || []).filter((x) => x.id !== id), trash: [...(db.trash || []), { k: "inc", dn: trashDayNum(), item: di }] }, "حذف حادث (إلى سلة المحذوفات)"); }} />
         )}
 
+        {view === "decision" && (
+          <DecisionPage vehicles={vehicles} onOpenVehicle={(id) => { setSelectedId(id); setView("detail"); }} />
+        )}
         {view === "charts" && (
           <InteractiveDashboard vehicles={vehicles} counts={counts} faultStats={faultStats}
             incidents={db.incidents || []}
