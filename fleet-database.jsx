@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3009,7 +3009,10 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       </div>
 
       {/* منطقة التقرير القابلة للطباعة */}
-      <div id="print-area" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: "26px 30px", position: "relative", overflow: "hidden" }}>
+      <div className="no-print scroll-hint" style={{ display: "none", fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8", border: "1px solid #D3DDEA", borderRadius: 10, padding: "7px 12px", marginBottom: 8, textAlign: "center" }}>
+        ↔️ اسحب الجدول يميناً ويساراً لعرض بقية الأعمدة
+      </div>
+      <div id="print-area" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: "26px 30px", position: "relative", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
         {repMode === "weekly" && (
           <div>
             {isOwner && (
@@ -5768,10 +5771,19 @@ export default function FleetApp() {
           .hdr-sub { font-size: 10.5px !important; }
           .hdr-logo { width: 56px !important; height: 46px !important; margin-right: 0 !important; }
           table { font-size: 12px !important; }
-          #print-area { padding: 14px 10px !important; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-          #print-area table { min-width: 620px; }
+          #print-area { padding: 14px 10px !important; }
           h3 { font-size: 14.5px !important; }
         }
+        /* تمرير أفقي سلس لكل جداول التقارير على الشاشات الصغيرة */
+        @media screen and (max-width: 900px) {
+          #print-area { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+          #print-area table { width: max-content !important; min-width: 100% !important; max-width: none !important; }
+          #print-area .shamel-wrap table { width: 100% !important; min-width: 0 !important; }
+          .scroll-hint { display: block !important; }
+          .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .tbl-scroll table { width: max-content !important; min-width: 100% !important; }
+        }
+        @media print { .scroll-hint { display: none !important; } #print-area { overflow: visible !important; } }
         body.dark { background: #DDE1E8; }
         body.dark main { filter: brightness(0.9) saturate(0.95); }
         @media print { body.dark main { filter: none !important; } }
