@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.7 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5192,6 +5192,27 @@ export default function FleetApp() {
   const bellRef = useRef(null);
   const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
   useEffect(() => {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+    const sync = () => {
+      const w2 = vv ? vv.width : window.innerWidth;
+      const h2 = vv ? vv.height : window.innerHeight;
+      root.style.setProperty("--vvw", w2 + "px");
+      root.style.setProperty("--vvh", h2 + "px");
+      root.style.setProperty("--vvl", (vv ? vv.offsetLeft : 0) + "px");
+      root.style.setProperty("--vvt", (vv ? vv.offsetTop : 0) + "px");
+    };
+    sync();
+    if (vv) { vv.addEventListener("resize", sync); vv.addEventListener("scroll", sync); }
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      if (vv) { vv.removeEventListener("resize", sync); vv.removeEventListener("scroll", sync); }
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, []);
+  useEffect(() => {
     const h = () => setNarrowHdr(window.innerWidth <= 700);
     window.addEventListener("resize", h);
     h();
@@ -5818,8 +5839,18 @@ export default function FleetApp() {
           #print-area { padding: 14px 10px !important; }
           h3 { font-size: 14.5px !important; }
         }
-        /* النوافذ المنبثقة: احترام حدود الشاشة الفعلية وعدم قص أي طرف */
-        .modal-card { max-height: 88dvh !important; overflow-y: auto !important; overflow-x: hidden !important; }
+        /* النوافذ المنبثقة: تُرسم داخل المنطقة المرئية فعلياً مهما كان التقريب أو وضع العرض */
+        .modal-overlay {
+          position: fixed !important; inset: auto !important;
+          top: var(--vvt, 0px) !important; left: var(--vvl, 0px) !important;
+          width: var(--vvw, 100vw) !important; height: var(--vvh, 100dvh) !important;
+          box-sizing: border-box !important; overflow-y: auto !important;
+        }
+        .modal-card {
+          max-width: calc(var(--vvw, 100vw) - 22px) !important;
+          max-height: calc(var(--vvh, 100dvh) - 28px) !important;
+          overflow-y: auto !important; overflow-x: hidden !important; box-sizing: border-box !important;
+        }
         @media screen and (max-width: 700px) {
           .modal-overlay { align-items: flex-start !important; padding: max(10px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom)) 10px !important; overflow-y: auto !important; }
           .modal-card { width: 100% !important; max-width: 100% !important; max-height: 86dvh !important; margin-top: 8px; }
