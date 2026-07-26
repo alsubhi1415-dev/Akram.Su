@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.4 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2700,6 +2700,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
   const fitRef = useRef(null);
   const [fitW, setFitW] = useState(() => { try { return localStorage.getItem("fd_fitw") !== "0"; } catch (e) { return true; } });
   const [fitZ, setFitZ] = useState(1);
+  const [ovf, setOvf] = useState(false); // التقرير أعرض من الشاشة فعلاً
   const [isNarrow, setIsNarrow] = useState(typeof window !== "undefined" ? window.innerWidth <= 900 : false);
   const [rBranch, setRBranch] = useState([]);
   const [rUnit, setRUnit] = useState([]);
@@ -2716,16 +2717,19 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     return () => window.removeEventListener("resize", h);
   }, []);
   useEffect(() => {
-    if (!isNarrow || !fitW) { setFitZ(1); return; }
+    if (!isNarrow) { setFitZ(1); setOvf(false); return; }
     const calc = () => {
       const el = fitRef.current;
       if (!el) return;
+      const tbl = el.querySelector("table");
+      if (!tbl) { setFitZ(1); setOvf(false); return; } // تقرير بلا جدول: لا تصغير إطلاقاً
       const prev = el.style.zoom;
       el.style.zoom = "1";
-      const need = el.scrollWidth, have = (el.parentElement || el).clientWidth;
+      const need = Math.max(el.scrollWidth, tbl.scrollWidth), have = (el.parentElement || el).clientWidth;
       el.style.zoom = prev;
-      if (need > 0 && have > 0 && need > have) setFitZ(Math.max(0.28, Math.round((have / need) * 100) / 100));
-      else setFitZ(1);
+      const over = need > 0 && have > 0 && need > have * 1.02; // هامش تسامح 2%
+      setOvf(over);
+      setFitZ(over && fitW ? Math.max(0.28, Math.round((have / need) * 100) / 100) : 1);
     };
     const t1 = setTimeout(calc, 120), t2 = setTimeout(calc, 500);
     return () => { clearTimeout(t1); clearTimeout(t2); };
@@ -3033,8 +3037,8 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       </div>
 
       {/* منطقة التقرير القابلة للطباعة */}
-      <div className="no-print scroll-hint" style={{ display: "none", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8", border: "1px solid #D3DDEA", borderRadius: 10, padding: "7px 10px", marginBottom: 8 }}>
-        <span>{fitW ? (fitZ < 1 ? `📐 مُلائم لعرض الشاشة (${Math.round(fitZ * 100)}%) — قرّب بإصبعيك للقراءة` : "📐 التقرير ظاهر بحجمه الكامل") : "↔️ اسحب الجدول يميناً ويساراً لعرض بقية الأعمدة"}</span>
+      <div className="no-print scroll-hint" style={{ display: ovf ? undefined : "none", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8", border: "1px solid #D3DDEA", borderRadius: 10, padding: "7px 10px", marginBottom: 8 }}>
+        <span>{fitW && fitZ < 1 ? `📐 مُلائم لعرض الشاشة (${Math.round(fitZ * 100)}%) — قرّب بإصبعيك للقراءة` : "↔️ اسحب الجدول يميناً ويساراً لعرض بقية الأعمدة"}</span>
         <button onClick={() => { const v = !fitW; setFitW(v); try { localStorage.setItem("fd_fitw", v ? "1" : "0"); } catch (e) {} }}
           style={{ background: fitW ? "#1F6FB8" : "#141A28", color: "#fff", border: "none", borderRadius: 9, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
           {fitW ? "🔍 الحجم الطبيعي" : "📐 ملاءمة العرض"}
@@ -3042,9 +3046,9 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       </div>
       <div id="print-area" ref={fitRef} style={{
         background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16,
-        padding: fitW && isNarrow && fitZ < 1 ? "18px 12px" : "26px 30px", position: "relative",
-        overflowX: fitW && isNarrow && fitZ < 1 ? "hidden" : "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",
-        ...(fitW && isNarrow && fitZ < 1 ? { zoom: fitZ } : {}),
+        padding: ovf && fitW && fitZ < 1 ? "18px 12px" : "26px 30px", position: "relative",
+        overflowX: ovf && fitW && fitZ < 1 ? "hidden" : "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",
+        ...(ovf && fitW && fitZ < 1 ? { zoom: fitZ } : {}),
       }}>
         {repMode === "weekly" && (
           <div>
