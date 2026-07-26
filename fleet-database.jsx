@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 4.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 4.7 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2389,6 +2389,121 @@ function CenterReport({ vehicles, logo }) {
   );
 }
 
+function CritReport({ centerReadiness, equip, logo }) {
+  const [ck, setCk] = useState("");
+  const t = todayHijri();
+  const item = CRIT_ITEMS.find((x) => x.k === ck) || null;
+  const data = useMemo(() => {
+    if (!item) return null;
+    let ok = 0, miss = 0, na = 0;
+    const branches = MANUAL_CENTERS.map(({ branch, centers }) => {
+      const rows = centers.map((c) => ({ c, s: critStateOf(item, c, (centerReadiness || {})[c], equip || {}) }));
+      const bo = rows.filter((r) => r.s === "ok"), bm = rows.filter((r) => r.s === "miss"), bn = rows.filter((r) => r.s === "na");
+      ok += bo.length; miss += bm.length; na += bn.length;
+      return { branch, rows, ok: bo, miss: bm, na: bn };
+    });
+    return { branches, ok, miss, na, applic: ok + miss };
+  }, [item, centerReadiness, equip]);
+  const cell = { border: "1px solid #141A28", padding: "5px 7px", fontSize: 11.5, textAlign: "center" };
+  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800 };
+  return (
+    <div>
+      <div className="no-print" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>🔎 اختر بند الجاهزية أو المعدة:</span>
+        <select value={ck} onChange={(e) => setCk(e.target.value)} style={{ ...inputStyle, minWidth: 280, padding: "9px 12px" }}>
+          <option value="">— اختر —</option>
+          {["آليات الإطفاء", "آليات الإنقاذ", "الآليات النوعية", "المعدات النوعية"].map((g) => (
+            <optgroup key={g} label={g}>
+              {CRIT_ITEMS.filter((x) => x.g === g).map((x) => <option key={x.k} value={x.k}>{x.l}</option>)}
+            </optgroup>
+          ))}
+        </select>
+        {data && <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0E7A5F" }}>✓ متوفر {data.ok} · عجز {data.miss} من {data.applic} مركزاً</span>}
+      </div>
+      {!item ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر بنداً من القائمة أعلاه ليُبنى بيان تكميله بالمراكز والشعب جاهزاً للطباعة</div>
+      ) : (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 4 }}>
+            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
+            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان تكميل: {item.l}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0", flexWrap: "wrap" }}>
+            {[["المراكز المطبق عليها", data.applic, "#1B2440"], ["المكتملة", data.ok, "#0E7A5F"], ["التي بها عجز", data.miss, "#B3121C"],
+              ["نسبة التكميل", data.applic ? Math.round((data.ok / data.applic) * 100) + "%" : "—", "#1F6FB8"]].map(([l, n, c]) => (
+              <div key={l} style={{ border: "1.5px solid " + c, borderRadius: 10, padding: "6px 16px", textAlign: "center" }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: c }}>{n}</div>
+                <div style={{ fontSize: 10.5, fontWeight: 800 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 800, margin: "10px 0 6px" }}>أولاً: موقف الشعب</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr>
+              <th style={hcell}>م</th><th style={hcell}>الشعبة</th><th style={hcell}>عدد المراكز المطبق عليها</th>
+              <th style={hcell}>المكتملة</th><th style={hcell}>التي بها عجز</th><th style={hcell}>نسبة التكميل</th><th style={hcell}>الموقف</th>
+            </tr></thead>
+            <tbody>
+              {data.branches.map((b, i) => {
+                const ap = b.ok.length + b.miss.length;
+                const pc = ap ? Math.round((b.ok.length / ap) * 100) : 0;
+                const st = !ap ? "غير مطلوب" : b.miss.length === 0 ? "مكتملة" : b.ok.length === 0 ? "عجز كامل" : "عجز جزئي";
+                const cl = !ap ? "#5A6172" : b.miss.length === 0 ? "#0E7A5F" : b.ok.length === 0 ? "#B3121C" : "#9C6410";
+                return (
+                  <tr key={b.branch}>
+                    <td style={cell}>{i + 1}</td><td style={{ ...cell, textAlign: "right", fontWeight: 800 }}>{b.branch}</td>
+                    <td style={cell}>{ap || "—"}</td><td style={cell}>{ap ? b.ok.length : "—"}</td><td style={cell}>{ap ? b.miss.length : "—"}</td>
+                    <td style={cell}>{ap ? pc + "%" : "—"}</td>
+                    <td style={{ ...cell, fontWeight: 800, color: cl }}>{st}</td>
+                  </tr>
+                );
+              })}
+              <tr>
+                <td style={{ ...hcell }} colSpan={2}>الإجمالي</td>
+                <td style={hcell}>{data.applic}</td><td style={hcell}>{data.ok}</td><td style={hcell}>{data.miss}</td>
+                <td style={hcell}>{data.applic ? Math.round((data.ok / data.applic) * 100) + "%" : "—"}</td><td style={hcell}>—</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{ fontSize: 13, fontWeight: 800, margin: "14px 0 6px" }}>ثانياً: المراكز المكتملة ({data.ok})</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={hcell}>م</th><th style={hcell}>المركز</th><th style={hcell}>الشعبة</th></tr></thead>
+            <tbody>
+              {data.branches.flatMap((b) => b.ok.map((r) => ({ c: r.c, br: b.branch }))).map((x, i) => (
+                <tr key={x.c}><td style={cell}>{i + 1}</td><td style={{ ...cell, textAlign: "right" }}>{x.c}</td><td style={cell}>{x.br}</td></tr>
+              ))}
+              {data.ok === 0 && <tr><td style={{ ...cell, textAlign: "center" }} colSpan={3}>لا يوجد</td></tr>}
+            </tbody>
+          </table>
+          <div style={{ fontSize: 13, fontWeight: 800, margin: "14px 0 6px" }}>ثالثاً: المراكز التي بها عجز ({data.miss})</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th style={hcell}>م</th><th style={hcell}>المركز</th><th style={hcell}>الشعبة</th><th style={hcell}>البند الناقص</th></tr></thead>
+            <tbody>
+              {data.branches.flatMap((b) => b.miss.map((r) => ({ c: r.c, br: b.branch }))).map((x, i) => (
+                <tr key={x.c}><td style={cell}>{i + 1}</td><td style={{ ...cell, textAlign: "right" }}>{x.c}</td><td style={cell}>{x.br}</td>
+                  <td style={{ ...cell, fontWeight: 800, color: "#B3121C" }}>{item.l}</td></tr>
+              ))}
+              {data.miss === 0 && <tr><td style={{ ...cell, textAlign: "center" }} colSpan={4}>لا يوجد</td></tr>}
+            </tbody>
+          </table>
+          {data.na > 0 && (
+            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152" }}>
+              ملحوظة: عدد المراكز غير المطبق عليها هذا البند {data.na} مركزاً، ولم تُحتسب ضمن نسبة التكميل.
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontSize: 12, fontWeight: 800 }}>
+            <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
+            <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents }) {
   const [rBranch, setRBranch] = useState([]);
   const [rUnit, setRUnit] = useState([]);
@@ -2632,7 +2747,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -2716,6 +2831,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         )}
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
         {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
+        {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} />}
         {repMode === "archive" && (
           <div>
             {archSel ? (
