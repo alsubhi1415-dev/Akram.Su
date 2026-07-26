@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 4.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5873,6 +5873,12 @@ export default function FleetApp() {
               background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.28)",
               borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
             }}>🔍 بحث سريع</button>
+            <span title="نسخة التطبيق الحالية" style={{
+              alignSelf: "center", background: "linear-gradient(135deg,#FFD75E,#E8A81C)", color: "#3B2A00",
+              border: "1.5px solid #FFE9A3", borderRadius: 999, padding: "4px 12px",
+              fontSize: 10, fontWeight: 800, letterSpacing: 0.2, whiteSpace: "nowrap",
+              boxShadow: "0 2px 10px rgba(232,168,28,0.4), 0 0 0 3px rgba(255,215,94,0.13)",
+            }}>{APP_BUILD}</span>
             <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
               <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
                 background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
@@ -6027,14 +6033,6 @@ export default function FleetApp() {
           </div>
         </div>
       )}
-
-      <div className="no-print" title="نسخة التطبيق الحالية" style={{
-        position: "fixed", bottom: 14, left: 14, zIndex: 830,
-        background: "linear-gradient(135deg,#FFD75E,#E8A81C)", color: "#3B2A00",
-        border: "1.5px solid #FFE9A3", borderRadius: 999, padding: "5px 13px",
-        fontSize: 10.5, fontWeight: 800, letterSpacing: 0.2, whiteSpace: "nowrap",
-        boxShadow: "0 3px 14px rgba(232,168,28,0.45), 0 0 0 3px rgba(255,215,94,0.14)", pointerEvents: "none",
-      }}>{APP_BUILD}</div>
 
       {tourOpen && <WelcomeTour onDone={() => { try { localStorage.setItem("fd_tour_done", "1"); } catch (e) {} setTourOpen(false); }} />}
 
