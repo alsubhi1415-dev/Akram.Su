@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2697,6 +2697,10 @@ function CritReport({ centerReadiness, equip, logo }) {
 }
 
 function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents }) {
+  const fitRef = useRef(null);
+  const [fitW, setFitW] = useState(() => { try { return localStorage.getItem("fd_fitw") !== "0"; } catch (e) { return true; } });
+  const [fitZ, setFitZ] = useState(1);
+  const [isNarrow, setIsNarrow] = useState(typeof window !== "undefined" ? window.innerWidth <= 900 : false);
   const [rBranch, setRBranch] = useState([]);
   const [rUnit, setRUnit] = useState([]);
   const [rStatus, setRStatus] = useState([]);
@@ -2706,6 +2710,26 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
   const [rGroup, setRGroup] = useState("الكل");
   const [title, setTitle] = useState("تقرير حالة الآليات");
   const [repMode, setRepMode] = useState(initialMode || "vehicles"); // vehicles | readiness
+  useEffect(() => {
+    const h = () => setIsNarrow(window.innerWidth <= 900);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  useEffect(() => {
+    if (!isNarrow || !fitW) { setFitZ(1); return; }
+    const calc = () => {
+      const el = fitRef.current;
+      if (!el) return;
+      const prev = el.style.zoom;
+      el.style.zoom = "1";
+      const need = el.scrollWidth, have = (el.parentElement || el).clientWidth;
+      el.style.zoom = prev;
+      if (need > 0 && have > 0 && need > have) setFitZ(Math.max(0.28, Math.round((have / need) * 100) / 100));
+      else setFitZ(1);
+    };
+    const t1 = setTimeout(calc, 120), t2 = setTimeout(calc, 500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [repMode, fitW, isNarrow, vehicles, centerReadiness, equip]);
   const [waCopied, setWaCopied] = useState(false);
   const [archMsg, setArchMsg] = useState("");
   const [archSel, setArchSel] = useState(null);
@@ -3009,10 +3033,19 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       </div>
 
       {/* منطقة التقرير القابلة للطباعة */}
-      <div className="no-print scroll-hint" style={{ display: "none", fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8", border: "1px solid #D3DDEA", borderRadius: 10, padding: "7px 12px", marginBottom: 8, textAlign: "center" }}>
-        ↔️ اسحب الجدول يميناً ويساراً لعرض بقية الأعمدة
+      <div className="no-print scroll-hint" style={{ display: "none", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8", border: "1px solid #D3DDEA", borderRadius: 10, padding: "7px 10px", marginBottom: 8 }}>
+        <span>{fitW ? (fitZ < 1 ? `📐 مُلائم لعرض الشاشة (${Math.round(fitZ * 100)}%) — قرّب بإصبعيك للقراءة` : "📐 التقرير ظاهر بحجمه الكامل") : "↔️ اسحب الجدول يميناً ويساراً لعرض بقية الأعمدة"}</span>
+        <button onClick={() => { const v = !fitW; setFitW(v); try { localStorage.setItem("fd_fitw", v ? "1" : "0"); } catch (e) {} }}
+          style={{ background: fitW ? "#1F6FB8" : "#141A28", color: "#fff", border: "none", borderRadius: 9, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+          {fitW ? "🔍 الحجم الطبيعي" : "📐 ملاءمة العرض"}
+        </button>
       </div>
-      <div id="print-area" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: "26px 30px", position: "relative", overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
+      <div id="print-area" ref={fitRef} style={{
+        background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16,
+        padding: fitW && isNarrow && fitZ < 1 ? "18px 12px" : "26px 30px", position: "relative",
+        overflowX: fitW && isNarrow && fitZ < 1 ? "hidden" : "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",
+        ...(fitW && isNarrow && fitZ < 1 ? { zoom: fitZ } : {}),
+      }}>
         {repMode === "weekly" && (
           <div>
             {isOwner && (
@@ -5783,7 +5816,7 @@ export default function FleetApp() {
           .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
           .tbl-scroll table { width: max-content !important; min-width: 100% !important; }
         }
-        @media print { .scroll-hint { display: none !important; } #print-area { overflow: visible !important; } }
+        @media print { .scroll-hint { display: none !important; } #print-area { overflow: visible !important; zoom: 1 !important; padding: 0 !important; } }
         body.dark { background: #DDE1E8; }
         body.dark main { filter: brightness(0.9) saturate(0.95); }
         @media print { body.dark main { filter: none !important; } }
