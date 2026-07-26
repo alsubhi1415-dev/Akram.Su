@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.5 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5190,6 +5190,13 @@ export default function FleetApp() {
   };
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef(null);
+  const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
+  useEffect(() => {
+    const h = () => setNarrowHdr(window.innerWidth <= 700);
+    window.addEventListener("resize", h);
+    h();
+    return () => window.removeEventListener("resize", h);
+  }, []);
   useEffect(() => {
     if (!bellOpen) return;
     const h = (e) => { if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false); };
@@ -5928,7 +5935,15 @@ export default function FleetApp() {
                 borderRadius: 10, padding: "8px 12px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", position: "relative",
               }}>🔔{alerts.total > 0 && <span style={{ position: "absolute", top: -6, left: -6, background: "#FF4D57", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1.5px 6px", boxShadow: "0 2px 8px rgba(255,77,87,0.6)" }}>{alerts.total}</span>}</button>
               {bellOpen && (
-                <div className="no-print" style={{ position: "absolute", top: 44, left: 0, width: 330, maxHeight: 420, overflowY: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500, padding: "14px 16px", textAlign: "right" }}>
+                <div className="no-print" style={narrowHdr ? {
+                  position: "fixed", top: 68, left: 10, right: 10, width: "auto", maxHeight: "70vh", overflowY: "auto",
+                  background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.5)", zIndex: 880,
+                  padding: "14px 16px", textAlign: "right",
+                } : {
+                  position: "absolute", top: 44, left: 0, width: 330, maxHeight: 420, overflowY: "auto",
+                  background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500,
+                  padding: "14px 16px", textAlign: "right",
+                }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: "#1B2440", marginBottom: 8 }}>🔔 التنبيهات الذكية ({alerts.total})</div>
                   {alerts.total === 0 && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8B93A8" }}>لا تنبيهات حالياً — الوضع مستقر ✅</div>}
                   {alerts.long.length > 0 && (<div style={{ marginBottom: 10 }}>
