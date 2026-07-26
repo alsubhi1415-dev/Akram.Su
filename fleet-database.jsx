@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 4.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 4.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3892,6 +3892,60 @@ function SupportBoard({ counts, onChange }) {
 // حزام الانتشال والانقاذ للحيوانات: خاص بمركزين فقط
 const ANIMAL_STRAP_CENTERS = ["مركز اسكان 4 ( الحرزات الشرقي )", "مركز شمال 4 ( الرياض )"];
 
+// ====== بنود الجاهزية القابلة للفلترة (آليات ومعدات) ======
+const CRIT_ITEMS = [
+  { g: "آليات الإطفاء", k: "fire_w1", l: "وايت", t: "slot" },
+  { g: "آليات الإطفاء", k: "fire_w2", l: "وايت ثانٍ", t: "slot" },
+  { g: "آليات الإطفاء", k: "fire_high", l: "وايت المباني العالية", t: "slot" },
+  { g: "آليات الإنقاذ", k: "__resFull", l: "إنقاذ مخصص (فورد أو مزدوجة)", t: "resAny" },
+  ...RESCUE_SLOTS.map(([k, l]) => ({ g: "آليات الإنقاذ", k, l, t: "slot" })),
+  ...SINGLE_SLOTS.map(([k, l]) => ({ g: "الآليات النوعية", k, l, t: "slot" })),
+  { g: "الآليات النوعية", k: "decon", l: "عربة التطهير", t: "extra" },
+  { g: "الآليات النوعية", k: "indFire", l: "عربة حريق الصناعية", t: "extra" },
+  { g: "الآليات النوعية", k: "lightCart", l: "عربة إنارة", t: "extra" },
+  { g: "المعدات النوعية", k: "ringCutter", l: "آلة قص الخواتم", t: "equip" },
+  { g: "المعدات النوعية", k: "elevatorKey", l: "مفتاح المصاعد العادي", t: "equip" },
+  { g: "المعدات النوعية", k: "elevatorKeyE", l: "مفتاح المصاعد الإلكتروني", t: "equip" },
+  { g: "المعدات النوعية", k: "animalStrap", l: "حزام انتشال الحيوانات", t: "strap" },
+  { g: "المعدات النوعية", k: "__dual", l: "جاهزية المزدوجة (مضخة وقلع)", t: "dual" },
+  { g: "المعدات النوعية", k: "__boats", l: "القوارب", t: "boats" },
+];
+// حالة البند بالمركز: ok متوفر · miss ناقص · na غير مطلوب للمركز
+function critStateOf(item, cn, s, eq) {
+  s = s || {}; eq = eq || {};
+  const rule = CENTER_RULES[cn] || {};
+  const need = rule.need || [];
+  if (item.t === "slot") {
+    if (s[item.k]) return "ok";
+    const req = need.indexOf(item.k) >= 0 || item.k === "fire_w1" || (item.k === "fire_w2" && rule.twoWhits);
+    return req ? "miss" : "na";
+  }
+  if (item.t === "resAny") {
+    if (rule.fireOnly) return "na";
+    return ["res_fordS", "res_fordB", "res_rosen", "res_merc"].some((k) => s[k]) ? "ok" : "miss";
+  }
+  if (item.t === "extra") {
+    if (!(EXTRA_SLOTS[cn] || []).some(([k]) => k === item.k)) return "na";
+    return s[item.k] ? "ok" : "miss";
+  }
+  if (item.t === "equip") return (eq[item.k] || {})[cn] ? "ok" : "miss";
+  if (item.t === "strap") {
+    if (ANIMAL_STRAP_CENTERS.indexOf(cn) < 0) return "na";
+    return (eq.animalStrap || {})[cn] ? "ok" : "miss";
+  }
+  if (item.t === "dual") {
+    const dd = (eq.duals || {})[cn] || {};
+    if (!dd.has) return "na";
+    return dd.pump && dd.qala ? "ok" : "miss";
+  }
+  if (item.t === "boats") {
+    const b = s.boats || [];
+    if (!b.length) return "na";
+    return b.every((x) => x === "ok") ? "ok" : "miss";
+  }
+  return "na";
+}
+
 // ====== بوصلة التغطية الذكية: محرك أولويات ودعم قرار نقل الوايت والإنقاذ ======
 // عربات الإنقاذ الكاملة، والبدائل الأدنى درجة (تغطي جزئياً): جيب التدخل السريع، حريق روزنباور الخفيف، الجيب الخفيف
 const FULL_RESCUE_KEYS = ["res_fordS", "res_fordB", "res_rosen", "res_merc"];
@@ -4254,6 +4308,8 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
   const [openBranches, setOpenBranches] = useState({}); // شعب اللوحة اليدوية المفتوحة
   const [lvFilter, setLvFilter] = useState("all"); // فلتر مستوى الجاهزية
   const [brFilter, setBrFilter] = useState("all"); // فلتر الشعبة
+  const [critKey, setCritKey] = useState("all"); // بند الجاهزية المختار
+  const [critSt, setCritSt] = useState("all"); // حالة البند: all/ok/miss/na
   const [editing, setEditing] = useState(null); // المركز المفتوح في المحرر
 
   const data = useMemo(() => {
@@ -4302,12 +4358,36 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
   }, [equip]);
 
   // القائمة الموحدة للمراكز حسب الفلاتر — تُستخدم للشبكة وللتنقل التسلسلي معاً
+  const critItem = useMemo(() => CRIT_ITEMS.find((x) => x.k === critKey) || null, [critKey]);
+  // إحصاء البند المختار على مستوى المراكز والشعب
+  const critData = useMemo(() => {
+    if (!critItem) return null;
+    const perCenter = {};
+    let ok = 0, miss = 0, na = 0;
+    const branches = MANUAL_CENTERS.map(({ branch, centers }) => {
+      let bo = 0, bm = 0;
+      centers.forEach((c) => {
+        const s2 = critStateOf(critItem, c, centerReadiness[c], equip);
+        perCenter[c] = s2;
+        if (s2 === "ok") { ok++; bo++; } else if (s2 === "miss") { miss++; bm++; } else na++;
+      });
+      return { branch, ok: bo, miss: bm, applic: bo + bm };
+    });
+    return { perCenter, ok, miss, na, branches };
+  }, [critItem, centerReadiness, equip]);
+
   const centerList = useMemo(() =>
     MANUAL_CENTERS.flatMap(({ branch, centers }) => centers.map((c) => ({ branch, name: c })))
       .filter(({ branch }) => brFilter === "all" || branch === brFilter)
       .map((x) => ({ ...x, st: fullCenterStatus(x.name, centerReadiness[x.name], equip) }))
-      .filter(({ st }) => lvFilter === "all" || st.level === lvFilter),
-  [brFilter, lvFilter, centerReadiness, equip]);
+      .filter(({ st }) => lvFilter === "all" || st.level === lvFilter)
+      .filter(({ name }) => {
+        if (!critData) return true;
+        const s2 = critData.perCenter[name];
+        if (critSt === "all") return s2 !== "na";
+        return s2 === critSt;
+      }),
+  [brFilter, lvFilter, centerReadiness, equip, critData, critSt]);
 
   const Bar = ({ pct }) => (
     <div style={{ background: "#E3E5E9", borderRadius: 6, height: 10, flex: 1, minWidth: 80 }}>
@@ -4426,7 +4506,64 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
               <option value="all">كل الشعب</option>
               {MANUAL_CENTERS.map(({ branch }) => <option key={branch} value={branch}>{branch}</option>)}
             </select>
+            <select value={critKey} onChange={(e) => { setCritKey(e.target.value); setCritSt("all"); }} style={{
+              border: "1.5px solid " + (critItem ? "#1F6FB8" : "#C9CDD6"), borderRadius: 10, padding: "7px 10px",
+              fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", background: critItem ? "#E8F1FA" : "#F4F5F7",
+              color: "#141A28", cursor: "pointer", maxWidth: 230,
+            }}>
+              <option value="all">🔎 فلترة ببند جاهزية…</option>
+              {["آليات الإطفاء", "آليات الإنقاذ", "الآليات النوعية", "المعدات النوعية"].map((g) => (
+                <optgroup key={g} label={g}>
+                  {CRIT_ITEMS.filter((x) => x.g === g).map((x) => <option key={x.k} value={x.k}>{x.l}</option>)}
+                </optgroup>
+              ))}
+            </select>
           </div>
+
+          {critItem && critData && (
+            <div style={{ background: "#fff", border: "1.5px solid #CFE0F1", borderRadius: 14, padding: "12px 14px", marginBottom: 14, boxShadow: "0 4px 14px rgba(31,111,184,0.07)" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#1F6FB8" }}>🔎 {critItem.l}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#8B93A3" }}>{critItem.g}</span>
+                <button onClick={() => { setCritKey("all"); setCritSt("all"); }} style={{
+                  marginRight: "auto", background: "#F4F5F7", color: "#5A6172", border: "1.5px solid #C9CDD6",
+                  borderRadius: 9, padding: "4px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                }}>✕ إلغاء الفلتر</button>
+              </div>
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
+                {[["all", "المطبق عليها", critData.ok + critData.miss, "#141A28"],
+                  ["ok", "✅ متوفر", critData.ok, "#2E9E63"],
+                  ["miss", "⚠️ عجز", critData.miss, "#C4353C"],
+                  ["na", "— غير مطلوب", critData.na, "#8B93A3"]].map(([id, lbl, n, clr]) => (
+                  <button key={id} onClick={() => setCritSt(id)} style={{
+                    background: critSt === id ? clr : "#F4F5F7", color: critSt === id ? "#fff" : "#3A4152",
+                    border: "1.5px solid " + (critSt === id ? clr : "#C9CDD6"), borderRadius: 18,
+                    padding: "5px 13px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                  }}>{lbl} ({n})</button>
+                ))}
+                <span style={{ marginRight: "auto", fontSize: 12, fontWeight: 800, color: critData.ok + critData.miss ? readinessColor(Math.round((critData.ok / (critData.ok + critData.miss || 1)) * 100)) : "#8B93A3" }}>
+                  نسبة التغطية {critData.ok + critData.miss ? Math.round((critData.ok / (critData.ok + critData.miss)) * 100) : 0}%
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 6 }}>
+                {critData.branches.map(({ branch, ok, miss, applic }) => {
+                  const full = applic > 0 && miss === 0, none = applic === 0;
+                  const bg = none ? "#F4F5F7" : full ? "#E7F4ED" : ok === 0 ? "#FBE9EA" : "#FCF3E2";
+                  const bd = none ? "#E1E4EA" : full ? "#A9DCC0" : ok === 0 ? "#F0BFC2" : "#EBD5A8";
+                  const cl = none ? "#98A0AF" : full ? "#1E6B44" : ok === 0 ? "#B3121C" : "#9C6410";
+                  return (
+                    <div key={branch} onClick={() => setBrFilter(brFilter === branch ? "all" : branch)} title="اضغط لعرض مراكز هذه الشعبة"
+                      style={{ background: bg, border: "1.5px solid " + (brFilter === branch ? "#1F6FB8" : bd), borderRadius: 10, padding: "7px 9px", cursor: "pointer" }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: "#141A28", lineHeight: 1.3 }}>{branch}</div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: cl, marginTop: 2 }}>
+                        {none ? "غير مطلوب" : `متوفر ${ok} من ${applic}${miss ? ` · عجز ${miss}` : ""}`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: "#EEF0F3", border: "1px solid #D9DCE2", borderRadius: 10, padding: "8px 13px", marginBottom: 14 }}>
             كل مركز يُعبأ كاملاً من مكان واحد: اضغط بطاقته يفتح محرره الشامل (الأساس + المعدات النوعية + المزدوجة)، وتنقّل بزر "المركز التالي" لتعبئة الجولة اليومية بتدفق دون إغلاق. الألوان لحظية وشاملة، والفلاتر أعلاه تريك أين الخلل مباشرة.
@@ -4455,6 +4592,15 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
                 }}>
                   <div style={{ fontWeight: 800, fontSize: 12, color: "#141A28", lineHeight: 1.35 }}>{c}</div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#8B93A3" }}>{branch}</div>
+                  {critItem && critData && (() => {
+                    const cs = critData.perCenter[c];
+                    const map = { ok: ["#E7F4ED", "#A9DCC0", "#1E6B44", "✅ " + critItem.l + " متوفر"],
+                      miss: ["#FBE9EA", "#F0BFC2", "#B3121C", "⚠️ عجز " + critItem.l],
+                      na: ["#F4F5F7", "#E1E4EA", "#98A0AF", "— " + critItem.l + " غير مطلوب"] }[cs] || null;
+                    return map ? (
+                      <div style={{ fontSize: 9.5, fontWeight: 800, background: map[0], border: "1px solid " + map[1], color: map[2], borderRadius: 8, padding: "2.5px 7px", lineHeight: 1.4 }}>{map[3]}</div>
+                    ) : null;
+                  })()}
                   <div style={{ fontSize: 10.5, fontWeight: 800, color: colors.badge, marginTop: "auto", lineHeight: 1.5 }}>{st.label}</div>
                   {(ring || elev || elevE || dd.has || strapC || boats.length > 0) && (
                     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
