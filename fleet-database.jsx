@@ -894,6 +894,99 @@ const STATUS_VIVID = {
   "تحت إجراءات الرجيع": "#7C5CFF", "صدر قرار الرجيع": "#94A3B8",
 };
 
+// ====== مكتبة أشكال بصرية: نصوص لا تتداخل وتنوّع بالتصميم ======
+// (1) صف ترتيبي بشريط تعبئة — للقوائم المرتبة
+function RankRow({ i, name, sub, value, unit, pct, color, onClick, badge }) {
+  return (
+    <div onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 11, padding: "9px 11px", borderRadius: 13,
+      background: i % 2 ? "#FAFBFC" : "#fff", border: "1px solid #EDEFF3", cursor: onClick ? "pointer" : "default",
+    }}>
+      <span style={{
+        width: 26, height: 26, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center",
+        justifyContent: "center", fontSize: 11.5, fontWeight: 800,
+        background: i < 3 ? color : "#EEF0F4", color: i < 3 ? "#fff" : "#6B7385",
+      }}>{i + 1}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</div>
+        {sub && <div style={{ fontSize: 10, fontWeight: 700, color: "#8B93A3", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1 }}>{sub}</div>}
+        <div style={{ height: 6, background: "#EFF1F5", borderRadius: 5, marginTop: 5, overflow: "hidden" }}>
+          <div style={{ width: Math.max(3, Math.min(100, pct)) + "%", height: "100%", background: color, borderRadius: 5 }} />
+        </div>
+      </div>
+      <div style={{ textAlign: "center", flexShrink: 0, minWidth: 52 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: color, lineHeight: 1.1 }}>{value}</div>
+        {unit && <div style={{ fontSize: 9, fontWeight: 800, color: "#9AA2B1" }}>{unit}</div>}
+        {badge}
+      </div>
+    </div>
+  );
+}
+// (2) مقياس نصف دائري — للنِسب المفردة
+function GaugeArc({ pct, color, label, sub, size = 190 }) {
+  const R = 74, CX = size / 2, CY = size / 2 + 14;
+  const a = Math.PI * (1 - Math.max(0, Math.min(100, pct)) / 100);
+  const x2 = CX + R * Math.cos(a), y2 = CY - R * Math.sin(a);
+  const big = pct > 50 ? 1 : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <svg viewBox={`0 0 ${size} ${size * 0.66}`} style={{ width: "100%", maxWidth: size + 30 }}>
+        <path d={`M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`} fill="none" stroke="#EFF1F5" strokeWidth="15" strokeLinecap="round" />
+        <path d={`M ${CX - R} ${CY} A ${R} ${R} 0 ${big} 1 ${x2} ${y2}`} fill="none" stroke={color} strokeWidth="15" strokeLinecap="round" />
+        <text x={CX} y={CY - 16} textAnchor="middle" style={{ fontSize: 30, fontWeight: 800, fill: color, fontFamily: "inherit" }}>{pct}%</text>
+        <text x={CX} y={CY + 4} textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: "#8B93A3", fontFamily: "inherit" }}>{label}</text>
+      </svg>
+      {sub && <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", textAlign: "center", marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+// (3) شريط مكدّس أفقي بمفتاح أسفله — للتوزيعات
+function StackBar({ items, total }) {
+  const T = total || items.reduce((a, b) => a + b.n, 0) || 1;
+  return (
+    <div>
+      <div style={{ display: "flex", height: 30, borderRadius: 10, overflow: "hidden", border: "1px solid #E7E9EE" }}>
+        {items.map((s, i) => (
+          <div key={i} title={`${s.name}: ${s.n}`} style={{ width: (s.n / T) * 100 + "%", background: s.color, position: "relative" }}>
+            {(s.n / T) > 0.12 && (
+              <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 800 }}>
+                {Math.round((s.n / T) * 100)}%
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 7, marginTop: 12 }}>
+        {items.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, background: "#F8F9FB", border: "1px solid #EDEFF3", borderRadius: 10, padding: "6px 9px" }}>
+            <span style={{ width: 11, height: 11, borderRadius: 4, background: s.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 11, fontWeight: 800, color: "#3A4152", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: s.color }}>{s.n}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+// (4) شبكة خلايا حالة — للبنود المتوفرة/الناقصة
+function StatusGrid({ items, min = 128 }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill,minmax(${min}px,1fr))`, gap: 8 }}>
+      {items.map((it, i) => (
+        <div key={i} style={{
+          background: it.ok ? "#EAF7F0" : "#FCEEEF", border: "1.5px solid " + (it.ok ? "#A9DCC0" : "#F2C3C6"),
+          borderRadius: 12, padding: "9px 10px", display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ fontSize: 14, flexShrink: 0 }}>{it.ok ? "✅" : "⭕"}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: it.ok ? "#14603F" : "#8E1A22", lineHeight: 1.35, wordBreak: "break-word" }}>{it.name}</div>
+            {it.sub && <div style={{ fontSize: 9.5, fontWeight: 700, color: "#8B93A3", marginTop: 2 }}>{it.sub}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 function ChartCard({ title, icon, grad, children }) {
   return (
     <div style={{
@@ -923,7 +1016,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 6.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 6.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1377,7 +1470,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {[["📋", "الجاهزية الميدانية", "تغطية المراكز الميدانية الـ62 لحظياً", "readiness"],
           ["🚒", "سجل الآليات", `${S.total} آلية ببياناتها وأعطالها وسجلها الزمني`, "list"],
-          ["📈", "الداشبورد", "مؤشرات وتحليلات ورسوم تفاعلية", "charts"],
+          ["📈", "مؤشرات الجاهزية والأعطال", "تحليلات ورسوم تفاعلية للجاهزية والأعطال", "charts"],
           ["🖨️", "التقارير الرسمية", "الأعطال الأسبوعي والنوعي والنموذج الشامل", "reports"]].map(([ic, tt, ds, go]) => (
           <div key={go} onClick={() => onGo(go)} style={{ flex: "1 1 220px", background: "#fff", border: "1px solid #E4E7F0", borderRadius: 18, padding: "16px 18px", cursor: "pointer", boxShadow: "0 6px 20px rgba(20,26,40,0.06)" }}>
             <div style={{ fontSize: 22 }}>{ic}</div>
@@ -1457,46 +1550,63 @@ function DowntimeCard({ vehicles }) {
       {data.rows.length === 0 ? (
         <div style={{ padding: 20, fontWeight: 700, color: "#5A6172" }}>لا توجد آليات متوقفة حالياً.</div>
       ) : (
-        <div style={{ padding: "14px 18px 18px" }}>
-          {/* شرائح التصنيف الزمني — انقر أي شريحة لعرض آلياتها */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-            {data.bands.map((b) => (
-              <div key={b.k} onClick={() => setOpenBand(openBand === b.k ? null : b.k)} style={{
-                cursor: "pointer", background: openBand === b.k ? b.c : "#F4F5F7", color: openBand === b.k ? "#fff" : "#141A28",
-                border: `2px solid ${b.c}`, borderRadius: 12, padding: "7px 13px", fontSize: 12.5, fontWeight: 800,
-              }}>
-                {b.k}: <span style={{ color: openBand === b.k ? "#fff" : b.c }}>{b.list.length}</span>
-              </div>
-            ))}
+        <div style={{ padding: "16px 18px 18px" }}>
+          {/* الشرائح الزمنية كأعمدة زجاجية — النقر يفتح تفاصيلها */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(112px,1fr))", gap: 9, marginBottom: 14 }}>
+            {data.bands.map((b) => {
+              const share = data.rows.length ? Math.round((b.list.length / data.rows.length) * 100) : 0;
+              const on = openBand === b.k;
+              return (
+                <div key={b.k} onClick={() => setOpenBand(on ? null : b.k)} style={{
+                  cursor: "pointer", borderRadius: 15, padding: "11px 12px", textAlign: "center",
+                  background: on ? b.c : "#FBFCFD", border: "2px solid " + (on ? b.c : "#EAECF1"),
+                  boxShadow: on ? "0 8px 20px " + b.c + "40" : "none", transition: "all .15s ease",
+                }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: on ? "#fff" : b.c, lineHeight: 1.1 }}>{b.list.length}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: on ? "rgba(255,255,255,0.92)" : "#6B7385", marginTop: 3, lineHeight: 1.4 }}>{b.k}</div>
+                  <div style={{ height: 5, background: on ? "rgba(255,255,255,0.28)" : "#EFF1F5", borderRadius: 4, marginTop: 7, overflow: "hidden" }}>
+                    <div style={{ width: share + "%", height: "100%", background: on ? "#fff" : b.c, borderRadius: 4 }} />
+                  </div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, color: on ? "rgba(255,255,255,0.9)" : "#9AA2B1", marginTop: 4 }}>{share}% من المتوقفة</div>
+                </div>
+              );
+            })}
           </div>
-          <div style={{ fontSize: 11.5, color: "#8B93A3", fontWeight: 700, marginBottom: 10 }}>
-            الأقدم توقفاً: {data.rows[0].v.type} — {data.rows[0].v.plate} ({fmt(data.rows[0].days)}) · إجمالي المتوقفة {data.rows.length} آلية
+
+          {/* شريط ملخص */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", background: "#FFF8EC", border: "1px solid #F0DFBB", borderRadius: 13, padding: "9px 13px", marginBottom: 14 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: "#7A5209" }}>⏳ الأقدم توقفاً</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: "#3A2A05" }}>{data.rows[0].v.type} — {data.rows[0].v.plate}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: "#B3121C", background: "#fff", border: "1px solid #F0C6C9", borderRadius: 8, padding: "2px 10px" }}>{fmt(data.rows[0].days)}</span>
+            <span style={{ marginRight: "auto", fontSize: 11.5, fontWeight: 800, color: "#7A5209" }}>إجمالي المتوقفة {data.rows.length} آلية</span>
           </div>
+
           {openBand && (
-            <div style={{ background: "#F9FAFB", border: "1px solid #E7E9EE", borderRadius: 14, padding: "10px 12px", marginBottom: 12, maxHeight: 300, overflowY: "auto" }}>
-              {(data.bands.find((b) => b.k === openBand)?.list || []).map((r, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "5px 2px", borderBottom: "1px solid #EEF0F4", fontSize: 12, fontWeight: 700 }}>
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.v.type} — {r.v.plate} <span style={{ color: "#8B93A3" }}>· {r.v.unit || ""}</span></span>
-                  <b style={{ color: "#9E1B22", flexShrink: 0 }}>{r.days} يوماً ({fmt(r.days)})</b>
+            <div style={{ background: "#F9FAFB", border: "1px solid #E7E9EE", borderRadius: 14, padding: "10px 12px", marginBottom: 14, maxHeight: 240, overflowY: "auto" }}>
+              {(data.bands.find((b) => b.k === openBand) || { list: [] }).list.slice(0, 40).map((r, i) => (
+                <div key={r.v.id} style={{ display: "flex", gap: 9, alignItems: "center", padding: "6px 4px", borderBottom: "1px dashed #E7E9EE" }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9AA2B1", minWidth: 18 }}>{i + 1}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 800, color: "#1B2130", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.v.type} — {r.v.plate}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "#B3121C", whiteSpace: "nowrap" }}>{fmt(r.days)}</span>
                 </div>
               ))}
             </div>
           )}
-          {/* أطول 15 آلية — أعمدة أفقية ملونة بحسب شريحتها */}
-          <ResponsiveContainer width="100%" height={Math.max(300, top.length * 26)}>
-            <BarChart data={top.map((r) => ({ name: `${r.v.plate}`, days: r.days, type: r.v.type, unit: r.v.unit, desc: r.f.desc || r.f.faultType || "", band: data.bands.find((b) => r.days >= b.min).c }))}
-              layout="vertical" margin={{ top: 4, right: 60, left: 10, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fontWeight: 700 }} />
-              <YAxis type="category" dataKey="name" width={86} tick={{ fontSize: 11, fontWeight: 800 }} />
-              <Tooltip formatter={(v) => [v + " يوماً", "مدة التوقف"]}
-                labelFormatter={(l, p) => p && p[0] ? `${p[0].payload.type} — ${l} · ${p[0].payload.unit || ""}${p[0].payload.desc ? " · " + p[0].payload.desc : ""}` : l} />
-              <Bar dataKey="days" radius={[0, 8, 8, 0]}>
-                <LabelList dataKey="days" position="left" style={{ fontSize: 11, fontWeight: 800, fill: "#141A28" }} formatter={(v) => v + " يوم"} />
-                {top.map((r, i) => <Cell key={i} fill={data.bands.find((b) => r.days >= b.min).c} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+
+          {/* أطول 15 آلية — صفوف ترتيبية بشريط نسبي */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {top.map((r, i) => {
+              const maxD = top[0].days || 1;
+              const band = data.bands.find((b) => (b.list || []).some((x) => x.v.id === r.v.id));
+              const clr = band ? band.c : "#B3121C";
+              return (
+                <RankRow key={r.v.id} i={i} color={clr}
+                  name={`${r.v.type} — ${r.v.plate}`}
+                  sub={`${r.v.unit || "بلا جهة"} · ${r.v.location || "المقر"}`}
+                  value={fmt(r.days)} pct={(r.days / maxD) * 100} />
+              );
+            })}
+          </div>
         </div>
       )}
     </ChartCard>
@@ -1741,7 +1851,8 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
     const total = g + y + r;
     // بوصلة التغطية: أخطر المراكز
     const compass = buildCompass(cr, prio || {}, prioWeights || { inc: 50, den: 25, fac: 25 });
-    const topRisk = compass.filter((x) => x.risk > 0).slice(0, 10)
+    const RISK_SKIP = ["مجد 3", "وصفا 6"]; // مستبعدان من إحصائية عجز التغطية بقرار الإدارة
+    const topRisk = compass.filter((x) => x.risk > 0 && !RISK_SKIP.some((s) => (x.name || "").includes(s))).slice(0, 10)
       .map((x) => ({ name: x.name.replace("مركز ", "").replace(/\s*\(.*\)\s*/, ""), "عجز التغطية": x.risk }));
     const totalRisk = compass.reduce((a, x) => a + x.risk, 0);
     // الإسناد
@@ -1854,30 +1965,46 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
 
         {/* عداد الجاهزية */}
         <ChartCard title="نسبة الجاهزية التشغيلية" icon="⚡" grad="linear-gradient(120deg,#00875A,#00C48C)">
-          <ResponsiveContainer width="100%" height={320}>
-            <RadialBarChart innerRadius="70%" outerRadius="100%" data={[{ value: readyPct, fill: "url(#readyGrad)" }]} startAngle={225} endAngle={-45}>
-              <defs>
-                <linearGradient id="readyGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#00C48C" /><stop offset="100%" stopColor="#00A8E8" />
-                </linearGradient>
-              </defs>
-              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-              <RadialBar dataKey="value" cornerRadius={14} background={{ fill: "#E7E9EE" }} />
-              <text x="50%" y="47%" textAnchor="middle" style={{ fontFamily: "'Tajawal',sans-serif", fontSize: 44, fontWeight: 800, fill: "#00875A" }}>{readyPct}%</text>
-              <text x="50%" y="60%" textAnchor="middle" style={{ fontFamily: "'Tajawal',sans-serif", fontSize: 13, fontWeight: 700, fill: "#5A6172" }}>تعمل + تم الإصلاح + بملاحظات</text>
-            </RadialBarChart>
-          </ResponsiveContainer>
+          <div style={{ padding: "18px 18px 20px" }}>
+            <GaugeArc pct={readyPct} color={readinessColor(readyPct)} label="من الأسطول العامل"
+              sub={`المحتسب: الملاك ناقص الرجيع`} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(104px,1fr))", gap: 8, marginTop: 16 }}>
+              {[["✅", "جاهزة", counts["تعمل"] + counts["تم الإصلاح"], "#00875A"],
+                ["📋", "بملاحظات", counts["تعمل بوجود ملاحظات"], "#B45309"],
+                ["⚠️", "متعطلة", counts["عطلانة"] + counts["تحت التجهيز والتسليم"], "#C4353C"],
+                ["↩️", "رجيع", counts["تحت إجراءات الرجيع"] + counts["صدر قرار الرجيع"], "#4E3D80"]].map(([ic, nm, n, c]) => (
+                <div key={nm} style={{ background: c + "0F", border: "1.5px solid " + c + "33", borderRadius: 14, padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 15 }}>{ic}</div>
+                  <div style={{ fontSize: 19, fontWeight: 800, color: c, lineHeight: 1.15, marginTop: 2 }}>{n}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: "#5A6172", marginTop: 1 }}>{nm}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </ChartCard>
 
         {/* أنواع الأعطال - فطيرة */}
         <ChartCard title="توزيع الأعطال حسب النوع" icon="🔩" grad="linear-gradient(120deg,#B45309,#FFB800)">
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie data={ftypeData} dataKey="value" nameKey="name" outerRadius={95} cornerRadius={4} paddingAngle={2} label={{ fontFamily: "'Tajawal',sans-serif", fontSize: 11, fontWeight: 700 }} />
-              <Tooltip {...ttStyle} />
-              <Legend wrapperStyle={{ fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 700 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div style={{ padding: "18px 18px 20px" }}>
+            {(() => {
+              const PAL = ["#B45309", "#E8A33D", "#C4353C", "#1F6FB8", "#0E7A5F", "#7C5CFF", "#E8336D", "#00A8E8", "#5A6172"];
+              const items = (ftypeData || []).slice(0, 9).map((x, i) => ({ name: x.name, n: x.value, color: PAL[i % PAL.length] }));
+              const tot = items.reduce((a, b) => a + b.n, 0);
+              if (!tot) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا أعطال مسجلة.</div>;
+              return (
+                <div>
+                  <StackBar items={items} total={tot} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
+                    {items.slice(0, 5).map((s, i) => (
+                      <RankRow key={s.name} i={i} color={s.color} name={s.name}
+                        value={s.n} unit="عطل" pct={(s.n / items[0].n) * 100}
+                        sub={`${Math.round((s.n / tot) * 100)}% من إجمالي الأعطال`} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </ChartCard>
 
         {/* الأعطال عبر الأشهر الهجرية */}
@@ -1900,17 +2027,30 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
 
         {/* أكثر الجهات آليات عطلانة حالياً */}
         <ChartCard title="أكثر الجهات آليات عطلانة (حالياً)" icon="🏢" grad="linear-gradient(120deg,#C4353C,#FF7A00)">
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={unitFaultData} layout="vertical" margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E3E5E9" horizontal={false} />
-              <XAxis type="number" tick={tick} allowDecimals={false} />
-              <YAxis type="category" dataKey="name" tick={tick} width={118} />
-              <Tooltip {...ttStyle} />
-              <Bar dataKey="عطلانة حالياً" radius={[0, 8, 8, 0]}>
-                {unitFaultData.map((_, i) => <Cell key={i} fill={VIVID[i % VIVID.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{ padding: "16px 18px 20px" }}>
+            {(() => {
+              const rows = (unitFaultData || []).slice(0, 10);
+              if (!rows.length) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا توجد آليات عطلانة.</div>;
+              const key = Object.keys(rows[0]).find((k) => k !== "name");
+              const max = rows[0][key] || 1;
+              const totalBroken = rows.reduce((a, b) => a + b[key], 0);
+              return (
+                <div>
+                  <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginBottom: 13 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#8E1A22", background: "#FCEEEF", border: "1px solid #F2C3C6", borderRadius: 10, padding: "6px 12px" }}>
+                      أعلى {rows.length} جهات · مجموع متعطلاتها {totalBroken} آلية
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {rows.map((r, i) => (
+                      <RankRow key={r.name} i={i} color={i < 3 ? "#B3121C" : i < 6 ? "#D4622A" : "#C77F1A"}
+                        name={r.name} value={r[key]} unit="آلية" pct={(r[key] / max) * 100} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </ChartCard>
 
         {/* الأكثر أعطالاً خلال 12 شهراً */}
@@ -2009,15 +2149,35 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
       <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 980, margin: "0 auto", width: "100%" }}>
         {/* عداد الجاهزية الدائري */}
         <ChartCard title="الجاهزية الميدانية" icon="🛡" grad="linear-gradient(120deg,#00875A,#00C48C)">
-          <ResponsiveContainer width="100%" height={320}>
-            <RadialBarChart innerRadius="62%" outerRadius="95%" startAngle={220} endAngle={-40}
-              data={[{ name: "الجاهزية", value: rdy.pct, fill: rdy.pct >= 70 ? "#00C48C" : rdy.pct >= 40 ? "#FFB800" : "#FF5D73" }]}>
-              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-              <RadialBar dataKey="value" cornerRadius={12} background={{ fill: "#E3E5E9" }} />
-              <text x="50%" y="47%" textAnchor="middle" style={{ fontFamily: "'Tajawal',sans-serif", fontSize: 34, fontWeight: 800, fill: "#141A28" }}>{rdy.pct}%</text>
-              <text x="50%" y="60%" textAnchor="middle" style={{ fontFamily: "'Tajawal',sans-serif", fontSize: 12, fontWeight: 700, fill: "#5A6172" }}>مراكز مكتملة الجاهزية</text>
-            </RadialBarChart>
-          </ResponsiveContainer>
+          <div style={{ padding: "16px 18px 20px" }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: "0 0 auto", width: 160 }}>
+                <GaugeArc pct={rdy.pct} color={readinessColor(rdy.pct)} label="مراكز مكتملة" size={160} />
+              </div>
+              <div style={{ flex: 1, minWidth: 170, display: "flex", flexDirection: "column", gap: 8 }}>
+                {[["🟢", "مكتملة الجاهزية", rdy.green, "#0E7A5F", "#EAF7F0", "#A9DCC0"],
+                  ["🟡", "عجز جزئي", rdy.yellow, "#B07207", "#FDF6E7", "#EBD5A8"],
+                  ["🔴", "عجز كلي", rdy.red, "#B3121C", "#FCEEEF", "#F2C3C6"]].map(([ic, nm, n, c, bg, bd]) => {
+                  const tot = (rdy.green + rdy.yellow + rdy.red) || 1;
+                  return (
+                    <div key={nm} style={{ background: bg, border: "1.5px solid " + bd, borderRadius: 14, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 15, flexShrink: 0 }}>{ic}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nm}</div>
+                        <div style={{ height: 6, background: "rgba(255,255,255,0.7)", borderRadius: 4, marginTop: 5, overflow: "hidden" }}>
+                          <div style={{ width: Math.round((n / tot) * 100) + "%", height: "100%", background: c, borderRadius: 4 }} />
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "center", flexShrink: 0, minWidth: 44 }}>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: c, lineHeight: 1 }}>{n}</div>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: "#8B93A3" }}>مركزاً</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </ChartCard>
 
         {/* جاهزية الشعب — أعمدة مكدسة */}
@@ -2043,37 +2203,85 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
               لا عجز في التغطية حالياً — إما التغطية مكتملة أو لم تُغذَّ بيانات الأهمية بعد في تبويب التغطية الميدانية
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={rdy.topRisk} layout="vertical" margin={{ right: 10, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E3E5E9" horizontal={false} />
-                <XAxis type="number" tick={tick} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" tick={tick} width={125} />
-                <Tooltip {...ttStyle} />
-                <Bar dataKey="عجز التغطية" radius={[0, 8, 8, 0]}>
-                  {rdy.topRisk.map((e, i) => (
-                    <Cell key={i} fill={e["عجز التغطية"] >= 45 ? "#FF5D73" : e["عجز التغطية"] >= 20 ? "#FFB800" : "#00C48C"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ padding: "16px 18px 20px" }}>
+              {(() => {
+                const rows = rdy.topRisk;
+                const key = "عجز التغطية";
+                const max = rows[0][key] || 1;
+                const tier = (v) => v >= max * 0.66 ? { c: "#5B2A86", t: "حرج" } : v >= max * 0.33 ? { c: "#7C5CFF", t: "مرتفع" } : { c: "#9C8FD6", t: "متوسط" };
+                return (
+                  <div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 13 }}>
+                      {[["حرج", "#5B2A86"], ["مرتفع", "#7C5CFF"], ["متوسط", "#9C8FD6"]].map(([t, c]) => (
+                        <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 800, color: "#3A4152", background: "#F7F6FC", border: "1px solid #E3DFF5", borderRadius: 9, padding: "5px 11px" }}>
+                          <span style={{ width: 10, height: 10, borderRadius: 3, background: c }} />{t}
+                        </span>
+                      ))}
+                      <span style={{ marginRight: "auto", fontSize: 11.5, fontWeight: 800, color: "#5B2A86" }}>مجموع مؤشر العجز {rdy.totalRisk}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 9 }}>
+                      {rows.map((r, i) => {
+                        const tr = tier(r[key]);
+                        const share = Math.round((r[key] / max) * 100);
+                        return (
+                          <div key={r.name} style={{ background: "#fff", border: "1.5px solid #E7E4F4", borderRadius: 15, padding: "11px 13px", boxShadow: "0 3px 12px rgba(91,42,134,0.06)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+                              <span style={{ width: 24, height: 24, borderRadius: 8, background: tr.c, color: "#fff", fontSize: 11, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, color: "#1B2130", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
+                              <span style={{ fontSize: 9.5, fontWeight: 800, color: tr.c, background: tr.c + "14", borderRadius: 7, padding: "2px 7px", flexShrink: 0 }}>{tr.t}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ height: 8, background: "#F1EFF9", borderRadius: 5, overflow: "hidden" }}>
+                                  <div style={{ width: share + "%", height: "100%", background: `linear-gradient(90deg, ${tr.c}, ${tr.c}AA)`, borderRadius: 5 }} />
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: tr.c, lineHeight: 1 }}>{r[key]}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           )}
         </ChartCard>
 
         {/* جاهزية الإسناد — دونات */}
         <ChartCard title="جاهزية قسم الدعم والإسناد" icon="🚛" grad="linear-gradient(120deg,#075985,#00A8E8)">
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie data={rdy.support.filter((x) => x.value > 0)} dataKey="value" nameKey="name"
-                innerRadius={58} outerRadius={88} paddingAngle={3}
-                label={({ name, value }) => name + " " + value} labelLine={false}
-                style={{ fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 800 }}>
-                {rdy.support.filter((x) => x.value > 0).map((e, i) => (
-                  <Cell key={i} fill={e.name === "جاهزة" ? "#00C48C" : e.name === "الحد الأدنى" ? "#FFB800" : "#FF5D73"} />
-                ))}
-              </Pie>
-              <Tooltip {...ttStyle} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div style={{ padding: "16px 18px 20px" }}>
+            {(() => {
+              const all = rdy.support || [];
+              const ready = all.filter((x) => x.value > 0);
+              const pct = all.length ? Math.round((ready.length / all.length) * 100) : 0;
+              return (
+                <div>
+                  <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+                    <div style={{ flex: "0 0 auto", width: 150 }}>
+                      <GaugeArc pct={pct} color={pct >= 80 ? "#0E7A5F" : pct >= 50 ? "#C77F1A" : "#B3121C"} label="أنواع متوفرة" size={150} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 150, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(104px,1fr))", gap: 8 }}>
+                      <div style={{ background: "#EAF7F0", border: "1.5px solid #A9DCC0", borderRadius: 13, padding: "10px", textAlign: "center" }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: "#14603F" }}>{ready.length}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#4A6B5C" }}>نوع متوفر</div>
+                      </div>
+                      <div style={{ background: "#FCEEEF", border: "1.5px solid #F2C3C6", borderRadius: 13, padding: "10px", textAlign: "center" }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: "#8E1A22" }}>{all.length - ready.length}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#8A6167" }}>نوع ناقص</div>
+                      </div>
+                      <div style={{ background: "#EEF2F8", border: "1.5px solid #D3DDEA", borderRadius: 13, padding: "10px", textAlign: "center" }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: "#1F4E8C" }}>{ready.reduce((a, b) => a + b.value, 0)}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#5A6172" }}>إجمالي الآليات</div>
+                      </div>
+                    </div>
+                  </div>
+                  <StatusGrid items={all.map((x) => ({ name: x.name, ok: x.value > 0, sub: x.value > 0 ? `متوفر ${x.value}` : "غير متوفر" }))} />
+                </div>
+              );
+            })()}
+          </div>
         </ChartCard>
       </div>
     </div>
@@ -6172,7 +6380,7 @@ export default function FleetApp() {
           ["readiness", "📋", "الجاهزية الميدانية"],
           ["list", "🚒", "سجل الآليات"],
           ["dashboard", "📊", "لوحة المعلومات"],
-          ["charts", "📈", "الداشبورد"],
+          ["charts", "📈", "مؤشرات الجاهزية والأعطال"],
           ["decision", "🎯", "مركز القرار"],
           ["ops", "📟", "إحصائيات عملياتية"],
           ["reports", "🖨️", "التقارير"],
@@ -6197,7 +6405,7 @@ export default function FleetApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
             <Logo logoSrc={logo} onUpload={uploadLogo} />
             <div style={{ flex: 1, minWidth: 210 }}>
-              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "الداشبورد" : "جاهزية المراكز الميدانية"}</div>
+              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "مؤشرات الجاهزية والأعطال" : "جاهزية المراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -6446,7 +6654,7 @@ export default function FleetApp() {
         const q = cmdQ.trim();
         const nq = normPlate(q);
         const pages = [["overview", "🏠 نظرة عامة"], ["readiness", "📋 الجاهزية الميدانية"], ["list", "🚒 سجل الآليات"],
-          ["dashboard", "📊 لوحة المعلومات"], ["charts", "📈 الداشبورد"], ["decision", "🎯 مركز القرار"],
+          ["dashboard", "📊 لوحة المعلومات"], ["charts", "📈 مؤشرات الجاهزية والأعطال"], ["decision", "🎯 مركز القرار"],
           ["ops", "📟 إحصائيات عملياتية"], ["reports", "🖨️ التقارير"]]
           .filter(([, l]) => !q || l.includes(q));
         const vres = !q ? [] : vehicles.filter((v) => normPlate(v.plate).includes(nq) || (v.type || "").includes(q) || (v.unit || "").includes(q)).slice(0, 8);
