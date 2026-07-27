@@ -1160,7 +1160,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 6.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 6.8 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2227,7 +2227,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         <ChartCard title="توزيع الأعطال حسب النوع" icon="🔩" grad="linear-gradient(120deg,#B45309,#FFB800)">
           <div style={{ padding: "18px 18px 20px" }}>
             {(() => {
-              const PAL = ["#B45309", "#E8A33D", "#C4353C", "#1F6FB8", "#0E7A5F", "#7C5CFF", "#E8336D", "#00A8E8", "#5A6172"];
+              const PAL = ["#FF7A00", "#F5B300", "#E8336D", "#00A8E8", "#00C48C", "#7C5CFF", "#9C27B0", "#00C4B4", "#5B5BD6"];
               const items = (ftypeData || []).slice(0, 9).map((x, i) => ({ name: x.name, n: x.value, color: PAL[i % PAL.length] }));
               const tot = items.reduce((a, b) => a + b.n, 0);
               if (!tot) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا أعطال مسجلة.</div>;
@@ -2319,7 +2319,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         <ChartCard title="أكثر أنواع الآليات أعطالاً" icon="🚛" grad="linear-gradient(120deg,#1F4E8C,#00A8E8)">
           <div style={{ padding: "18px 18px 20px" }}>
             {(() => {
-              const PAL = ["#1F4E8C", "#2A6BB5", "#00A8E8", "#0E7A5F", "#12A47C", "#B45309", "#C4353C", "#7C5CFF", "#E8336D"];
+              const PAL = ["#00A8E8", "#00C48C", "#F5B300", "#FF7A00", "#E8336D", "#7C5CFF", "#00C4B4", "#5B5BD6", "#FF5D73"];
               const items = (typeFaultData || []).slice(0, 9).map((x, i) => ({ name: x.name, n: x["الأعطال"] || x.value || 0, color: PAL[i % PAL.length] }));
               if (!items.length) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا بيانات.</div>;
               return <BlockMap items={items} />;
@@ -2331,7 +2331,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         <ChartCard title="الموديلات الأكثر تعطلاً" icon="🏷" grad="linear-gradient(120deg,#4E3D80,#7C5CFF)">
           <div style={{ padding: "18px 18px 20px" }}>
             {(() => {
-              const PAL = ["#4E3D80", "#7C5CFF", "#9C8FD6", "#1F4E8C", "#2A6BB5", "#00A8E8", "#0E7A5F", "#12A47C", "#B45309", "#E8A33D"];
+              const PAL = ["#E8336D", "#FF7A00", "#F5B300", "#00B368", "#00A8E8", "#5B5BD6", "#9C27B0", "#00C4B4", "#FF5D73", "#7C5CFF"];
               const items = (modelFaultData || []).slice(0, 8).map((x, i) => ({
                 name: x.name, n: x["الأعطال"] || x.value || 0, color: PAL[i % PAL.length],
               }));
@@ -2345,7 +2345,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         <ChartCard title="توزيع الآليات حسب الجهات (الأعلى عدداً)" icon="🗂️" grad="linear-gradient(120deg,#E8336D,#FF5D73)">
           <div style={{ padding: "18px 18px 20px" }}>
             {(() => {
-              const PAL = ["#E8336D", "#F2557F", "#FF7A9B", "#C4353C", "#E8A33D", "#B45309", "#7C5CFF", "#1F6FB8", "#0E7A5F", "#5A6172"];
+              const PAL = ["#E8336D", "#7C5CFF", "#00A8E8", "#00C48C", "#F5B300", "#FF7A00", "#9C27B0", "#00C4B4", "#5B5BD6", "#FF5D73"];
               const items = (unitData || []).slice(0, 10).map((x, i) => ({ name: x.name, n: x.value, color: PAL[i % PAL.length] }));
               if (!items.length) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا بيانات.</div>;
               return <BlockMap items={items} />;
@@ -2500,7 +2500,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
                 </div>
               );
               const key = "عجز التغطية";
-              const PAL = ["#2A1F5C", "#3B2E77", "#5040A0", "#6B57C7", "#7C5CFF", "#8F73FF", "#A28BF0", "#B4A2E8", "#C5B8EE", "#D6CEF4"];
+              const PAL = ["#7C5CFF", "#00A8E8", "#00C48C", "#F5B300", "#FF7A00", "#E8336D", "#9C27B0", "#00C4B4", "#5B5BD6", "#FF5D73"];
               const items = rows.map((r, i) => ({ name: r.name, n: r[key], color: PAL[i % PAL.length] }));
               const tot = items.reduce((a, b) => a + b.n, 0);
               return <RingBreakdown items={items} centerValue={tot} centerLabel="مؤشر العجز للعشرة" />;
@@ -2509,35 +2509,6 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         </ChartCard>
 
         {/* جاهزية الإسناد — دونات */}
-        <ChartCard title="جاهزية قسم الدعم والإسناد" icon="🚛" grad="linear-gradient(120deg,#075985,#00A8E8)">
-          <div style={{ padding: "18px 18px 20px" }}>
-            {(() => {
-              const all = rdy.support || [];
-              if (!all.length) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا بيانات إسناد.</div>;
-              const PAL = ["#075985", "#0A6FA5", "#0E86C4", "#00A8E8", "#37BDF0", "#6BD0F5", "#0E7A5F", "#12A47C"];
-              const avail = all.filter((x) => x.value > 0);
-              const items = avail.map((x, i) => ({ name: x.name, n: x.value, color: PAL[i % PAL.length] }));
-              const missing = all.length - avail.length;
-              if (missing > 0) items.push({ name: `أنواع غير متوفرة (${missing})`, n: missing, color: "#D8DCE4" });
-              const totV = avail.reduce((a, b) => a + b.n, 0);
-              return (
-                <div>
-                  <RingBreakdown items={items} centerValue={totV} centerLabel="آلية إسناد متوفرة" />
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#0E7A5F", background: "#EAF7F0", border: "1px solid #A9DCC0", borderRadius: 10, padding: "6px 12px" }}>
-                      أنواع متوفرة {avail.length} من {all.length}
-                    </span>
-                    {missing > 0 && (
-                      <span style={{ fontSize: 11.5, fontWeight: 800, color: "#8E1A22", background: "#FCEEEF", border: "1px solid #F2C3C6", borderRadius: 10, padding: "6px 12px" }}>
-                        أنواع ناقصة {missing}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </ChartCard>
       </div>
     </div>
   );
@@ -5815,6 +5786,10 @@ export default function FleetApp() {
     return () => { stop = true; clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
   }, []);
   const [conflict, setConflict] = useState(null);
+  const listFitRef = useRef(null);
+  const [listFit, setListFit] = useState(() => { try { return localStorage.getItem("fd_fitw_list") !== "0"; } catch (e) { return true; } });
+  const [listZ, setListZ] = useState(1);
+  const [listOvf, setListOvf] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdQ, setCmdQ] = useState("");
   const [alertPct, setAlertPct] = useState(() => {
@@ -5841,6 +5816,25 @@ export default function FleetApp() {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
+  useEffect(() => {
+    if (view !== "list") return;
+    const calc = () => {
+      const el = listFitRef.current;
+      if (!el || window.innerWidth > 900) { setListZ(1); setListOvf(false); return; }
+      const tbl = el.querySelector("table");
+      if (!tbl) { setListZ(1); setListOvf(false); return; }
+      const prev = el.style.zoom;
+      el.style.zoom = "1";
+      const need = Math.max(el.scrollWidth, tbl.scrollWidth), have = (el.parentElement || el).clientWidth;
+      el.style.zoom = prev;
+      const over = need > 0 && have > 0 && need > have * 1.02;
+      setListOvf(over);
+      setListZ(over && listFit ? Math.max(0.3, Math.round((have / need) * 100) / 100) : 1);
+    };
+    const t1 = setTimeout(calc, 150), t2 = setTimeout(calc, 600);
+    window.addEventListener("resize", calc);
+    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener("resize", calc); };
+  }, [view, listFit]);
   const goBack = () => {
     const h = histRef.current;
     if (!h.length) return;
@@ -7260,8 +7254,25 @@ export default function FleetApp() {
                 style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>}
             </div>
 
+            {listOvf && (
+              <div className="no-print" style={{
+                display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
+                fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8",
+                border: "1px solid #D3DDEA", borderRadius: 10, padding: "7px 10px", marginBottom: 8,
+              }}>
+                <span>{listFit && listZ < 1 ? `📐 الجدول مُلائم لعرض الشاشة (${Math.round(listZ * 100)}%) — قرّب بإصبعيك للقراءة` : "↔️ اسحب الجدول يميناً ويساراً لعرض بقية الأعمدة"}</span>
+                <button onClick={() => { const v = !listFit; setListFit(v); try { localStorage.setItem("fd_fitw_list", v ? "1" : "0"); } catch (e) {} }}
+                  style={{ background: listFit ? "#1F6FB8" : "#141A28", color: "#fff", border: "none", borderRadius: 9, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                  {listFit ? "🔍 الحجم الطبيعي" : "📐 ملاءمة العرض"}
+                </button>
+              </div>
+            )}
             <div style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, overflow: "hidden" }}>
-              <div style={{ overflowX: "auto", maxHeight: "72vh", overflowY: "auto" }}>
+              <div ref={listFitRef} style={{
+                overflowX: listOvf && listFit && listZ < 1 ? "hidden" : "auto",
+                maxHeight: "72vh", overflowY: "auto",
+                ...(listOvf && listFit && listZ < 1 ? { zoom: listZ } : {}),
+              }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 900 }}>
                   <thead>
                     <tr style={{ textAlign: "right" }}>
