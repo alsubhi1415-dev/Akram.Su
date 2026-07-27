@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.9 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1239,9 +1239,14 @@ const hDayNum = (s) => {
 };
 const READY_SET = ["تعمل", "تعمل بوجود ملاحظات", "تم الإصلاح"];
 const BROKEN_SET = ["عطلانة", "تحت التجهيز والتسليم"];
-function useCountUp(target, ms = 1200) {
-  const [v, setV] = useState(0);
+let __countUpDone = false; // الحركة تعمل مرة واحدة فقط عند أول فتح للرابط
+function useCountUp(target, ms = 1000) {
+  const [v, setV] = useState(__countUpDone ? target : 0);
+  const firstRef = useRef(!__countUpDone);
   useEffect(() => {
+    if (!firstRef.current) { setV(target); return; } // أي تغيّر لاحق: الرقم يظهر مباشرة بلا حركة
+    firstRef.current = false;
+    __countUpDone = true;
     let raf, t0;
     const step = (t) => { if (!t0) t0 = t; const k = Math.min(1, (t - t0) / ms); setV(Math.round(target * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(step); };
     raf = requestAnimationFrame(step);
@@ -5152,7 +5157,7 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
 export default function FleetApp() {
   const [db, setDb] = useState(null);
   const [logo, setLogo] = useState(null);
-  const [view, setView] = useState("readiness");
+  const [view, setView] = useState("overview");
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdQ, setCmdQ] = useState("");
   const [alertPct, setAlertPct] = useState(() => {
@@ -5585,9 +5590,8 @@ export default function FleetApp() {
       } catch (e) {}
     }
     bootRef.current = true;
+    // النظرة العامة هي الصفحة الافتتاحية للجميع أصلاً — لا حاجة لنقل الزائر ولا لعلامة الرجوع
     if (ro) {
-      backingRef.current = true;
-      setView("overview");
       try { if (!localStorage.getItem("fd_tour_done")) setTourOpen(true); } catch (e) {}
     }
   }, [vehicles.length]);
