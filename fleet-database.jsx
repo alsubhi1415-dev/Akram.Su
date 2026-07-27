@@ -1143,6 +1143,49 @@ function RingBreakdown({ items, centerValue, centerLabel, emptyText }) {
     </div>
   );
 }
+// ====== طباعة نظيفة من مستند مستقل — تضمن ثبات الترويسة وترتيب الصفحات ======
+function printIsolated(rootEl, opts) {
+  if (!rootEl) return;
+  const o = opts || {};
+  const land = !!o.landscape;
+  const win = window.open("", "_blank", "width=1200,height=850");
+  if (!win) { window.print(); return; }
+  const clone = rootEl.cloneNode(true);
+  clone.querySelectorAll(".no-print").forEach((n) => n.remove());
+  clone.querySelectorAll("input, select, textarea").forEach((n) => {
+    const span = win.document.createElement("span");
+    span.textContent = n.value || n.getAttribute("placeholder") || "";
+    span.setAttribute("style", "font-weight:700");
+    n.parentNode && n.parentNode.replaceChild(span, n);
+  });
+  const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8" />
+<title>${(o.title || "تقرير").replace(/</g, "")}</title>
+<style>
+  @page { size: A4 ${land ? "landscape" : "portrait"}; margin: ${land ? "9mm 8mm" : "11mm 10mm"}; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; padding: 0; background: #fff; color: #141A28;
+    font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif; direction: rtl; }
+  img { max-height: 70px; object-fit: contain; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  .rep-head { display: block; break-inside: avoid; page-break-inside: avoid; break-after: avoid; page-break-after: avoid; }
+  .c186-sign, .sig-block, .nawi-sig { break-inside: avoid; page-break-inside: avoid; }
+</style></head><body>${clone.innerHTML}</body></html>`;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  const go = () => { try { win.focus(); win.print(); } catch (e) {} };
+  const imgs = win.document.images;
+  if (!imgs || imgs.length === 0) { setTimeout(go, 350); return; }
+  let left = imgs.length;
+  const dec = () => { left--; if (left <= 0) setTimeout(go, 250); };
+  for (let i = 0; i < imgs.length; i++) {
+    if (imgs[i].complete) dec();
+    else { imgs[i].addEventListener("load", dec); imgs[i].addEventListener("error", dec); }
+  }
+  setTimeout(go, 2500);
+}
 function ChartCard({ title, icon, grad, children }) {
   return (
     <div style={{
@@ -1172,7 +1215,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3497,13 +3540,6 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
               .c186-sign { page-break-inside: avoid; }
             }
           `}</style>
-          <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-            <button onClick={() => window.print()} style={{
-              background: "linear-gradient(135deg,#9E1B22,#C4353C)", color: "#fff", border: "none", borderRadius: 12,
-              padding: "11px 26px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-              boxShadow: "0 6px 18px rgba(158,27,34,0.32)", display: "inline-flex", alignItems: "center", gap: 8,
-            }}>🖨 طباعة البيان (A4 أفقي)</button>
-          </div>
           <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
             {logo && <img src={logo} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
@@ -3871,10 +3907,17 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={() => { if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض — تسجيل الدخول يتيحها للمحرر والمشرف"); return; } window.print(); }} style={{
+          <button onClick={() => {
+            if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض — تسجيل الدخول يتيحها للمحرر والمشرف"); return; }
+            const LAND = ["c186", "weekly", "nawi", "tour"];
+            const el = document.getElementById("print-area");
+            const titles = { c186: "بيان أعطال الـ 186 آلية", weekly: "تقرير الأعطال الأسبوعي", nawi: "تقرير التكميل النوعي",
+              tour: "كشف الجولة الميدانية", crit: "بيان تكميل البنود", center: "تقرير مركز", compare: "بيان المقارنة بين فترتين" };
+            printIsolated(el, { landscape: LAND.indexOf(repMode) >= 0, title: titles[repMode] || "تقرير" });
+          }} style={{
             background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 30px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>📄 حفظ التقرير PDF / طباعة</button>
+          }}>📄 طباعة التقرير / حفظ PDF</button>
           <button onClick={exportPdf} disabled={pdfBusy} style={{
             background: pdfBusy ? "#8B93A8" : "#1E2952", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 22px", fontSize: 14, fontWeight: 800, cursor: pdfBusy ? "wait" : "pointer", fontFamily: "inherit",
