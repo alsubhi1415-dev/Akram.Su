@@ -206,6 +206,13 @@ async function ghGetSha(token, path) {
   if (!r.ok) throw new Error("gh-sha " + r.status);
   return (await r.json()).sha;
 }
+async function ghGetJson(token, path) {
+  const r = await fetch("https://api.github.com/repos/" + GH.owner + "/" + GH.repo + "/contents/" + path + "?ref=" + GH.branch, {
+    headers: { Accept: "application/vnd.github.raw+json", Authorization: "Bearer " + token },
+  });
+  if (!r.ok) throw new Error("gh-json " + r.status);
+  return await r.json();
+}
 async function ghPutFile(token, path, text, sha, msg) {
   const body = { message: msg, content: b64enc(text), branch: GH.branch };
   if (sha) body.sha = sha;
@@ -853,7 +860,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 6.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -4715,11 +4722,71 @@ function decisionData(vehicles) {
   return { top: scored.slice(0, 10), exposure, chronic, brokenTotal: scored.length };
 }
 
-function DecisionPage({ vehicles, onOpenVehicle }) {
+// ====== فحوص سلامة البيانات ======
+function integrityChecks(vehicles) {
+  const t = todayHijri();
+  const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+  const nz = (s) => String(s || "").replace(/\s+/g, "");
+  const openFault = (v) => (v.faults || []).some((f) => !f.repairDate);
+  const WSHOP = ["الصيانة المركزية", "ورشة خارجية", "ش روزنباور"];
+  const dupMap = {};
+  vehicles.forEach((v) => { const k = nz(v.plate); if (k) (dupMap[k] = dupMap[k] || []).push(v); });
+  const units = new Set(MANUAL_CENTERS.flatMap((b) => b.centers));
+  const G = [
+    { k: "brokenNoFault", t: "آلية عطلانة بلا سجل عطل مفتوح", w: "high",
+      list: vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim()) && !openFault(v)) },
+    { k: "okOpenFault", t: "آلية تعمل ولها عطل مفتوح لم يُقفل", w: "high",
+      list: vehicles.filter((v) => ["تعمل", "تم الإصلاح"].includes((v.status || "").trim()) && openFault(v)) },
+    { k: "locConflict", t: "الحالة تعمل والموقع بالصيانة", w: "high",
+      list: vehicles.filter((v) => READY_SET.includes((v.status || "").trim()) && WSHOP.includes((v.location || "").trim())) },
+    { k: "stale", t: "متوقفة بالصيانة أكثر من سنة بلا تحديث", w: "mid",
+      list: vehicles.filter((v) => {
+        if (!BROKEN_SET.includes((v.status || "").trim())) return false;
+        const f = (v.faults || []).filter((x) => !x.repairDate && hDayNum(x.date)).sort((a, b) => hDayNum(a.date) - hDayNum(b.date))[0];
+        return f && now - hDayNum(f.date) > 354;
+      }) },
+    { k: "dup", t: "لوحة مكررة بين آليتين أو أكثر", w: "high",
+      list: Object.values(dupMap).filter((a) => a.length > 1).flat() },
+    { k: "noPlate", t: "بيانات ناقصة (بلا لوحة أو نوع)", w: "mid",
+      list: vehicles.filter((v) => !nz(v.plate) || !String(v.type || "").trim()) },
+    { k: "noUnit", t: "بلا جهة مسجلة", w: "mid",
+      list: vehicles.filter((v) => !String(v.unit || "").trim()) },
+    { k: "badFaultDate", t: "عطل مفتوح بتاريخ غير صالح (يفسد حساب مدة التوقف)", w: "mid",
+      list: vehicles.filter((v) => (v.faults || []).some((f) => !f.repairDate && !hDayNum(f.date))) },
+    { k: "rejeeWork", t: "صدر قرار رجيعها ولا تزال مسجلة بمركز ميداني", w: "low",
+      list: vehicles.filter((v) => (v.status || "").trim() === "صدر قرار الرجيع" && units.has(String(v.unit || "").trim())) },
+  ];
+  return G.map((g) => ({ ...g, n: g.list.length }));
+}
+
+// ====== التوافر الزمني: لقطة يومية لمستويات المراكز ======
+function availabilityStats(hist) {
+  const days = Object.keys(hist || {}).sort();
+  const per = {};
+  days.forEach((d) => {
+    const snap = hist[d] || {};
+    Object.entries(snap).forEach(([c, lv]) => {
+      per[c] = per[c] || { g: 0, y: 0, r: 0, n: 0 };
+      per[c].n++;
+      if (lv === "green") per[c].g++; else if (lv === "yellow") per[c].y++; else per[c].r++;
+    });
+  });
+  const rows = Object.entries(per).map(([c, v]) => ({
+    center: c, days: v.n, full: v.g, partial: v.y, none: v.r,
+    pct: v.n ? Math.round((v.g / v.n) * 100) : 0,
+  })).sort((a, b) => b.pct - a.pct || a.center.localeCompare(b.center));
+  return { rows, days: days.length, from: days[0] || "", to: days[days.length - 1] || "" };
+}
+
+function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip }) {
   const D = useMemo(() => decisionData(vehicles), [vehicles]);
   const [tab, setTab] = useState("top");
   const card = { background: "#fff", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: "13px 15px", boxShadow: "0 3px 12px rgba(20,26,40,0.05)" };
-  const Tabs = [["top", "🎯 أولويات الإصلاح", D.top.length], ["exp", "🚨 انكشاف التغطية", D.exposure.length], ["chr", "🔁 الآليات المزمنة", D.chronic.length]];
+  const INT = useMemo(() => integrityChecks(vehicles), [vehicles]);
+  const intTotal = INT.reduce((a, b) => a + b.n, 0);
+  const AV = useMemo(() => availabilityStats(rdyHist), [rdyHist]);
+  const Tabs = [["top", "🎯 أولويات الإصلاح", D.top.length], ["exp", "🚨 انكشاف التغطية", D.exposure.length],
+    ["chr", "🔁 الآليات المزمنة", D.chronic.length], ["int", "🧪 سلامة البيانات", intTotal], ["avl", "⏱ التوافر الزمني", AV.rows.length]];
   return (
     <div>
       <div style={{ background: "linear-gradient(135deg,#141A28,#2A3350)", color: "#fff", borderRadius: 16, padding: "16px 20px", marginBottom: 14 }}>
@@ -4787,6 +4854,52 @@ function DecisionPage({ vehicles, onOpenVehicle }) {
             </div>
           ))}
           {!D.exposure.length && <div style={{ ...card, textAlign: "center", color: "#0E7A5F", fontWeight: 800 }}>لا يوجد مركز فقد تغطيته — كل المراكز لديها جاهز من فئاتها</div>}
+        </div>
+      )}
+
+      {tab === "int" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: intTotal ? "#FCF3E2" : "#E7F4ED", border: "1px solid " + (intTotal ? "#EBD5A8" : "#A9DCC0"), borderRadius: 10, padding: "8px 13px" }}>
+            {intTotal ? `رُصد ${intTotal} سجلاً يحتاج مراجعة قبل اعتماد أي تقرير رسمي — الضغط على أي سجل يفتح ملف الآلية.` : "لا تناقضات — بيانات السجل متسقة بالكامل ✅"}
+          </div>
+          {INT.filter((g) => g.n > 0).map((g) => (
+            <div key={g.k} style={{ ...card, borderRight: "5px solid " + (g.w === "high" ? "#B3121C" : g.w === "mid" ? "#C77F1A" : "#1F6FB8") }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 7 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#141A28" }}>{g.t}</div>
+                <span style={{ fontSize: 12, fontWeight: 800, background: g.w === "high" ? "#B3121C" : g.w === "mid" ? "#C77F1A" : "#1F6FB8", color: "#fff", borderRadius: 9, padding: "3px 12px" }}>{g.n}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {g.list.slice(0, 12).map((v) => (
+                  <div key={g.k + v.id} onClick={() => onOpenVehicle && onOpenVehicle(v.id)}
+                    style={{ cursor: "pointer", fontSize: 11.5, fontWeight: 700, color: "#3A4152", background: "#F6F7F9", border: "1px solid #E2E5EB", borderRadius: 8, padding: "5px 10px" }}>
+                    {v.type || "بلا نوع"} — {v.plate || "بلا لوحة"} · {v.unit || "بلا جهة"} · {v.status}
+                  </div>
+                ))}
+                {g.n > 12 && <div style={{ fontSize: 11, fontWeight: 800, color: "#8B93A3" }}>وبقية السجلات عددها {g.n - 12}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "avl" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: "#EEF2F8", border: "1px solid #D3DDEA", borderRadius: 10, padding: "8px 13px" }}>
+            {AV.days ? `نسبة الأيام التي كان فيها المركز مكتمل الجاهزية — محسوبة من ${AV.days} يوماً مسجلاً (${AV.from} إلى ${AV.to}).` : "يبدأ التسجيل من اليوم: يلتقط التطبيق لقطة يومية لمستوى كل مركز، وبعد أيام تظهر هنا نسبة توافر كل مركز ومقارنته بغيره."}
+          </div>
+          {AV.rows.map((r, i) => (
+            <div key={r.center} style={{ ...card, display: "flex", gap: 12, alignItems: "center", borderRight: "5px solid " + readinessColor(r.pct) }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#8B93A3", minWidth: 24, textAlign: "center" }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#141A28" }}>{r.center}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", marginTop: 3 }}>مكتمل {r.full} يوم · عجز جزئي {r.partial} · عجز كلي {r.none} · من {r.days} يوماً</div>
+                <div style={{ height: 7, background: "#EDEFF3", borderRadius: 6, marginTop: 6, overflow: "hidden" }}>
+                  <div style={{ width: r.pct + "%", height: "100%", background: readinessColor(r.pct), borderRadius: 6 }} />
+                </div>
+              </div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: readinessColor(r.pct), minWidth: 46, textAlign: "center" }}>{r.pct}%</div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -5158,6 +5271,7 @@ export default function FleetApp() {
   const [db, setDb] = useState(null);
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("overview");
+  const [conflict, setConflict] = useState(null);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdQ, setCmdQ] = useState("");
   const [alertPct, setAlertPct] = useState(() => {
@@ -5439,13 +5553,26 @@ export default function FleetApp() {
         pushPendingRef.current = false;
         const m = String(e && e.message || "");
         if (m === "gh-conflict") {
-          // نسخة سبقتنا: نحدّث بصمات الملفات ونعيد الدفع (آخر كتابة تفوز)
+          // نسخة سبقتنا من جهاز آخر: نُخطر المحرر بدل الكتابة الصامتة فوق عمل زميله
           try {
-            shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
-            shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
-            await doPush(dbRef.current);
+            const remote = await ghGetJson(tokenRef.current, GH.path);
+            const rdb = (remote && remote.db) || null;
+            const mine = dbRef.current || {};
+            const diff = rdb ? {
+              veh: (rdb.vehicles || []).length - (mine.vehicles || []).length,
+              at: (remote.meta && remote.meta.at) || 0,
+            } : null;
+            setConflict({ remote: rdb, diff, when: Date.now() });
+            setCloud("off");
             return;
-          } catch {}
+          } catch {
+            try {
+              shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
+              shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
+              await doPush(dbRef.current);
+              return;
+            } catch {}
+          }
         }
         if (m === "gh-auth") {
           setImportMsg("⛔ رمز ربط GitHub مرفوض أو منتهي — المشرف يعيد الربط من 🔑");
@@ -5595,6 +5722,26 @@ export default function FleetApp() {
       try { if (!localStorage.getItem("fd_tour_done")) setTourOpen(true); } catch (e) {}
     }
   }, [vehicles.length]);
+  // لقطة يومية لمستوى جاهزية كل مركز (أساس مؤشر التوافر الزمني) — تُسجَّل مرة واحدة كل يوم
+  const snapRef = useRef(false);
+  useEffect(() => {
+    if (snapRef.current || ro || !db || !vehicles.length) return;
+    const t = todayHijri();
+    const key = `${t.y}/${String(t.m).padStart(2, "0")}/${String(t.d).padStart(2, "0")}`;
+    const hist = db.rdyHist || {};
+    if (hist[key]) { snapRef.current = true; return; }
+    const cr = db.centerReadiness || {}, eq = db.equipReadiness || {};
+    const snap = {};
+    MANUAL_CENTERS.forEach(({ centers }) => centers.forEach((c) => {
+      snap[c] = fullCenterStatus(c, cr[c], eq).level;
+    }));
+    const keys = Object.keys(hist).sort();
+    const trimmed = {};
+    keys.slice(-89).forEach((k) => (trimmed[k] = hist[k]));
+    trimmed[key] = snap;
+    snapRef.current = true;
+    persist({ ...db, rdyHist: trimmed }, "لقطة جاهزية يومية");
+  }, [vehicles.length, ro, db]);
   const alerts = useMemo(() => {
     const t = todayHijri();
     const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
@@ -5853,6 +6000,22 @@ export default function FleetApp() {
           #print-area { padding: 14px 10px !important; }
           h3 { font-size: 14.5px !important; }
         }
+        /* تناسق بصري وسلاسة: مساحات لمس مريحة وتباين أوضح وحركة ألطف */
+        button, select, .fd-touch { min-height: 38px; }
+        button, a, select, input, textarea { -webkit-tap-highlight-color: rgba(158,27,34,0.12); }
+        button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+          outline: 3px solid rgba(31,111,184,0.55) !important; outline-offset: 2px !important;
+        }
+        button { transition: transform .12s ease, box-shadow .12s ease, background .15s ease; }
+        button:active { transform: scale(0.975); }
+        @media (hover: hover) { button:hover { box-shadow: 0 3px 12px rgba(20,26,40,0.13); } }
+        input, select, textarea { font-size: 15px; }
+        @media screen and (max-width: 700px) {
+          button, select { min-height: 42px; }
+          input, select, textarea { font-size: 16px !important; } /* يمنع تقريب الصفحة تلقائياً بiOS */
+        }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+        ::selection { background: rgba(212,175,55,0.35); }
         /* النوافذ المنبثقة: تُرسم داخل المنطقة المرئية فعلياً مهما كان التقريب أو وضع العرض */
         .modal-overlay {
           z-index: 2147483000 !important;
@@ -6156,6 +6319,46 @@ export default function FleetApp() {
 
       {tourOpen && <WelcomeTour onDone={() => { try { localStorage.setItem("fd_tour_done", "1"); } catch (e) {} setTourOpen(false); }} />}
 
+      {conflict && (
+        <div className="no-print modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.6)", zIndex: 895, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: 20, width: "min(520px,100%)", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#B3121C", marginBottom: 8 }}>⚠️ تعديل من جهاز آخر</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#3A4152", lineHeight: 1.9, marginBottom: 6 }}>
+              حُفظت نسخة أحدث على السحابة أثناء عملك — على الأرجح من محرر آخر. اختر ما تريد:
+            </div>
+            {conflict.diff && (
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#5A6172", background: "#F4F5F7", border: "1px solid #E1E4EA", borderRadius: 10, padding: "8px 12px", marginBottom: 12 }}>
+                فرق عدد الآليات بين النسختين: {conflict.diff.veh === 0 ? "لا فرق" : (conflict.diff.veh > 0 ? `النسخة السحابية تزيد ${conflict.diff.veh}` : `نسختك تزيد ${Math.abs(conflict.diff.veh)}`)}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={() => {
+                if (conflict.remote) { setDb(conflict.remote); saveDB(conflict.remote); }
+                shaDataRef.current = undefined; shaVerRef.current = undefined;
+                setConflict(null);
+                setImportMsg("⬇ اعتُمدت النسخة السحابية الأحدث");
+                setTimeout(() => setImportMsg(""), 5000);
+              }} style={{ background: "#1E6B44", color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                ⬇ اعتماد نسخة الزميل (يُلغى تعديلي)
+              </button>
+              <button onClick={async () => {
+                try {
+                  shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
+                  shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
+                  await doPush(dbRef.current);
+                  setImportMsg("⬆ اعتُمد تعديلك وكُتب فوق النسخة السابقة");
+                } catch (e) { setImportMsg("تعذّر الحفظ — أعد المحاولة"); }
+                setConflict(null);
+                setTimeout(() => setImportMsg(""), 5000);
+              }} style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                ⬆ الاحتفاظ بتعديلي
+              </button>
+              <button onClick={() => setConflict(null)} style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 11, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>لاحقاً</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {cmdOpen && (() => {
         const q = cmdQ.trim();
         const nq = normPlate(q);
@@ -6387,7 +6590,9 @@ export default function FleetApp() {
         )}
 
         {view === "decision" && (
-          <DecisionPage vehicles={vehicles} onOpenVehicle={(id) => { setSelectedId(id); setView("detail"); }} />
+          <DecisionPage vehicles={vehicles} rdyHist={db.rdyHist || {}}
+            centerReadiness={db.centerReadiness || {}} equip={db.equipReadiness || {}}
+            onOpenVehicle={(id) => { setSelectedId(id); setView("detail"); }} />
         )}
         {view === "charts" && (
           <InteractiveDashboard vehicles={vehicles} counts={counts} faultStats={faultStats}
