@@ -1122,7 +1122,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 6.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 6.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1776,19 +1776,61 @@ function HeatmapCard({ vehicles }) {
   const col = (p) => p >= 85 ? "#1E9E63" : p >= 70 ? "#7DBB42" : p >= 50 ? "#E3A008" : p >= 30 ? "#E06818" : "#B3121C";
   return (
     <ChartCard title="الخريطة الحرارية لجاهزية الجهات والمراكز" icon="🗺️" grad="linear-gradient(120deg,#B3121C,#E3A008)">
-      <div style={{ padding: "12px 18px 16px" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          {rows.map((r) => (
-            <div key={r.u} title={`${r.u} — ${r.p}% (${r.r}/${r.t} جاهزة)`}
-              style={{ width: 26, height: 26, borderRadius: 7, background: col(r.p), cursor: "help", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 8.5, fontWeight: 800 }}>{r.p}</div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, fontSize: 11, fontWeight: 800, color: "#5B6478", flexWrap: "wrap" }}>
-          <span>الأدنى جاهزية أولاً — مرر المؤشر لاسم الجهة:</span>
-          {[["#B3121C", "أقل من 30%"], ["#E06818", "30-50%"], ["#E3A008", "50-70%"], ["#7DBB42", "70-85%"], ["#1E9E63", "85%+"]].map(([c, l]) => (
-            <span key={l} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 12, height: 12, borderRadius: 4, background: c }} />{l}</span>
-          ))}
-        </div>
+      <div style={{ padding: "16px 18px 18px" }}>
+        {(() => {
+          const bands = [
+            { k: "ممتازة", min: 85, c: "#1E9E63" },
+            { k: "جيدة", min: 70, c: "#7DBB42" },
+            { k: "متوسطة", min: 50, c: "#E3A008" },
+            { k: "ضعيفة", min: 30, c: "#E06818" },
+            { k: "حرجة", min: 0, c: "#B3121C" },
+          ];
+          const bandOf = (p) => bands.find((b) => p >= b.min) || bands[bands.length - 1];
+          const counts = bands.map((b) => ({ ...b, n: rows.filter((r) => bandOf(r.p).k === b.k).length }));
+          const worst = rows.slice(0, 12);
+          return (
+            <div>
+              {/* شريط الشرائح */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(96px,1fr))", gap: 8, marginBottom: 15 }}>
+                {counts.map((b) => (
+                  <div key={b.k} style={{ background: b.c + "12", border: "1.5px solid " + b.c + "44", borderRadius: 13, padding: "9px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: 19, fontWeight: 800, color: b.c, lineHeight: 1 }}>{b.n}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#5A6172", marginTop: 4 }}>{b.k}</div>
+                    <div style={{ fontSize: 8.5, fontWeight: 800, color: "#9AA2B1", marginTop: 1 }}>
+                      {b.min === 0 ? "أقل من 30%" : b.min + "% فأعلى"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: "#8E1A22", marginBottom: 9 }}>الجهات الأدنى جاهزية (أعلى أولوية للمتابعة)</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {worst.map((r, i) => {
+                  const b = bandOf(r.p);
+                  return (
+                    <div key={r.u} style={{ display: "flex", alignItems: "center", gap: 10, background: i % 2 ? "#FAFBFC" : "#fff", border: "1px solid #EDEFF3", borderRadius: 12, padding: "8px 11px" }}>
+                      <span style={{ width: 10, height: 30, borderRadius: 4, background: b.c, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: "#1B2130", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.u}</div>
+                        <div style={{ height: 6, background: "#EFF1F5", borderRadius: 4, marginTop: 5, overflow: "hidden" }}>
+                          <div style={{ width: Math.max(2, r.p) + "%", height: "100%", background: b.c, borderRadius: 4 }} />
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "center", flexShrink: 0, minWidth: 60 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: b.c, lineHeight: 1 }}>{r.p}%</div>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: "#9AA2B1", marginTop: 2 }}>{r.r} من {r.t}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {rows.length > 12 && (
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#8B93A3", marginTop: 10 }}>
+                  وبقية الجهات عددها {rows.length - 12} جهة بجاهزية أعلى
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </ChartCard>
   );
@@ -2079,8 +2121,40 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
               const CL = { "تعمل": "#00875A", "تعمل بوجود ملاحظات": "#B45309", "عطلانة": "#C4353C",
                 "تحت التجهيز والتسليم": "#0B5A52", "تحت إجراءات الرجيع": "#4E3D80", "صدر قرار الرجيع": "#6B7385" };
               const items = (statusData || []).map((s) => ({ name: s.name, n: s.value, color: CL[s.name] || "#8B93A3" }));
+              const tot = items.reduce((a, b) => a + b.n, 0) || 1;
               if (!items.length) return <div style={{ padding: 14, fontWeight: 700, color: "#5A6172" }}>لا بيانات.</div>;
-              return <WaffleGrid items={items} />;
+              const R = 68, C = 2 * Math.PI * R;
+              let off = 0;
+              return (
+                <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ flex: "0 0 auto", position: "relative", width: 180, height: 180, margin: "0 auto" }}>
+                    <svg viewBox="0 0 180 180" style={{ width: 180, height: 180, transform: "rotate(-90deg)" }}>
+                      <circle cx="90" cy="90" r={R} fill="none" stroke="#EFF1F5" strokeWidth="26" />
+                      {items.map((s, i) => {
+                        const len = (s.n / tot) * C;
+                        const el = <circle key={i} cx="90" cy="90" r={R} fill="none" stroke={s.color} strokeWidth="26"
+                          strokeDasharray={`${Math.max(0, len - 2)} ${C}`} strokeDashoffset={-off} />;
+                        off += len;
+                        return el;
+                      })}
+                    </svg>
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      <div style={{ fontSize: 27, fontWeight: 800, color: "#1B2130", lineHeight: 1 }}>{tot}</div>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: "#8B93A3", marginTop: 2 }}>إجمالي الآليات</div>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 210, display: "flex", flexDirection: "column", gap: 7 }}>
+                    {items.map((s, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, background: i % 2 ? "#FAFBFC" : "#fff", border: "1px solid #EDEFF3", borderRadius: 11, padding: "7px 11px" }}>
+                        <span style={{ width: 12, height: 12, borderRadius: 4, background: s.color, flexShrink: 0 }} />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 800, color: "#3A4152", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: "#9AA2B1", flexShrink: 0 }}>{Math.round((s.n / tot) * 100)}%</span>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: s.color, minWidth: 34, textAlign: "left", flexShrink: 0 }}>{s.n}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
             })()}
           </div>
         </ChartCard>
@@ -2251,58 +2325,93 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A3" }}>مباشرةً من تعبئتك في صفحة الجاهزية</span>
       </div>
 
-      {/* عدادات الجاهزية */}
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, maxWidth: 980, margin: "0 auto 18px", width: "100%" }}>
+      {/* عدادات الجاهزية — بطاقات أفقية بمؤشر نسبي */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(228px,1fr))", gap: 10, maxWidth: 980, margin: "0 auto 18px", width: "100%" }}>
         {[
-          { label: "مراكز مكتملة الجاهزية", value: rdy.g + " / " + rdy.total, grad: "linear-gradient(135deg,#00875A,#00C48C)", icon: "🛡" },
-          { label: "نقص متطلبات (صفراء)", value: rdy.y, grad: "linear-gradient(135deg,#B45309,#FFB800)", icon: "⚠" },
-          { label: "عجز كامل (حمراء)", value: rdy.r, grad: "linear-gradient(135deg,#9E1B22,#FF5D73)", icon: "🚨" },
-          { label: "مؤشر عجز التغطية", value: rdy.totalRisk, grad: "linear-gradient(135deg,#3B2E77,#7C5CFF)", icon: "📉" },
-          { label: "أنواع الإسناد الجاهزة", value: rdy.supportReady + " / " + SUPPORT_SLOTS.length, grad: "linear-gradient(135deg,#075985,#00A8E8)", icon: "🚛" },
-          { label: "تغطية قص الخواتم · المصاعد", value: rdy.ring + " · " + rdy.elev + " من " + MANUAL_CENTERS.length, grad: "linear-gradient(135deg,#701A43,#E8336D)", icon: "🧰" },
-        ].map((k) => (
-          <div key={k.label} style={{
-            background: k.grad, borderRadius: 18, padding: "16px 14px", color: "#fff",
-            boxShadow: "0 8px 20px rgba(20,26,40,0.15)", position: "relative", overflow: "hidden",
-          }}>
-            <div style={{ position: "absolute", left: -14, top: -14, fontSize: 58, opacity: 0.18 }}>{k.icon}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{k.value}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6, opacity: 0.95 }}>{k.label}</div>
-          </div>
-        ))}
+          { l: "مراكز مكتملة الجاهزية", v: rdy.g, of: rdy.total, c: "#0E7A5F", bg: "#EAF7F0", bd: "#B9E3CD", ic: "🛡" },
+          { l: "مراكز بنقص متطلبات", v: rdy.y, of: rdy.total, c: "#B07207", bg: "#FDF6E7", bd: "#EEDCB3", ic: "⚠️" },
+          { l: "مراكز بعجز كامل", v: rdy.r, of: rdy.total, c: "#B3121C", bg: "#FCEEEF", bd: "#F2C8CB", ic: "🚨" },
+          { l: "مؤشر عجز التغطية", v: rdy.totalRisk, c: "#5B2A86", bg: "#F5F1FB", bd: "#DED3F0", ic: "📉", raw: true },
+          { l: "أنواع الإسناد الجاهزة", v: rdy.supportReady, of: SUPPORT_SLOTS.length, c: "#0B5F8A", bg: "#EAF4FA", bd: "#BFDCEC", ic: "🚛" },
+          { l: "قص الخواتم · المصاعد", v: rdy.ring, v2: rdy.elev, of: MANUAL_CENTERS.length, c: "#A31857", bg: "#FBEDF3", bd: "#F0C8DB", ic: "🧰", dual: true },
+        ].map((k) => {
+          const pct = k.of ? Math.round(((k.dual ? k.v : k.v) / k.of) * 100) : 0;
+          return (
+            <div key={k.l} style={{
+              background: k.bg, border: "1.5px solid " + k.bd, borderRadius: 16, padding: "12px 14px",
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <span style={{
+                width: 40, height: 40, borderRadius: 13, background: "#fff", border: "1.5px solid " + k.bd,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0,
+              }}>{k.ic}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 5, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 23, fontWeight: 800, color: k.c, lineHeight: 1 }}>
+                    {k.dual ? k.v + " · " + k.v2 : k.v}
+                  </span>
+                  {k.of ? <span style={{ fontSize: 11.5, fontWeight: 800, color: "#8B93A3" }}>من {k.of}</span> : null}
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#3A4152", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k.l}</div>
+                {!k.raw && (
+                  <div style={{ height: 5, background: "#fff", borderRadius: 4, marginTop: 6, overflow: "hidden", border: "1px solid " + k.bd }}>
+                    <div style={{ width: Math.max(2, Math.min(100, pct)) + "%", height: "100%", background: k.c, borderRadius: 4 }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 980, margin: "0 auto", width: "100%" }}>
         {/* عداد الجاهزية الدائري */}
         <ChartCard title="الجاهزية الميدانية" icon="🛡" grad="linear-gradient(120deg,#00875A,#00C48C)">
-          <div style={{ padding: "16px 18px 20px" }}>
-            <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ flex: "0 0 auto", width: 160 }}>
-                <GaugeArc pct={rdy.pct} color={readinessColor(rdy.pct)} label="مراكز مكتملة" size={160} />
-              </div>
-              <div style={{ flex: 1, minWidth: 170, display: "flex", flexDirection: "column", gap: 8 }}>
-                {[["🟢", "مكتملة الجاهزية", rdy.green, "#0E7A5F", "#EAF7F0", "#A9DCC0"],
-                  ["🟡", "عجز جزئي", rdy.yellow, "#B07207", "#FDF6E7", "#EBD5A8"],
-                  ["🔴", "عجز كلي", rdy.red, "#B3121C", "#FCEEEF", "#F2C3C6"]].map(([ic, nm, n, c, bg, bd]) => {
-                  const tot = (rdy.green + rdy.yellow + rdy.red) || 1;
-                  return (
-                    <div key={nm} style={{ background: bg, border: "1.5px solid " + bd, borderRadius: 14, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 15, flexShrink: 0 }}>{ic}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: c, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nm}</div>
-                        <div style={{ height: 6, background: "rgba(255,255,255,0.7)", borderRadius: 4, marginTop: 5, overflow: "hidden" }}>
-                          <div style={{ width: Math.round((n / tot) * 100) + "%", height: "100%", background: c, borderRadius: 4 }} />
+          <div style={{ padding: "18px 18px 20px" }}>
+            {(() => {
+              const g = rdy.g || 0, y = rdy.y || 0, r = rdy.r || 0, t = rdy.total || (g + y + r) || 1;
+              const seg = [
+                { n: g, l: "مكتملة الجاهزية", c: "#0E7A5F", d: "كل متطلباتها متوفرة" },
+                { n: y, l: "عجز جزئي", c: "#D89A1E", d: "ينقصها بند أو أكثر" },
+                { n: r, l: "عجز كلي", c: "#C4353C", d: "بلا إطفاء أو بلا إنقاذ" },
+              ];
+              return (
+                <div>
+                  {/* شريط أفقي واحد بثلاث كتل بأرقامها */}
+                  <div style={{ display: "flex", height: 62, borderRadius: 16, overflow: "hidden", border: "1px solid #E7E9EE", marginBottom: 16 }}>
+                    {seg.filter((s) => s.n > 0).map((s) => (
+                      <div key={s.l} title={`${s.l}: ${s.n}`} style={{
+                        width: (s.n / t) * 100 + "%", background: `linear-gradient(160deg, ${s.c}, ${s.c}CC)`,
+                        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", minWidth: 44,
+                      }}>
+                        <span style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{s.n}</span>
+                        <span style={{ fontSize: 9.5, fontWeight: 800, opacity: 0.92, marginTop: 3 }}>{Math.round((s.n / t) * 100)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* بطاقات تفصيلية */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 10 }}>
+                    {seg.map((s) => (
+                      <div key={s.l} style={{ background: "#fff", border: "1.5px solid #E7E9EE", borderRadius: 15, padding: "12px 13px", borderTop: "4px solid " + s.c }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                          <span style={{ fontSize: 25, fontWeight: 800, color: s.c, lineHeight: 1 }}>{s.n}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: "#9AA2B1" }}>من {t} مركزاً</span>
                         </div>
+                        <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130", marginTop: 6 }}>{s.l}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8B93A3", marginTop: 2 }}>{s.d}</div>
                       </div>
-                      <div style={{ textAlign: "center", flexShrink: 0, minWidth: 44 }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: c, lineHeight: 1 }}>{n}</div>
-                        <div style={{ fontSize: 9, fontWeight: 800, color: "#8B93A3" }}>مركزاً</div>
-                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 14, background: "#F4FAF7", border: "1px solid #CBE9DA", borderRadius: 13, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0E7A5F" }}>نسبة المراكز المكتملة</span>
+                    <div style={{ flex: 1, minWidth: 120, height: 9, background: "#fff", border: "1px solid #CBE9DA", borderRadius: 6, overflow: "hidden" }}>
+                      <div style={{ width: rdy.pct + "%", height: "100%", background: readinessColor(rdy.pct), borderRadius: 6 }} />
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <span style={{ fontSize: 17, fontWeight: 800, color: readinessColor(rdy.pct) }}>{rdy.pct}%</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </ChartCard>
 
@@ -2345,7 +2454,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
         </ChartCard>
 
         {/* أخطر المراكز تغطوياً */}
-        <ChartCard title="أعلى 10 مراكز في عجز التغطية" icon="📉" grad="linear-gradient(120deg,#3B2E77,#7C5CFF)" span={rdy.topRisk.length > 5}>
+        <ChartCard title="أعلى 10 مراكز في عجز التغطية" icon="📉" grad="linear-gradient(120deg,#3B2E77,#7C5CFF)">
           {rdy.topRisk.length === 0 ? (
             <div style={{ textAlign: "center", padding: "60px 20px", fontSize: 13, fontWeight: 700, color: "#5A6172" }}>
               لا عجز في التغطية حالياً — إما التغطية مكتملة أو لم تُغذَّ بيانات الأهمية بعد في تبويب التغطية الميدانية
@@ -2355,35 +2464,45 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
               {(() => {
                 const rows = rdy.topRisk, key = "عجز التغطية";
                 const max = rows[0][key] || 1;
+                const sum = rows.reduce((a, b) => a + b[key], 0);
                 return (
                   <div>
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 7, height: 190, marginBottom: 12 }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+                      <div style={{ flex: 1, minWidth: 140, background: "linear-gradient(120deg,#3B2E77,#7C5CFF)", color: "#fff", borderRadius: 14, padding: "11px 14px" }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1 }}>{rdy.totalRisk}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, opacity: 0.92, marginTop: 4 }}>مؤشر العجز على مستوى الإدارة</div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 140, background: "#F5F1FB", border: "1.5px solid #DED3F0", borderRadius: 14, padding: "11px 14px" }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: "#5B2A86", lineHeight: 1 }}>{sum}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#6B6285", marginTop: 4 }}>نصيب أعلى {rows.length} مراكز</div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 140, background: "#F5F1FB", border: "1.5px solid #DED3F0", borderRadius: 14, padding: "11px 14px" }}>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: "#5B2A86", lineHeight: 1 }}>{rdy.totalRisk ? Math.round((sum / rdy.totalRisk) * 100) : 0}%</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 800, color: "#6B6285", marginTop: 4 }}>حصتها من إجمالي العجز</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                       {rows.map((r, i) => {
                         const pc = (r[key] / max) * 100;
                         const c = pc >= 66 ? "#3B2E77" : pc >= 33 ? "#7C5CFF" : "#A99BE8";
                         return (
-                          <div key={r.name} style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", gap: 4 }}>
-                            <span style={{ fontSize: 11.5, fontWeight: 800, color: c }}>{r[key]}</span>
-                            <div style={{ width: "100%", height: Math.max(6, pc) + "%", borderRadius: "8px 8px 4px 4px", background: `linear-gradient(180deg, ${c}, ${c}66)`, boxShadow: "0 3px 10px " + c + "33" }} />
-                            <span style={{
-                              width: 22, height: 22, borderRadius: 7, background: c, color: "#fff", fontSize: 10.5, fontWeight: 800,
-                              display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                            }}>{i + 1}</span>
+                          <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 11, background: "#fff", border: "1.5px solid #EDEAF7", borderRadius: 13, padding: "9px 12px" }}>
+                            <span style={{ width: 27, height: 27, borderRadius: 9, background: c, color: "#fff", fontSize: 11.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</div>
+                              <div style={{ display: "flex", gap: 3, marginTop: 6 }}>
+                                {Array.from({ length: 10 }).map((_, k) => (
+                                  <span key={k} style={{ flex: 1, height: 7, borderRadius: 2, background: k < Math.round(pc / 10) ? c : "#F0EEF8" }} />
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "center", flexShrink: 0, minWidth: 44 }}>
+                              <div style={{ fontSize: 17, fontWeight: 800, color: c, lineHeight: 1 }}>{r[key]}</div>
+                              <div style={{ fontSize: 8.5, fontWeight: 800, color: "#9AA2B1", marginTop: 2 }}>نقطة عجز</div>
+                            </div>
                           </div>
                         );
                       })}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 6 }}>
-                      {rows.map((r, i) => (
-                        <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 7, background: "#F8F7FC", border: "1px solid #E7E4F4", borderRadius: 10, padding: "6px 9px" }}>
-                          <span style={{ width: 18, height: 18, borderRadius: 6, background: "#7C5CFF", color: "#fff", fontSize: 9.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
-                          <span style={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: 800, color: "#2A2350", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
-                          <span style={{ fontSize: 11.5, fontWeight: 800, color: "#3B2E77", flexShrink: 0 }}>{r[key]}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 12, fontSize: 11.5, fontWeight: 800, color: "#5B2A86", background: "#F3F0FB", border: "1px solid #E3DFF5", borderRadius: 10, padding: "8px 13px" }}>
-                      مجموع مؤشر العجز على مستوى الإدارة: {rdy.totalRisk}
                     </div>
                   </div>
                 );
@@ -2398,45 +2517,51 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
             {(() => {
               const all = rdy.support || [];
               const ready = all.filter((x) => x.value > 0);
+              const missing = all.filter((x) => !(x.value > 0));
               const pct = all.length ? Math.round((ready.length / all.length) * 100) : 0;
-              const maxV = Math.max(...all.map((x) => x.value), 1);
+              const Col = ({ title, list, ok }) => (
+                <div style={{ flex: 1, minWidth: 190 }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8, background: ok ? "#EAF7F0" : "#FCEEEF",
+                    border: "1.5px solid " + (ok ? "#B9E3CD" : "#F2C8CB"), borderRadius: 12, padding: "8px 12px", marginBottom: 8,
+                  }}>
+                    <span style={{ fontSize: 14 }}>{ok ? "✅" : "⭕"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: ok ? "#14603F" : "#8E1A22", flex: 1 }}>{title}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: ok ? "#0E7A5F" : "#B3121C" }}>{list.length}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                    {list.length === 0 && <div style={{ fontSize: 11, fontWeight: 700, color: "#9AA2B1", padding: "6px 4px" }}>— لا يوجد —</div>}
+                    {list.map((s, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #EDEFF3", borderRadius: 10, padding: "7px 10px" }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 999, background: ok ? "#0E7A5F" : "#C4353C", flexShrink: 0 }} />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 800, color: "#3A4152", lineHeight: 1.4, wordBreak: "break-word" }}>{s.name}</span>
+                        {ok && <span style={{ fontSize: 11, fontWeight: 800, color: "#0E7A5F", background: "#EAF7F0", borderRadius: 7, padding: "2px 8px", flexShrink: 0 }}>{s.value}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
               return (
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(120deg,#075985,#00A8E8)", borderRadius: 16, padding: "13px 16px", marginBottom: 14, color: "#fff", flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{pct}%</div>
-                    <div style={{ flex: 1, minWidth: 130 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, opacity: 0.95 }}>تغطية أنواع الإسناد</div>
-                      <div style={{ height: 7, background: "rgba(255,255,255,0.25)", borderRadius: 5, marginTop: 6, overflow: "hidden" }}>
-                        <div style={{ width: pct + "%", height: "100%", background: "#fff", borderRadius: 5 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 15, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ fontSize: 32, fontWeight: 800, color: pct >= 80 ? "#0E7A5F" : pct >= 50 ? "#C77F1A" : "#B3121C", lineHeight: 1 }}>{pct}%</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: "#8B93A3" }}>تغطية الأنواع</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 150 }}>
+                      <div style={{ display: "flex", height: 14, borderRadius: 8, overflow: "hidden", border: "1px solid #E7E9EE" }}>
+                        <div style={{ width: pct + "%", background: "linear-gradient(90deg,#0E7A5F,#12A47C)" }} />
+                        <div style={{ flex: 1, background: "#FCEEEF" }} />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: "#0E7A5F" }}>متوفر {ready.length}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: "#B3121C" }}>ناقص {missing.length}</span>
                       </div>
                     </div>
-                    <div style={{ textAlign: "center", background: "rgba(255,255,255,0.16)", borderRadius: 11, padding: "6px 13px" }}>
-                      <div style={{ fontSize: 17, fontWeight: 800 }}>{ready.length}<span style={{ fontSize: 12, opacity: 0.8 }}> / {all.length}</span></div>
-                      <div style={{ fontSize: 9.5, fontWeight: 800, opacity: 0.9 }}>نوع متوفر</div>
-                    </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 9 }}>
-                    {all.map((s, i) => {
-                      const on = s.value > 0;
-                      const ring = on ? Math.max(18, Math.round((s.value / maxV) * 100)) : 0;
-                      const c = on ? "#0E7A5F" : "#B3121C";
-                      return (
-                        <div key={i} style={{ background: "#fff", border: "1.5px solid " + (on ? "#CBE9DA" : "#F2C3C6"), borderRadius: 14, padding: "11px 10px", display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            width: 42, height: 42, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                            background: `conic-gradient(${c} ${ring}%, #EFF1F5 0)`,
-                          }}>
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 800, color: c }}>
-                              {s.value}
-                            </div>
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: "#1B2130", lineHeight: 1.35, wordBreak: "break-word" }}>{s.name}</div>
-                            <div style={{ fontSize: 9.5, fontWeight: 800, color: c, marginTop: 2 }}>{on ? "متوفر" : "غير متوفر"}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                    <Col title="أنواع متوفرة" list={ready} ok={true} />
+                    <Col title="أنواع ناقصة" list={missing} ok={false} />
                   </div>
                 </div>
               );
