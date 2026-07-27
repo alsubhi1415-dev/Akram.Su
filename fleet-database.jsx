@@ -1160,7 +1160,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 6.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3254,7 +3254,15 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     let hit = 0; const miss = [];
     const it = { ...(items || {}) };
     keys.forEach((k) => {
-      if (it[k]) { it[k] = { ...it[k], st: mode, at: Date.now(), warranty: false, newFault: false, faultKey: byPlate[k] ? faultKeyOf(byPlate[k]) : it[k].faultKey }; hit++; }
+      if (it[k]) {
+        const fk = byPlate[k] ? faultKeyOf(byPlate[k]) : it[k].faultKey;
+        const M = { fixed: { st: "fixed", warranty: false, newFault: false },
+          rejee: { st: "rejee", warranty: false, newFault: false },
+          broken: { st: "broken", warranty: false, newFault: false },
+          newf: { st: "fixed", warranty: false, newFault: true },
+          warr: { st: "broken", warranty: true, newFault: false } }[mode] || { st: mode };
+        it[k] = { ...it[k], ...M, at: Date.now(), faultKey: fk }; hit++;
+      }
       else miss.push(k);
     });
     onCohort({ ...(cohort || {}), items: it });
@@ -3348,7 +3356,11 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
               <div style={{ background: "#F7F8FA", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: 13 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 9 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2440" }}>نقل لوحات إلى:</span>
-                  {[["fixed", "✅ تم إصلاحها", "#0E7A5F"], ["rejee", "↩️ أحيلت للرجيع", "#4E3D80"], ["broken", "⚠️ ما زالت متعطلة", "#B3121C"]].map(([id, l, c]) => (
+                  {[["fixed", "✅ أُصلحت ولا تزال تعمل", "#0E7A5F"],
+                    ["newf", "🆕 أُصلحت ثم تعطلت بعطل جديد (تبقى مُصلَحة)", "#0B7285"],
+                    ["warr", "🔁 أُصلحت ثم عاودت (ضمان/مقارب) → للأعطال", "#C77F1A"],
+                    ["rejee", "↩️ أحيلت للرجيع", "#4E3D80"],
+                    ["broken", "⚠️ ما زالت متعطلة", "#B3121C"]].map(([id, l, c]) => (
                     <button key={id} onClick={() => setMode(id)} style={{
                       background: mode === id ? c : "#F0F1F5", color: mode === id ? "#fff" : "#3A4152",
                       border: "1.5px solid " + (mode === id ? c : "#C9CDD6"), borderRadius: 10, padding: "6px 13px",
@@ -3382,6 +3394,10 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
             <Stat n={fixedRows.length} l="تم إصلاحها" c="#0E7A5F" />
             <Stat n={rejeeRows.length} l="أحيلت للرجيع" c="#4E3D80" />
             <Stat n={warrRows.length} l="معاودة خلال الضمان" c="#C77F1A" />
+          </div>
+          <div className="no-print" style={{ textAlign: "center", fontSize: 11.5, fontWeight: 800, color: "#5A6172", marginBottom: 8 }}>
+            تحقق: {brokenRows.length} + {fixedRows.length} + {rejeeRows.length} = {brokenRows.length + fixedRows.length + rejeeRows.length} من {rows.length} آلية بالمجموعة
+            {newFaultRows.length > 0 ? ` · منها ${newFaultRows.length} أُصلحت وتعطلت بعطل جديد` : ""}
           </div>
           <Table list={brokenRows} title="أولاً: بيان الآليات التي ما زالت متعطلة" extra="ملحوظة" />
           <Table list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" extra="ملحوظة" />
