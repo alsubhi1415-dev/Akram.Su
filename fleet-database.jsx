@@ -853,7 +853,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 5.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 5.8 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5192,6 +5192,16 @@ export default function FleetApp() {
   const bellRef = useRef(null);
   const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
   useEffect(() => {
+    const upd = () => {
+      const open = !!document.querySelector(".modal-overlay");
+      document.body.classList.toggle("modal-open", open);
+    };
+    upd();
+    const mo = new MutationObserver(upd);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+  useEffect(() => {
     const root = document.documentElement;
     const vv = window.visualViewport;
     const sync = () => {
@@ -5841,11 +5851,15 @@ export default function FleetApp() {
         }
         /* النوافذ المنبثقة: تُرسم داخل المنطقة المرئية فعلياً مهما كان التقريب أو وضع العرض */
         .modal-overlay {
+          z-index: 2147483000 !important;
           position: fixed !important; inset: auto !important;
           top: var(--vvt, 0px) !important; left: var(--vvl, 0px) !important;
           width: var(--vvw, 100vw) !important; height: var(--vvh, 100dvh) !important;
           box-sizing: border-box !important; overflow-y: auto !important;
         }
+        /* الأزرار العائمة تختفي أثناء فتح أي نافذة فلا تتداخل مع أزرارها */
+        body:has(.modal-overlay) .fd-float-back { display: none !important; }
+        body.modal-open .fd-float-back { display: none !important; }
         .modal-card {
           max-width: calc(var(--vvw, 100vw) - 22px) !important;
           max-height: calc(var(--vvh, 100dvh) - 28px) !important;
@@ -5949,7 +5963,7 @@ export default function FleetApp() {
               {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
             </span>
             {histLen > 0 && (
-              <button className="no-print" onClick={goBack} title="العودة للصفحة السابقة" style={{
+              <button className="no-print fd-float-back" onClick={goBack} title="العودة للصفحة السابقة" style={{
                 position: "fixed", top: 8, left: 8, zIndex: 840,
                 background: "rgba(20,26,40,0.32)", color: "rgba(255,255,255,0.92)",
                 border: "1px solid rgba(255,255,255,0.28)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
