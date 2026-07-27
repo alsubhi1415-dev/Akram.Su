@@ -1160,7 +1160,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.1 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3235,6 +3235,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   const fixedRows = rows.filter((r) => r.it.st === "fixed");
   const rejeeRows = rows.filter((r) => r.it.st === "rejee");
   const warrRows = brokenRows.filter((r) => r.it.warranty);
+  const partRows = brokenRows.filter((r) => r.it.partial);
   const newFaultRows = fixedRows.filter((r) => r.it.newFault);
   const setSt = (k, st, extra) => {
     onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: { ...(items || {})[k], st, at: Date.now(), ...(extra || {}) } } });
@@ -3256,11 +3257,12 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     keys.forEach((k) => {
       if (it[k]) {
         const fk = byPlate[k] ? faultKeyOf(byPlate[k]) : it[k].faultKey;
-        const M = { fixed: { st: "fixed", warranty: false, newFault: false },
-          rejee: { st: "rejee", warranty: false, newFault: false },
-          broken: { st: "broken", warranty: false, newFault: false },
-          newf: { st: "fixed", warranty: false, newFault: true },
-          warr: { st: "broken", warranty: true, newFault: false } }[mode] || { st: mode };
+        const M = { fixed: { st: "fixed", warranty: false, newFault: false, partial: false },
+          rejee: { st: "rejee", warranty: false, newFault: false, partial: false },
+          broken: { st: "broken", warranty: false, newFault: false, partial: false },
+          newf: { st: "fixed", warranty: false, newFault: true, partial: false },
+          warr: { st: "broken", warranty: true, newFault: false, partial: false },
+          part: { st: "broken", warranty: false, newFault: false, partial: true } }[mode] || { st: mode };
         it[k] = { ...it[k], ...M, at: Date.now(), faultKey: fk }; hit++;
       }
       else miss.push(k);
@@ -3296,7 +3298,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
               <td style={{ ...cell, textAlign: "right" }}>{r.v ? (r.v.unit || "—") : "—"}</td>
               <td style={cell}>{r.v ? (r.v.location || "المقر") : "—"}</td>
               <td style={cell}>{r.v ? r.v.status : "غير مسجلة"}</td>
-              {extra ? <td style={{ ...cell, fontWeight: 800, color: "#B3121C" }}>{r.it.warranty ? "معاودة تعطل خلال فترة الضمان" : r.it.newFault ? "عطل جديد مختلف" : "—"}</td> : null}
+              {extra ? <td style={{ ...cell, fontWeight: 800, color: r.it.partial ? "#9C6410" : "#B3121C" }}>{r.it.warranty ? "معاودة تعطل خلال فترة الضمان" : r.it.newFault ? "عطل جديد مختلف" : r.it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "—"}</td> : null}
             </tr>
           ))}
           {!list.length && <tr><td style={cell} colSpan={extra ? 7 : 6}>لا يوجد</td></tr>}
@@ -3359,6 +3361,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                   {[["fixed", "✅ أُصلحت ولا تزال تعمل", "#0E7A5F"],
                     ["newf", "🆕 أُصلحت ثم تعطلت بعطل جديد (تبقى مُصلَحة)", "#0B7285"],
                     ["warr", "🔁 أُصلحت ثم عاودت (ضمان/مقارب) → للأعطال", "#C77F1A"],
+                    ["part", "🛠 سبق دخولها الصيانة ولم يكتمل إصلاحها", "#9C6410"],
                     ["rejee", "↩️ أحيلت للرجيع", "#4E3D80"],
                     ["broken", "⚠️ ما زالت متعطلة", "#B3121C"]].map(([id, l, c]) => (
                     <button key={id} onClick={() => setMode(id)} style={{
@@ -3394,6 +3397,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
             <Stat n={fixedRows.length} l="تم إصلاحها" c="#0E7A5F" />
             <Stat n={rejeeRows.length} l="أحيلت للرجيع" c="#4E3D80" />
             <Stat n={warrRows.length} l="معاودة خلال الضمان" c="#C77F1A" />
+            <Stat n={partRows.length} l="لم يكتمل إصلاحها" c="#9C6410" />
           </div>
           <div className="no-print" style={{ textAlign: "center", fontSize: 11.5, fontWeight: 800, color: "#5A6172", marginBottom: 8 }}>
             تحقق: {brokenRows.length} + {fixedRows.length} + {rejeeRows.length} = {brokenRows.length + fixedRows.length + rejeeRows.length} من {rows.length} آلية بالمجموعة
@@ -3402,6 +3406,11 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           <Table list={brokenRows} title="أولاً: بيان الآليات التي ما زالت متعطلة" extra="ملحوظة" />
           <Table list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" extra="ملحوظة" />
           <Table list={rejeeRows} title="ثالثاً: بيان الآليات التي أحيلت للرجيع" />
+          {partRows.length > 0 && (
+            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
+              ملحوظة: عدد {partRows.length} آلية سبق دخولها الصيانة ولم يكتمل إصلاحها، ما بين إصلاح جزئي، أو عطل تبيّن بعد الاستلام أنه لم يُعالج، أو عطل آخر نشأ عن طول مدة توقفها لدى الصيانة.
+            </div>
+          )}
           {warrRows.length > 0 && (
             <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
               ملحوظة: عدد {warrRows.length} آلية عاودت التعطل بعطل مماثل أو مقارب أو خلال فترة الضمان، وأُعيدت ضمن بيان الآليات المتعطلة.
