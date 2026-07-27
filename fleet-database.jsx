@@ -206,6 +206,69 @@ async function ghGetSha(token, path) {
   if (!r.ok) throw new Error("gh-sha " + r.status);
   return (await r.json()).sha;
 }
+// ====== الدمج الثلاثي: يحفظ تعديلات كل المحررين بدل "آخر كتابة تفوز" ======
+const _eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function mergeById(baseArr, mineArr, theirsArr, stats, label) {
+  const B = {}, M = {}, T = {};
+  (baseArr || []).forEach((x) => (B[x.id] = x));
+  (mineArr || []).forEach((x) => (M[x.id] = x));
+  (theirsArr || []).forEach((x) => (T[x.id] = x));
+  const ids = new Set([...Object.keys(M), ...Object.keys(T)]);
+  const out = [];
+  ids.forEach((id) => {
+    const b = B[id], m = M[id], t = T[id];
+    if (m && !t) { if (b && _eq(b, m)) { stats.theirDel++; return; } out.push(m); stats.mineKeep++; return; } // حذفها الزميل ولم أعدّلها
+    if (!m && t) { if (b && _eq(b, t)) { stats.mineDel++; return; } out.push(t); stats.theirKeep++; return; } // حذفتها أنا ولم يعدّلها
+    if (!m && !t) return;
+    if (_eq(m, t)) { out.push(m); return; }
+    const mChanged = !b || !_eq(b, m), tChanged = !b || !_eq(b, t);
+    if (mChanged && !tChanged) { out.push(m); stats.mine++; return; }
+    if (tChanged && !mChanged) { out.push(t); stats.theirs++; return; }
+    // تعارض حقيقي على السجل نفسه: الأحدث ختماً يفوز وإلا تعديلي
+    const mt = +(m._ts || 0), tt = +(t._ts || 0);
+    if (tt > mt) { out.push(t); stats.theirs++; stats.clash.push(label + ": " + (t.plate || t.id)); }
+    else { out.push(m); stats.mine++; if (tt || mt) stats.clash.push(label + ": " + (m.plate || m.id)); }
+  });
+  return out;
+}
+function mergeMap(base, mine, theirs, stats, depth) {
+  const out = {};
+  const keys = new Set([...Object.keys(mine || {}), ...Object.keys(theirs || {})]);
+  keys.forEach((k) => {
+    const b = (base || {})[k], m = (mine || {})[k], t = (theirs || {})[k];
+    if (m === undefined && t !== undefined) { out[k] = t; if (!_eq(b, t)) stats.theirs++; return; }
+    if (t === undefined && m !== undefined) { out[k] = m; if (!_eq(b, m)) stats.mine++; return; }
+    if (_eq(m, t)) { out[k] = m; return; }
+    const mCh = !_eq(b, m), tCh = !_eq(b, t);
+    if (depth > 0 && m && t && typeof m === "object" && typeof t === "object" && !Array.isArray(m) && !Array.isArray(t)) {
+      out[k] = mergeMap(b || {}, m, t, stats, depth - 1); return;
+    }
+    if (mCh && !tCh) { out[k] = m; stats.mine++; return; }
+    if (tCh && !mCh) { out[k] = t; stats.theirs++; return; }
+    out[k] = m; stats.mine++; stats.clash.push("جاهزية: " + k);
+  });
+  return out;
+}
+function mergeDb(base, mine, theirs) {
+  base = base || {}; mine = mine || {}; theirs = theirs || {};
+  const stats = { mine: 0, theirs: 0, mineKeep: 0, theirKeep: 0, mineDel: 0, theirDel: 0, clash: [] };
+  const uniq = (a) => { const s = new Set(); return a.filter((x) => { const k = JSON.stringify(x); if (s.has(k)) return false; s.add(k); return true; }); };
+  const out = {
+    ...theirs, ...mine,
+    vehicles: mergeById(base.vehicles, mine.vehicles, theirs.vehicles, stats, "آلية"),
+    incidents: mergeById(base.incidents, mine.incidents, theirs.incidents, stats, "حادث"),
+    centerReadiness: mergeMap(base.centerReadiness, mine.centerReadiness, theirs.centerReadiness, stats, 1),
+    equipReadiness: mergeMap(base.equipReadiness, mine.equipReadiness, theirs.equipReadiness, stats, 2),
+    supportReadiness: mergeMap(base.supportReadiness, mine.supportReadiness, theirs.supportReadiness, stats, 1),
+    opsMeta: { ...(theirs.opsMeta || {}), ...(mine.opsMeta || {}) },
+    rdyHist: { ...(theirs.rdyHist || {}), ...(mine.rdyHist || {}) },
+    trash: uniq([...(theirs.trash || []), ...(mine.trash || [])]).slice(-300),
+    archive: uniq([...(theirs.archive || []), ...(mine.archive || [])]).slice(-52),
+    audit: uniq([...(theirs.audit || []), ...(mine.audit || [])]).slice(-500),
+  };
+  return { merged: out, stats };
+}
+
 async function ghGetJson(token, path) {
   const r = await fetch("https://api.github.com/repos/" + GH.owner + "/" + GH.repo + "/contents/" + path + "?ref=" + GH.branch, {
     headers: { Accept: "application/vnd.github.raw+json", Authorization: "Bearer " + token },
@@ -860,7 +923,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 6.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 6.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -5271,6 +5334,23 @@ export default function FleetApp() {
   const [db, setDb] = useState(null);
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("overview");
+  const [newVer, setNewVer] = useState(null); // نسخة أحدث منشورة على الخادم
+  useEffect(() => {
+    let stop = false;
+    const check = async () => {
+      try {
+        const r = await fetch(RAW + "app-ver.json?nc=" + Date.now(), { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (!stop && j && j.build && j.build !== APP_BUILD) setNewVer(j.build);
+      } catch (e) {}
+    };
+    check();
+    const iv = setInterval(check, 10 * 60 * 1000); // فحص هادئ كل عشر دقائق
+    const onVis = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { stop = true; clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
   const [conflict, setConflict] = useState(null);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdQ, setCmdQ] = useState("");
@@ -5459,6 +5539,7 @@ export default function FleetApp() {
   const lastPushedRevRef = useRef(null);
   const pollSt = useRef({});
   const pushPendingRef = useRef(false);
+  const baseRef = useRef(null); // آخر نسخة متفق عليها مع السحابة (أساس الدمج)
   const tokenRef = useRef("");
   const cfgRef = useRef(null);
   const pushTimer = useRef(null);
@@ -5479,6 +5560,7 @@ export default function FleetApp() {
       const remoteDb = migrateDb(parsed.db || parsed);
       cfgRef.current = parsed.cfg || null;
       if (!tokenRef.current) tokenRef.current = tryDecryptToken(cfgRef.current, roleRef.current);
+      baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
       setDb(remoteDb); saveDB(remoteDb);
       stampNow("⬇ آخر استلام");
     } catch {}
@@ -5537,6 +5619,7 @@ export default function FleetApp() {
     if (shaVerRef.current === undefined) shaVerRef.current = await ghGetSha(tok, VER_PATH);
     shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
     shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
+    baseRef.current = JSON.parse(JSON.stringify(nextDb)); // ما دُفع صار الأساس المتفق عليه
     lastPushedRevRef.current = rev;
     lastRevRef.current = rev;
     pushPendingRef.current = false;
@@ -5553,17 +5636,24 @@ export default function FleetApp() {
         pushPendingRef.current = false;
         const m = String(e && e.message || "");
         if (m === "gh-conflict") {
-          // نسخة سبقتنا من جهاز آخر: نُخطر المحرر بدل الكتابة الصامتة فوق عمل زميله
+          // نسخة سبقتنا من جهاز آخر: ندمج التعديلات دمجاً ثلاثياً فلا يضيع عمل أحد
           try {
             const remote = await ghGetJson(tokenRef.current, GH.path);
-            const rdb = (remote && remote.db) || null;
+            const rdb = migrateDb((remote && remote.db) || {});
             const mine = dbRef.current || {};
-            const diff = rdb ? {
-              veh: (rdb.vehicles || []).length - (mine.vehicles || []).length,
-              at: (remote.meta && remote.meta.at) || 0,
-            } : null;
-            setConflict({ remote: rdb, diff, when: Date.now() });
-            setCloud("off");
+            const { merged, stats } = mergeDb(baseRef.current || rdb, mine, rdb);
+            shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
+            shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
+            setDb(merged); saveDB(merged);
+            await doPush(merged);
+            const parts = [];
+            if (stats.mine) parts.push("تعديلاتك " + stats.mine);
+            if (stats.theirs) parts.push("تعديلات زميلك " + stats.theirs);
+            setImportMsg("🔀 دُمجت التعديلات بلا فقد" + (parts.length ? " — " + parts.join(" · ") : ""));
+            setTimeout(() => setImportMsg(""), 7000);
+            if (stats.clash.length) {
+              setConflict({ clash: stats.clash.slice(0, 12), n: stats.clash.length, merged: true });
+            }
             return;
           } catch {
             try {
@@ -5684,6 +5774,17 @@ export default function FleetApp() {
       r: roleRef.current === "owner" ? "المشرف" : "محرر",
       a: label,
     };
+    // ختم زمني للسجلات التي تغيّرت فعلاً — يُستخدم عند تعارض التعديل على السجل نفسه
+    if (next.vehicles && next.vehicles !== db.vehicles) {
+      const prevMap = {};
+      (db.vehicles || []).forEach((v) => (prevMap[v.id] = v));
+      const now = Date.now();
+      next = { ...next, vehicles: next.vehicles.map((v) => {
+        const o = prevMap[v.id];
+        if (o && JSON.stringify({ ...o, _ts: 0 }) === JSON.stringify({ ...v, _ts: 0 })) return v;
+        return { ...v, _ts: now };
+      }) };
+    }
     next = { ...next, audit: [...(db.audit || []), auditEntry].slice(-500) };
     undoStack.current.push({ db, label });
     if (undoStack.current.length > 30) undoStack.current.shift();
@@ -6321,39 +6422,21 @@ export default function FleetApp() {
 
       {conflict && (
         <div className="no-print modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.6)", zIndex: 895, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: 20, width: "min(520px,100%)", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#B3121C", marginBottom: 8 }}>⚠️ تعديل من جهاز آخر</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#3A4152", lineHeight: 1.9, marginBottom: 6 }}>
-              حُفظت نسخة أحدث على السحابة أثناء عملك — على الأرجح من محرر آخر. اختر ما تريد:
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: 20, width: "min(540px,100%)", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#0E7A5F", marginBottom: 8 }}>🔀 دُمجت التعديلات المتزامنة</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#3A4152", lineHeight: 1.9, marginBottom: 10 }}>
+              حُفظت تعديلاتك وتعديلات زميلك معاً بلا فقد. لكن السجلات التالية عُدّلت من الطرفين في الوقت نفسه، واعتُمد فيها الأحدث — راجعها للتأكد:
             </div>
-            {conflict.diff && (
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#5A6172", background: "#F4F5F7", border: "1px solid #E1E4EA", borderRadius: 10, padding: "8px 12px", marginBottom: 12 }}>
-                فرق عدد الآليات بين النسختين: {conflict.diff.veh === 0 ? "لا فرق" : (conflict.diff.veh > 0 ? `النسخة السحابية تزيد ${conflict.diff.veh}` : `نسختك تزيد ${Math.abs(conflict.diff.veh)}`)}
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => {
-                if (conflict.remote) { setDb(conflict.remote); saveDB(conflict.remote); }
-                shaDataRef.current = undefined; shaVerRef.current = undefined;
-                setConflict(null);
-                setImportMsg("⬇ اعتُمدت النسخة السحابية الأحدث");
-                setTimeout(() => setImportMsg(""), 5000);
-              }} style={{ background: "#1E6B44", color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                ⬇ اعتماد نسخة الزميل (يُلغى تعديلي)
-              </button>
-              <button onClick={async () => {
-                try {
-                  shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
-                  shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
-                  await doPush(dbRef.current);
-                  setImportMsg("⬆ اعتُمد تعديلك وكُتب فوق النسخة السابقة");
-                } catch (e) { setImportMsg("تعذّر الحفظ — أعد المحاولة"); }
-                setConflict(null);
-                setTimeout(() => setImportMsg(""), 5000);
-              }} style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 11, padding: "10px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                ⬆ الاحتفاظ بتعديلي
-              </button>
-              <button onClick={() => setConflict(null)} style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 11, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>لاحقاً</button>
+            <div style={{ background: "#FCF3E2", border: "1px solid #EBD5A8", borderRadius: 12, padding: "10px 13px", marginBottom: 14 }}>
+              {(conflict.clash || []).map((c, i2) => (
+                <div key={i2} style={{ fontSize: 12, fontWeight: 800, color: "#7A4E0B", lineHeight: 1.9 }}>• {c}</div>
+              ))}
+              {conflict.n > (conflict.clash || []).length && (
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#8B6B2E", marginTop: 4 }}>وبقية السجلات عددها {conflict.n - (conflict.clash || []).length}</div>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setConflict(null)} style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 11, padding: "10px 24px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>حسناً</button>
             </div>
           </div>
         </div>
@@ -6458,6 +6541,20 @@ export default function FleetApp() {
               <button onClick={() => setGhOpen(false)} disabled={ghBusy} style={{ background: "#E9EBEF", color: "#3A4152", border: "1px solid #C9CDD6", borderRadius: 12, padding: "12px 18px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إلغاء</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {newVer && (
+        <div className="no-print" style={{ background: "linear-gradient(90deg,#0E7A5F,#12A47C)", color: "#fff", padding: "10px 16px", fontSize: 13, fontWeight: 800, display: "flex", gap: 12, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+          <span>⬆ تتوفر نسخة أحدث من التطبيق ({newVer}) — نسختك الحالية {APP_BUILD}</span>
+          <button onClick={() => {
+            try { if (window.caches && caches.keys) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))); } catch (e) {}
+            const u = window.location.pathname + "?v=" + Date.now() + window.location.hash;
+            window.location.replace(u);
+          }} style={{ background: "#fff", color: "#0E7A5F", border: "none", borderRadius: 10, padding: "6px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+            🔄 تحديث الآن
+          </button>
+          <button onClick={() => setNewVer(null)} style={{ background: "transparent", color: "rgba(255,255,255,0.9)", border: "1px solid rgba(255,255,255,0.45)", borderRadius: 10, padding: "5px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>لاحقاً</button>
         </div>
       )}
 
