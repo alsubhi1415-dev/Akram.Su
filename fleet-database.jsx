@@ -1160,7 +1160,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 6.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 6.9 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3205,7 +3205,208 @@ function CritReport({ centerReadiness, equip, logo }) {
   );
 }
 
-function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents }) {
+// ====== بيان أعطال مجموعة الـ186 آلية ======
+// db.cohort186 = { name, createdAt, items: { [plateKey]: { st, warranty, newFault, faultKey, at } } }
+// st: broken | fixed | rejee · warranty: معاودة خلال الضمان · newFault: عطل جديد مختلف بعد الإصلاح
+function faultKeyOf(v) {
+  const f = (v.faults || []).filter((x) => !x.repairDate).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  return f ? (String(f.date || "") + "|" + String(f.type || "") + "|" + String(f.desc || "").slice(0, 40)) : "";
+}
+function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
+  const t = todayHijri();
+  const canEdit = !ro;
+  const [paste, setPaste] = useState("");
+  const [mode, setMode] = useState("fixed");
+  const [msg, setMsg] = useState("");
+  const byPlate = useMemo(() => {
+    const m = {};
+    vehicles.forEach((v) => { m[normPlate(v.plate)] = v; });
+    return m;
+  }, [vehicles]);
+  const items = (cohort && cohort.items) || null;
+  const rows = useMemo(() => {
+    if (!items) return [];
+    return Object.entries(items).map(([k, it]) => ({ k, it, v: byPlate[k] || null }))
+      .sort((a, b) => ((a.v && a.v.type) || "").localeCompare((b.v && b.v.type) || ""));
+  }, [items, byPlate]);
+  const pending = rows.filter((r) => r.it.st === "fixed" && r.v && BROKEN_SET.includes((r.v.status || "").trim())
+    && faultKeyOf(r.v) && faultKeyOf(r.v) !== r.it.faultKey);
+  const brokenRows = rows.filter((r) => r.it.st === "broken");
+  const fixedRows = rows.filter((r) => r.it.st === "fixed");
+  const rejeeRows = rows.filter((r) => r.it.st === "rejee");
+  const warrRows = brokenRows.filter((r) => r.it.warranty);
+  const newFaultRows = fixedRows.filter((r) => r.it.newFault);
+  const setSt = (k, st, extra) => {
+    onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: { ...(items || {})[k], st, at: Date.now(), ...(extra || {}) } } });
+  };
+  const parsePlates = (s) => [...new Set(String(s).split(/[\n,،;]+/).map((x) => normPlate(x.trim())).filter(Boolean))];
+  const createCohort = () => {
+    const uniq = parsePlates(paste);
+    if (!uniq.length) { setMsg("لم تُقرأ أي لوحة — الصق اللوحات سطراً لكل لوحة."); return; }
+    const it = {};
+    uniq.forEach((k) => (it[k] = { st: "broken", faultKey: byPlate[k] ? faultKeyOf(byPlate[k]) : "", at: Date.now() }));
+    onCohort({ name: "بيان أعطال الـ 186 آلية", createdAt: Date.now(), items: it });
+    setPaste(""); setMsg("اعتُمدت المجموعة: " + uniq.length + " آلية");
+    setTimeout(() => setMsg(""), 6000);
+  };
+  const bulkMark = () => {
+    const keys = parsePlates(paste);
+    let hit = 0; const miss = [];
+    const it = { ...(items || {}) };
+    keys.forEach((k) => {
+      if (it[k]) { it[k] = { ...it[k], st: mode, at: Date.now(), warranty: false, newFault: false, faultKey: byPlate[k] ? faultKeyOf(byPlate[k]) : it[k].faultKey }; hit++; }
+      else miss.push(k);
+    });
+    onCohort({ ...(cohort || {}), items: it });
+    setPaste("");
+    setMsg("عُدّلت " + hit + " آلية" + (miss.length ? " · " + miss.length + " لوحة خارج المجموعة" : ""));
+    setTimeout(() => setMsg(""), 8000);
+  };
+  const cell = { border: "1px solid #141A28", padding: "5px 7px", fontSize: 11.5, textAlign: "center" };
+  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800 };
+  const Stat = ({ n, l, c }) => (
+    <div style={{ border: "1.5px solid " + c, borderRadius: 12, padding: "8px 16px", textAlign: "center", minWidth: 96 }}>
+      <div style={{ fontSize: 19, fontWeight: 800, color: c, lineHeight: 1.1 }}>{n}</div>
+      <div style={{ fontSize: 10.5, fontWeight: 800, color: "#3A4152", marginTop: 2 }}>{l}</div>
+    </div>
+  );
+  const Table = ({ list, title, extra }) => (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, margin: "10px 0 6px" }}>{title} ({list.length})</div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead><tr>
+          <th style={hcell}>م</th><th style={hcell}>نوع الآلية</th><th style={hcell}>رقم اللوحة</th>
+          <th style={hcell}>الجهة</th><th style={hcell}>الموقع الحالي</th><th style={hcell}>الحالة بالسجل</th>
+          {extra ? <th style={hcell}>{extra}</th> : null}
+        </tr></thead>
+        <tbody>
+          {list.map((r, i) => (
+            <tr key={r.k}>
+              <td style={cell}>{i + 1}</td>
+              <td style={{ ...cell, textAlign: "right" }}>{r.v ? r.v.type : "—"}</td>
+              <td style={cell}>{r.v ? r.v.plate : r.k}</td>
+              <td style={{ ...cell, textAlign: "right" }}>{r.v ? (r.v.unit || "—") : "—"}</td>
+              <td style={cell}>{r.v ? (r.v.location || "المقر") : "—"}</td>
+              <td style={cell}>{r.v ? r.v.status : "غير مسجلة"}</td>
+              {extra ? <td style={{ ...cell, fontWeight: 800, color: "#B3121C" }}>{r.it.warranty ? "معاودة تعطل خلال فترة الضمان" : r.it.newFault ? "عطل جديد مختلف" : "—"}</td> : null}
+            </tr>
+          ))}
+          {!list.length && <tr><td style={cell} colSpan={extra ? 7 : 6}>لا يوجد</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+  return (
+    <div>
+      <div className="no-print" style={{ marginBottom: 16 }}>
+        {msg && <div style={{ background: "#E7F4ED", border: "1px solid #A9DCC0", color: "#14603F", borderRadius: 10, padding: "8px 13px", fontSize: 12.5, fontWeight: 800, marginBottom: 10 }}>✓ {msg}</div>}
+        {!items ? (
+          canEdit ? (
+            <div style={{ background: "#F7F8FA", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: 14 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440", marginBottom: 8 }}>اعتماد مجموعة الـ186 آلية</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", marginBottom: 10, lineHeight: 1.8 }}>
+                الصق لوحات الآليات المتعطلة (لوحة بكل سطر). تُعتمد جميعها ابتداءً ضمن بيان الأعطال، ثم تنقلها لاحقاً بين البيانات.
+              </div>
+              <textarea value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="أ ب ج 1234" style={{
+                width: "100%", boxSizing: "border-box", minHeight: 130, border: "1.5px solid #C9CDD6", borderRadius: 10,
+                padding: 11, fontSize: 13, fontWeight: 700, fontFamily: "inherit", lineHeight: 1.9,
+              }} />
+              <button onClick={createCohort} style={{ marginTop: 10, background: "#9E1B22", color: "#fff", border: "none", borderRadius: 11, padding: "10px 24px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>اعتماد المجموعة</button>
+            </div>
+          ) : (
+            <div style={{ padding: 30, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 13.5 }}>لم تُعتمد مجموعة الـ186 آلية بعد.</div>
+          )
+        ) : (
+          <div>
+            {canEdit && pending.length > 0 && (
+              <div style={{ background: "#FFF6E8", border: "2px solid #EBD5A8", borderRadius: 14, padding: 14, marginBottom: 12 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#7A5209", marginBottom: 4 }}>⚠️ قرارات مطلوبة ({pending.length})</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5209", marginBottom: 10, lineHeight: 1.8 }}>
+                  الآليات التالية سبق تسجيل إصلاحها ضمن المجموعة ثم عادت متعطلة. حدد لكل واحدة طبيعة العطل ليوضع البيان في موضعه الصحيح:
+                </div>
+                {pending.map((r) => (
+                  <div key={r.k} style={{ background: "#fff", border: "1px solid #E7E9EE", borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130" }}>{r.v.type} — {r.v.plate}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", margin: "3px 0 9px" }}>
+                      {r.v.unit || "—"} · {r.v.location || "المقر"}
+                    </div>
+                    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                      <button onClick={() => setSt(r.k, "broken", { warranty: true, newFault: false, faultKey: faultKeyOf(r.v) })}
+                        style={{ background: "#B3121C", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                        🔁 معاودة العطل نفسه أو مقارب له أو خلال الضمان
+                      </button>
+                      <button onClick={() => setSt(r.k, "fixed", { warranty: false, newFault: true, faultKey: faultKeyOf(r.v) })}
+                        style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                        ✅ عطل جديد مختلف — يبقى ضمن ما تم إصلاحه
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {canEdit && (
+              <div style={{ background: "#F7F8FA", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: 13 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 9 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2440" }}>نقل لوحات إلى:</span>
+                  {[["fixed", "✅ تم إصلاحها", "#0E7A5F"], ["rejee", "↩️ أحيلت للرجيع", "#4E3D80"], ["broken", "⚠️ ما زالت متعطلة", "#B3121C"]].map(([id, l, c]) => (
+                    <button key={id} onClick={() => setMode(id)} style={{
+                      background: mode === id ? c : "#F0F1F5", color: mode === id ? "#fff" : "#3A4152",
+                      border: "1.5px solid " + (mode === id ? c : "#C9CDD6"), borderRadius: 10, padding: "6px 13px",
+                      fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                    }}>{l}</button>
+                  ))}
+                </div>
+                <textarea value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="الصق لوحات الآليات هنا — لوحة بكل سطر" style={{
+                  width: "100%", boxSizing: "border-box", minHeight: 92, border: "1.5px solid #C9CDD6", borderRadius: 10,
+                  padding: 10, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", lineHeight: 1.85,
+                }} />
+                <button onClick={bulkMark} style={{ marginTop: 9, background: "#141A28", color: "#fff", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تنفيذ النقل</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {items && (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 4 }}>
+            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
+            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان أعطال الـ 186 آلية</div>
+            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0", flexWrap: "wrap" }}>
+            <Stat n={rows.length} l="إجمالي المجموعة" c="#1B2440" />
+            <Stat n={brokenRows.length} l="ما زالت متعطلة" c="#B3121C" />
+            <Stat n={fixedRows.length} l="تم إصلاحها" c="#0E7A5F" />
+            <Stat n={rejeeRows.length} l="أحيلت للرجيع" c="#4E3D80" />
+            <Stat n={warrRows.length} l="معاودة خلال الضمان" c="#C77F1A" />
+          </div>
+          <Table list={brokenRows} title="أولاً: بيان الآليات التي ما زالت متعطلة" extra="ملحوظة" />
+          <Table list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" extra="ملحوظة" />
+          <Table list={rejeeRows} title="ثالثاً: بيان الآليات التي أحيلت للرجيع" />
+          {warrRows.length > 0 && (
+            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
+              ملحوظة: عدد {warrRows.length} آلية عاودت التعطل بعطل مماثل أو مقارب أو خلال فترة الضمان، وأُعيدت ضمن بيان الآليات المتعطلة.
+            </div>
+          )}
+          {newFaultRows.length > 0 && (
+            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 4, color: "#3A4152", lineHeight: 1.9 }}>
+              ملحوظة: عدد {newFaultRows.length} آلية أُصلحت من عطلها السابق ثم تعطلت بعطل جديد مختلف، وأُبقيت ضمن بيان ما تم إصلاحه.
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontSize: 12, fontWeight: 800 }}>
+            <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
+            <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents, cohort, onCohort }) {
   const fitRef = useRef(null);
   const [fitW, setFitW] = useState(() => { try { return localStorage.getItem("fd_fitw") !== "0"; } catch (e) { return true; } });
   const [fitZ, setFitZ] = useState(1);
@@ -3476,7 +3677,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية"], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -3573,6 +3774,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
         {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
         {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} />}
+        {repMode === "c186" && <Cohort186Report vehicles={vehicles} logo={logo} cohort={cohort} onCohort={onCohort} ro={ro} isOwner={isOwner} />}
         {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} />}
         {repMode === "tour" && <TourSheet logo={logo} />}
         {repMode === "cwa" && <CenterWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
@@ -7217,6 +7419,8 @@ export default function FleetApp() {
           <ReportsPage vehicles={vehicles} logo={logo} initialMode={reportsInit} ro={ro} isOwner={isOwner}
             archive={db.archive || []}
             incidents={db.incidents || []}
+            cohort={db.cohort186 || null}
+            onCohort={(c) => persist({ ...db, cohort186: c }, "بيان أعطال الـ186 آلية")}
             onArchive={(entry) => persist({ ...db, archive: [...(db.archive || []), entry].map((x, i, a) => i < a.length - 8 ? { ...x, html: undefined } : x).slice(-52) }, "اعتماد وأرشفة التقرير الأسبوعي")}
             centerReadiness={db.centerReadiness || {}}
             equip={db.equipReadiness || {}}
