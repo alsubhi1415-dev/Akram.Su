@@ -266,6 +266,18 @@ function mergeDb(base, mine, theirs) {
     supportReadiness: mergeMap(base.supportReadiness, mine.supportReadiness, theirs.supportReadiness, stats, 1),
     opsMeta: { ...(theirs.opsMeta || {}), ...(mine.opsMeta || {}) },
     rdyHist: { ...(theirs.rdyHist || {}), ...(mine.rdyHist || {}) },
+    cohort186: (() => {
+      const a = mine.cohort186, b = theirs.cohort186;
+      if (!a) return b; if (!b) return a;
+      const ai = a.items || {}, bi = b.items || {}, out = {};
+      new Set([...Object.keys(ai), ...Object.keys(bi)]).forEach((k) => {
+        const x = ai[k], y = bi[k];
+        if (!x) { out[k] = y; return; }
+        if (!y) { out[k] = x; return; }
+        out[k] = (+(y.at || 0) > +(x.at || 0)) ? y : x; // الأحدث قراراً يفوز
+      });
+      return { ...b, ...a, items: out };
+    })(),
     trash: uniq([...(theirs.trash || []), ...(mine.trash || [])]).slice(-300),
     archive: uniq([...(theirs.archive || []), ...(mine.archive || [])]).slice(-52),
     audit: uniq([...(theirs.audit || []), ...(mine.audit || [])]).slice(-500),
@@ -1160,7 +1172,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3237,31 +3249,34 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   const warrRows = brokenRows.filter((r) => r.it.warranty);
   const partRows = brokenRows.filter((r) => r.it.partial);
   const newFaultRows = fixedRows.filter((r) => r.it.newFault);
-  const autoRef = useRef("");
-  useEffect(() => {
-    if (!items || ro) return;
-    const READY = ["تعمل", "تم الإصلاح"];
-    const REJ = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
-    const patch = {}; let n = 0;
+  // اقتراحات انتقال بعد تحديث السجل — لا يُنفَّذ شيء إلا بموافقتك
+  const READY_ST = ["تعمل", "تم الإصلاح"];
+  const REJ_ST = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
+  const suggests = useMemo(() => {
+    if (!items) return [];
+    const out = [];
     Object.entries(items).forEach(([k, it]) => {
       const v = byPlate[k];
       if (!v) return;
       const s = (v.status || "").trim();
-      if (REJ.includes(s) && it.st !== "rejee") {
-        patch[k] = { ...it, st: "rejee", warranty: false, newFault: false, partial: false, at: Date.now() }; n++; return;
-      }
-      if (READY.includes(s) && it.st === "broken") {
-        patch[k] = { ...it, st: "fixed", warranty: false, newFault: false, partial: false, faultKey: "", at: Date.now() }; n++;
-      }
+      if (REJ_ST.includes(s) && it.st !== "rejee") out.push({ k, v, it, to: "rejee", why: "صدر قرار رجيعها أو دخلت إجراءات الرجيع" });
+      else if (READY_ST.includes(s) && it.st === "broken") out.push({ k, v, it, to: "fixed", why: "أصبحت حالتها بالسجل: " + s });
     });
-    if (!n) return;
-    const sig = Object.keys(patch).sort().join(",");
-    if (autoRef.current === sig) return;
-    autoRef.current = sig;
-    onCohort({ ...(cohort || {}), items: { ...items, ...patch } });
-    setMsg("تحديث تلقائي من سجل الآليات: " + n + " آلية انتقلت لموضعها الصحيح");
-    setTimeout(() => setMsg(""), 9000);
-  }, [items, byPlate, ro]);
+    return out;
+  }, [items, byPlate]);
+  const applyOne = (s) => setSt(s.k, s.to, s.to === "fixed"
+    ? { warranty: false, newFault: false, partial: false, faultKey: "" }
+    : { warranty: false, newFault: false, partial: false });
+  const applyAll = () => {
+    const it = { ...(items || {}) };
+    suggests.forEach((s) => {
+      it[s.k] = { ...it[s.k], st: s.to, warranty: false, newFault: false, partial: false, at: Date.now(),
+        ...(s.to === "fixed" ? { faultKey: "" } : {}) };
+    });
+    onCohort({ ...(cohort || {}), items: it });
+    setMsg("اعتُمدت " + suggests.length + " حركة انتقال");
+    setTimeout(() => setMsg(""), 7000);
+  };
   const setSt = (k, st, extra) => {
     onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: { ...(items || {})[k], st, at: Date.now(), ...(extra || {}) } } });
   };
@@ -3353,6 +3368,31 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           )
         ) : (
           <div>
+            {canEdit && suggests.length > 0 && (
+              <div style={{ background: "#EEF6FF", border: "2px solid #C4DCF5", borderRadius: 14, padding: 14, marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1F4E8C" }}>🔄 اقتراحات انتقال ({suggests.length})</span>
+                  <button onClick={applyAll} style={{ marginRight: "auto", background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 9, padding: "6px 15px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>اعتماد الكل</button>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#1F4E8C", marginBottom: 10, lineHeight: 1.8 }}>
+                  تغيّرت حالة الآليات التالية بسجل الآليات. لا يُنقل أي بيان إلا بموافقتك:
+                </div>
+                {suggests.slice(0, 30).map((s) => (
+                  <div key={s.k} style={{ background: "#fff", border: "1px solid #E7E9EE", borderRadius: 12, padding: "9px 12px", marginBottom: 7, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 170 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130" }}>{s.v.type} — {s.v.plate}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", marginTop: 2 }}>{s.why}</div>
+                    </div>
+                    <button onClick={() => applyOne(s)} style={{
+                      background: s.to === "fixed" ? "#0E7A5F" : "#4E3D80", color: "#fff", border: "none", borderRadius: 9,
+                      padding: "7px 14px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+                    }}>{s.to === "fixed" ? "↩ نقلها لبيان ما تم إصلاحه" : "↩ نقلها لبيان الرجيع"}</button>
+                  </div>
+                ))}
+                {suggests.length > 30 && <div style={{ fontSize: 11, fontWeight: 800, color: "#5A6172" }}>وبقية المقترحات عددها {suggests.length - 30} — استخدم «اعتماد الكل»</div>}
+              </div>
+            )}
+
             {canEdit && pending.length > 0 && (
               <div style={{ background: "#FFF6E8", border: "2px solid #EBD5A8", borderRadius: 14, padding: 14, marginBottom: 12 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: "#7A5209", marginBottom: 4 }}>⚠️ قرارات مطلوبة ({pending.length})</div>
