@@ -1172,7 +1172,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.5 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1234,7 +1234,7 @@ function ShamelReport({ incidents, ro, logo, vehiclesCount, opsMeta, onSaveMeta,
       <div className="shamel-wrap" style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #E4E7F0" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ fontSize: 13, fontWeight: 800, border: "2px solid #141A28", borderRadius: 8, padding: "5px 14px", alignSelf: "center" }}>النموذج الشامل</div>
-          <div style={{ textAlign: "center" }}>
+          <div className="rep-head" style={{ textAlign: "center" }}>
             {logo && <img src={logo} alt="" style={{ height: 56 }} />}
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — وزارة الداخلية</div>
             <div style={{ fontSize: 11.5, fontWeight: 800 }}>المديرية العامة للدفاع المدني</div>
@@ -2856,7 +2856,7 @@ function CenterReport({ vehicles, logo }) {
         <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر مركزاً من القائمة أعلاه ليُبنى بيان موقفه الكامل جاهزاً للطباعة</div>
       ) : (
         <div>
-          <div style={{ textAlign: "center", marginBottom: 4 }}>
+          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
             {logo && <img src={logo} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
@@ -3008,7 +3008,7 @@ function CompareReport({ archive, vehicles, logo }) {
         <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>لا توجد لقطات مؤرشفة بعد — اعتمد تقريراً أسبوعياً ليُحفظ بالأرشيف ثم قارن بينه وبين الوضع الحالي</div>
       ) : (
         <div>
-          <div style={{ textAlign: "center", marginBottom: 4 }}>
+          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
             {logo && <img src={logo} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
@@ -3068,7 +3068,7 @@ function TourSheet({ logo }) {
         <div>
           {centers.map((c, ci) => (
             <div key={c} style={{ pageBreakAfter: ci < centers.length - 1 ? "always" : "auto", marginBottom: 26 }}>
-              <div style={{ textAlign: "center", marginBottom: 4 }}>
+              <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
                 {logo && <img src={logo} alt="" style={{ height: 52 }} />}
                 <div style={{ fontSize: 13, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
                 <div style={{ fontSize: 11.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
@@ -3137,7 +3137,7 @@ function CritReport({ centerReadiness, equip, logo }) {
         <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر بنداً من القائمة أعلاه ليُبنى بيان تكميله بالمراكز والشعب جاهزاً للطباعة</div>
       ) : (
         <div>
-          <div style={{ textAlign: "center", marginBottom: 4 }}>
+          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
             {logo && <img src={logo} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
@@ -3504,7 +3504,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
               boxShadow: "0 6px 18px rgba(158,27,34,0.32)", display: "inline-flex", alignItems: "center", gap: 8,
             }}>🖨 طباعة البيان (A4 أفقي)</button>
           </div>
-          <div style={{ textAlign: "center", marginBottom: 4 }}>
+          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
             {logo && <img src={logo} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
@@ -4307,7 +4307,7 @@ function WeeklyReport({ vehicles, logo }) {
         🔎 مطابقة حية الآن: بيان الآليات <b style={{ color: "#9E1B22" }}>{data.brokenVeh.length}</b> + الدراجات <b style={{ color: "#9E1B22" }}>{data.brokenBikes.length}</b> = <b>{data.brokenVeh.length + data.brokenBikes.length}</b> مصنفة متعطلة — من إجمالي متعطلة القاعدة {data.allBrokenDb} — والمستبعد {data.allBrokenDb - data.brokenVeh.length - data.brokenBikes.length} دايهاتسو متجاهلة تُحصى بعمود اخرى فقط</div>
 
       {/* رأس النموذج الرسمي بترويستنا */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+      <div className="rep-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
         <div style={{ fontSize: 10.5, fontWeight: 800, lineHeight: 1.7 }}>
           المملكة العربية السعودية<br />الإدارة العامة للدفاع المدني بمحافظة جدة<br />إدارة العمليات
         </div>
@@ -4446,7 +4446,7 @@ function NawiReport({ vehicles, logo }) {
       <div className="nawi-wrap">
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
         <div style={{ width: 120 }} />
-        <div style={{ textAlign: "center", flex: 1 }}>
+        <div className="rep-head" style={{ textAlign: "center", flex: 1 }}>
           {logo && <img src={logo} alt="" style={{ height: 46 }} />}
           <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — المديرية العامة للدفاع المدني</div>
           <div style={{ fontSize: 11.5, fontWeight: 700 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
@@ -6952,7 +6952,18 @@ export default function FleetApp() {
           .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
           .tbl-scroll table { width: max-content !important; min-width: 100% !important; }
         }
-        @media print { .scroll-hint { display: none !important; } #print-area { overflow: visible !important; zoom: 1 !important; padding: 0 !important; } }
+        @media print {
+          .scroll-hint { display: none !important; }
+          /* الحاوية تعود كتلة عادية بلا تموضع نسبي ولا تمرير — يمنع تشرّد الترويسة بين الصفحات */
+          #print-area { overflow: visible !important; zoom: 1 !important; padding: 0 !important;
+            position: static !important; display: block !important; contain: none !important;
+            transform: none !important; filter: none !important; }
+          #print-area > * { float: none !important; }
+          /* ترويسة أي بيان: كتلة واحدة لا تنقسم ولا تنفصل عما بعدها */
+          .rep-head { display: block !important; break-inside: avoid !important; page-break-inside: avoid !important;
+            break-after: avoid !important; page-break-after: avoid !important; position: static !important; }
+          .rep-head img { display: inline-block !important; }
+        }
         body.dark { background: #DDE1E8; }
         body.dark main { filter: brightness(0.9) saturate(0.95); }
         @media print { body.dark main { filter: none !important; } }
