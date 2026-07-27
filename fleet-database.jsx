@@ -1172,7 +1172,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.4 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3248,6 +3248,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   const rejeeRows = rows.filter((r) => r.it.st === "rejee");
   const warrRows = brokenRows.filter((r) => r.it.warranty);
   const partRows = brokenRows.filter((r) => r.it.partial);
+  const fixedButBroken = fixedRows.filter((r) => r.v && BROKEN_SET.includes((r.v.status || "").trim()));
   const newFaultRows = fixedRows.filter((r) => r.it.newFault);
   // اقتراحات انتقال بعد تحديث السجل — لا يُنفَّذ شيء إلا بموافقتك
   const READY_ST = ["تعمل", "تم الإصلاح"];
@@ -3312,36 +3313,97 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     setMsg("عُدّلت " + hit + " آلية" + (miss.length ? " · " + miss.length + " لوحة خارج المجموعة" : ""));
     setTimeout(() => setMsg(""), 8000);
   };
-  const cell = { border: "1px solid #141A28", padding: "5px 7px", fontSize: 11.5, textAlign: "center" };
-  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800 };
+  const openFault = (v) => {
+    const fs = (v.faults || []).filter((f) => !f.repairDate);
+    fs.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+    return fs[0] || null;
+  };
+  const lastRepair = (v) => {
+    const fs = (v.faults || []).filter((f) => f.repairDate);
+    fs.sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")));
+    return fs[0] || null;
+  };
+  const noteOf = (it) => it.warranty ? "معاودة تعطل خلال فترة الضمان"
+    : it.newFault ? "عطل جديد مختلف لا علاقة له بالعطل السابق"
+    : it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "";
+  const cell = { border: "1px solid #141A28", padding: "4px 5px", fontSize: 10.5, textAlign: "center", verticalAlign: "middle" };
+  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800, fontSize: 10.5 };
   const Stat = ({ n, l, c }) => (
-    <div style={{ border: "1.5px solid " + c, borderRadius: 12, padding: "8px 16px", textAlign: "center", minWidth: 96 }}>
+    <div style={{ border: "1.5px solid " + c, borderRadius: 12, padding: "8px 16px", textAlign: "center", minWidth: 104 }}>
       <div style={{ fontSize: 19, fontWeight: 800, color: c, lineHeight: 1.1 }}>{n}</div>
       <div style={{ fontSize: 10.5, fontWeight: 800, color: "#3A4152", marginTop: 2 }}>{l}</div>
     </div>
   );
-  const Table = ({ list, title, extra }) => (
-    <div style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 13, fontWeight: 800, margin: "10px 0 6px" }}>{title} ({list.length})</div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+  // جدول المتعطلة والرجيع: نوع · لوحة · موديل · جهة · الحالة الفنية · وصف العطل · تاريخ العطل · ملاحظات
+  const FaultTable = ({ list, title, forceStatus }) => (
+    <div style={{ marginTop: 12 }} className="sec-block">
+      <div style={{ fontSize: 12.5, fontWeight: 800, margin: "10px 0 5px" }}>{title} — العدد ({list.length}) آلية</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <thead><tr>
-          <th style={hcell}>م</th><th style={hcell}>نوع الآلية</th><th style={hcell}>رقم اللوحة</th>
-          <th style={hcell}>الجهة</th><th style={hcell}>الموقع الحالي</th><th style={hcell}>الحالة بالسجل</th>
-          {extra ? <th style={hcell}>{extra}</th> : null}
+          <th style={{ ...hcell, width: "3.5%" }}>م</th>
+          <th style={{ ...hcell, width: "17%" }}>نوع الآلية</th>
+          <th style={{ ...hcell, width: "9%" }}>رقم اللوحة</th>
+          <th style={{ ...hcell, width: "6%" }}>الموديل</th>
+          <th style={{ ...hcell, width: "16%" }}>الجهة</th>
+          <th style={{ ...hcell, width: "11%" }}>الحالة الفنية</th>
+          <th style={{ ...hcell, width: "18%" }}>وصف العطل</th>
+          <th style={{ ...hcell, width: "8%" }}>تاريخ العطل</th>
+          <th style={{ ...hcell, width: "11.5%" }}>الملاحظات</th>
         </tr></thead>
         <tbody>
-          {list.map((r, i) => (
-            <tr key={r.k}>
-              <td style={cell}>{i + 1}</td>
-              <td style={{ ...cell, textAlign: "right" }}>{r.v ? r.v.type : "—"}</td>
-              <td style={cell}>{r.v ? r.v.plate : r.k}</td>
-              <td style={{ ...cell, textAlign: "right" }}>{r.v ? (r.v.unit || "—") : "—"}</td>
-              <td style={cell}>{r.v ? (r.v.location || "المقر") : "—"}</td>
-              <td style={cell}>{r.v ? r.v.status : "غير مسجلة"}</td>
-              {extra ? <td style={{ ...cell, fontWeight: 800, color: r.it.partial ? "#9C6410" : "#B3121C" }}>{r.it.warranty ? "معاودة تعطل خلال فترة الضمان" : r.it.newFault ? "عطل جديد مختلف" : r.it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "—"}</td> : null}
-            </tr>
-          ))}
-          {!list.length && <tr><td style={cell} colSpan={extra ? 7 : 6}>لا يوجد</td></tr>}
+          {list.map((r, i) => {
+            const v = r.v, f = v ? openFault(v) : null;
+            return (
+              <tr key={r.k}>
+                <td style={cell}>{i + 1}</td>
+                <td style={{ ...cell, textAlign: "right" }}>{v ? v.type : "—"}</td>
+                <td style={cell}>{v ? v.plate : r.k}</td>
+                <td style={cell}>{v ? (v.model || "—") : "—"}</td>
+                <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
+                <td style={cell}>{forceStatus || (v ? v.status : "—")}</td>
+                <td style={{ ...cell, textAlign: "right" }}>{f ? (f.desc || f.faultType || "—") : "—"}</td>
+                <td style={cell}>{f ? (f.date || "—") : "—"}</td>
+                <td style={{ ...cell, fontWeight: 700 }}>{noteOf(r.it) || "—"}</td>
+              </tr>
+            );
+          })}
+          {!list.length && <tr><td style={cell} colSpan={9}>لا يوجد</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+  // جدول الإصلاحات: نوع · لوحة · موديل · جهة · الحالة الفنية (تم الإصلاح) · تاريخ الإصلاح · ملاحظات
+  const FixedTable = ({ list, title }) => (
+    <div style={{ marginTop: 12 }} className="sec-block">
+      <div style={{ fontSize: 12.5, fontWeight: 800, margin: "10px 0 5px" }}>{title} — العدد ({list.length}) آلية</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+        <thead><tr>
+          <th style={{ ...hcell, width: "4%" }}>م</th>
+          <th style={{ ...hcell, width: "22%" }}>نوع الآلية</th>
+          <th style={{ ...hcell, width: "11%" }}>رقم اللوحة</th>
+          <th style={{ ...hcell, width: "7%" }}>الموديل</th>
+          <th style={{ ...hcell, width: "21%" }}>الجهة</th>
+          <th style={{ ...hcell, width: "11%" }}>الحالة الفنية</th>
+          <th style={{ ...hcell, width: "10%" }}>تاريخ الإصلاح</th>
+          <th style={{ ...hcell, width: "14%" }}>الملاحظات</th>
+        </tr></thead>
+        <tbody>
+          {list.map((r, i) => {
+            const v = r.v, f = v ? lastRepair(v) : null;
+            return (
+              <tr key={r.k}>
+                <td style={cell}>{i + 1}</td>
+                <td style={{ ...cell, textAlign: "right" }}>{v ? v.type : "—"}</td>
+                <td style={cell}>{v ? v.plate : r.k}</td>
+                <td style={cell}>{v ? (v.model || "—") : "—"}</td>
+                <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
+                <td style={cell}>تم الإصلاح</td>
+                <td style={cell}>{f ? (f.repairDate || "—") : "—"}</td>
+                <td style={{ ...cell, fontWeight: 700 }}>{noteOf(r.it) || "—"}</td>
+              </tr>
+            );
+          })}
+          {!list.length && <tr><td style={cell} colSpan={8}>لا يوجد</td></tr>}
         </tbody>
       </table>
     </div>
@@ -3425,6 +3487,23 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
 
       {items && (
         <div>
+          <style>{`
+            @page { size: A4 landscape; margin: 9mm 8mm; }
+            @media print {
+              .sec-block { page-break-inside: auto; }
+              .sec-block table { page-break-inside: auto; }
+              .sec-block tr { page-break-inside: avoid; page-break-after: auto; }
+              .sec-block thead { display: table-header-group; }
+              .c186-sign { page-break-inside: avoid; }
+            }
+          `}</style>
+          <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            <button onClick={() => window.print()} style={{
+              background: "linear-gradient(135deg,#9E1B22,#C4353C)", color: "#fff", border: "none", borderRadius: 12,
+              padding: "11px 26px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+              boxShadow: "0 6px 18px rgba(158,27,34,0.32)", display: "inline-flex", alignItems: "center", gap: 8,
+            }}>🖨 طباعة البيان (A4 أفقي)</button>
+          </div>
           <div style={{ textAlign: "center", marginBottom: 4 }}>
             {logo && <img src={logo} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
@@ -3437,16 +3516,15 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
             <Stat n={brokenRows.length} l="ما زالت متعطلة" c="#B3121C" />
             <Stat n={fixedRows.length} l="تم إصلاحها" c="#0E7A5F" />
             <Stat n={rejeeRows.length} l="أحيلت للرجيع" c="#4E3D80" />
-            <Stat n={warrRows.length} l="معاودة خلال الضمان" c="#C77F1A" />
-            <Stat n={partRows.length} l="لم يكتمل إصلاحها" c="#9C6410" />
+            <Stat n={fixedButBroken.length} l="عطلانة ضمن بيان الإصلاحات" c="#0B7285" />
           </div>
           <div className="no-print" style={{ textAlign: "center", fontSize: 11.5, fontWeight: 800, color: "#5A6172", marginBottom: 8 }}>
             تحقق: {brokenRows.length} + {fixedRows.length} + {rejeeRows.length} = {brokenRows.length + fixedRows.length + rejeeRows.length} من {rows.length} آلية بالمجموعة
             {newFaultRows.length > 0 ? ` · منها ${newFaultRows.length} أُصلحت وتعطلت بعطل جديد` : ""}
           </div>
-          <Table list={brokenRows} title="أولاً: بيان الآليات التي ما زالت متعطلة" extra="ملحوظة" />
-          <Table list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" extra="ملحوظة" />
-          <Table list={rejeeRows} title="ثالثاً: بيان الآليات التي أحيلت للرجيع" />
+          <FaultTable list={brokenRows} title="أولاً: بيان الآليات التي ما زالت متعطلة" />
+          <FixedTable list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" />
+          <FaultTable list={rejeeRows} title="ثالثاً: بيان الآليات التي أحيلت للرجيع" forceStatus="تحت إجراءات الإحالة للرجيع" />
           {partRows.length > 0 && (
             <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
               ملحوظة: عدد {partRows.length} آلية سبق دخولها الصيانة ولم يكتمل إصلاحها، ما بين إصلاح جزئي، أو عطل تبيّن بعد الاستلام أنه لم يُعالج، أو عطل آخر نشأ عن طول مدة توقفها لدى الصيانة.
@@ -3462,7 +3540,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
               ملحوظة: عدد {newFaultRows.length} آلية أُصلحت من عطلها السابق ثم تعطلت بعطل جديد مختلف، وأُبقيت ضمن بيان ما تم إصلاحه.
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontSize: 12, fontWeight: 800 }}>
+          <div className="c186-sign" style={{ display: "flex", justifyContent: "space-between", marginTop: 24, fontSize: 12, fontWeight: 800 }}>
             <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
             <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
           </div>
