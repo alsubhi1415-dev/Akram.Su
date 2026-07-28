@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.4 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3412,9 +3412,10 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                 <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
                 {(() => {
                   const stTxt = forceStatus || (v ? v.status : "—");
-                  const clr = /الرجيع/.test(stTxt) ? "#7A0E14"
+                  const clr = /رجيع|الإحالة/.test(stTxt) ? "#7A0E14"
                     : /عطلانة/.test(stTxt) ? "#E0575F"
                     : /ملاحظات/.test(stTxt) ? "#D9A520"
+                    : /التجهيز/.test(stTxt) ? "#7B4B2A"
                     : "#141A28";
                   return <td style={{ ...cell, fontWeight: 800, color: clr }}>{stTxt}</td>;
                 })()}
@@ -3582,12 +3583,12 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           <FixedTable list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" />
           <FaultTable list={rejeeRows} title="ثالثاً: بيان الآليات التي أحيلت للرجيع" forceStatus="تحت إجراءات الإحالة للرجيع" />
           {warrRows.length > 0 && (
-            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
+            <div className="no-print" style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
               ملحوظة: عدد {warrRows.length} آلية دخلت الصيانة وعاودت التعطل بعطل مقارب، أو تبيّن أن عطلها الأصلي لم يُصلح، وأُعيدت ضمن بيان الآليات المتعطلة.
             </div>
           )}
           {newFaultRows.length > 0 && (
-            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 4, color: "#3A4152", lineHeight: 1.9 }}>
+            <div className="no-print" style={{ fontSize: 11.5, fontWeight: 700, marginTop: 4, color: "#3A4152", lineHeight: 1.9 }}>
               ملحوظة: عدد {newFaultRows.length} آلية أُصلحت من عطلها السابق وأُبقيت ضمن بيان ما تم إصلاحه، وهي متوقفة حالياً بسبب عطل مختلف عما تم إصلاحه، وميّزت باللون البرتقالي.
             </div>
           )}
