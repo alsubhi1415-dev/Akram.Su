@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.5 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -6185,12 +6185,22 @@ export default function FleetApp() {
   const [newVer, setNewVer] = useState(null); // نسخة أحدث منشورة على الخادم
   useEffect(() => {
     let stop = false;
+    // نسخة محفوظة محلياً (ملف على الجهاز): لا معنى لتنبيه التحديث فيها
+    try { if (window.location.protocol === "file:") return; } catch (e) {}
+    const verNum = (s) => {
+      const m = String(s || "").match(/(\d+)\s*\.\s*(\d+)/);
+      return m ? (+m[1]) * 1000 + (+m[2]) : -1;
+    };
     const check = async () => {
       try {
         const r = await fetch(RAW + "app-ver.json?nc=" + Date.now(), { cache: "no-store" });
         if (!r.ok) return;
         const j = await r.json();
-        if (!stop && j && j.build && j.build !== APP_BUILD) setNewVer(j.build);
+        if (stop || !j || !j.build) return;
+        const remote = verNum(j.build), local = verNum(APP_BUILD);
+        // التنبيه فقط إن كانت النسخة المنشورة أحدث فعلاً
+        if (remote > 0 && local > 0 && remote > local) setNewVer(j.build);
+        else setNewVer(null);
       } catch (e) {}
     };
     check();
