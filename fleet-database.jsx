@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3412,7 +3412,10 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                 <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
                 {(() => {
                   const stTxt = forceStatus || (v ? v.status : "—");
-                  const clr = /الرجيع/.test(stTxt) ? "#7A0E14" : /عطلانة/.test(stTxt) ? "#E0575F" : "#141A28";
+                  const clr = /الرجيع/.test(stTxt) ? "#7A0E14"
+                    : /عطلانة/.test(stTxt) ? "#E0575F"
+                    : /ملاحظات/.test(stTxt) ? "#D9A520"
+                    : "#141A28";
                   return <td style={{ ...cell, fontWeight: 800, color: clr }}>{stTxt}</td>;
                 })()}
                 <td style={{ ...cell, textAlign: "right" }}>{f ? (f.desc || f.faultType || "—") : "—"}</td>
