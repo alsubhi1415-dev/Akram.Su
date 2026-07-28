@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.9 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -7772,19 +7772,33 @@ export default function FleetApp() {
 
         {view === "list" && !adding && (
           <div>
-            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
-              {[["الكل", []],
-                ["🔧 المتعطلة", ["عطلانة", "تحت التجهيز والتسليم"]],
-                ["↩️ الرجيع", ["صدر قرار الرجيع", "تحت إجراءات الرجيع"]],
-                ["⚠️ بملاحظات", ["تعمل بوجود ملاحظات"]],
-                ["✅ تم الإصلاح", ["تم الإصلاح"]]].map(([lbl, arr]) => {
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 9, marginBottom: 14 }}>
+              {[["📋", "كل الآليات", [], "#1B2440", "الملاك كاملاً"],
+                ["✅", "آليات تعمل حالياً", ["تعمل", "تم الإصلاح", "تعمل بوجود ملاحظات"], "#0E7A5F", "تعمل · تم الإصلاح · بملاحظات"],
+                ["⚠️", "آليات عطلانة", ["عطلانة", "تحت التجهيز والتسليم"], "#C4353C", "عطلانة · تحت التجهيز والتسليم"],
+                ["↩️", "آليات الرجيع", ["تحت إجراءات الرجيع", "صدر قرار الرجيع"], "#4E3D80", "تحت الإجراءات · صدر القرار"]].map(([ic, lbl, arr, clr, sub]) => {
                 const act = arr.length === 0 ? fStatus.length === 0 : arr.length === fStatus.length && arr.every((x) => fStatus.includes(x));
+                const n = arr.length === 0 ? vehicles.length : vehicles.filter((v) => arr.indexOf((v.status || "").trim()) >= 0).length;
                 return (
-                  <button key={lbl} onClick={() => setFStatus(arr)} style={{
-                    background: act ? "linear-gradient(120deg,#B3121C,#7E1A2F)" : "#EEF0F5", color: act ? "#fff" : "#3A4560",
-                    border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                    boxShadow: act ? "0 3px 10px rgba(158,27,34,0.4)" : "none",
-                  }}>{lbl}</button>
+                  <button key={lbl} onClick={() => setFStatus(arr)} title={sub} style={{
+                    background: act ? clr : "#fff", color: act ? "#fff" : "#1B2130",
+                    border: "1.5px solid " + (act ? clr : "#E1E4EA"), borderRadius: 15, padding: "11px 13px",
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "right", minHeight: 74,
+                    boxShadow: act ? "0 6px 16px " + clr + "45" : "0 2px 8px rgba(20,26,40,0.05)",
+                    display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4, transition: "all .15s ease",
+                  }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <span style={{
+                        width: 27, height: 27, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center",
+                        justifyContent: "center", fontSize: 14, background: act ? "rgba(255,255,255,0.22)" : clr + "16",
+                      }}>{ic}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.3 }}>{lbl}</span>
+                      <span style={{
+                        marginRight: "auto", fontSize: 15, fontWeight: 800, color: act ? "#fff" : clr, whiteSpace: "nowrap",
+                      }}>{n}</span>
+                    </span>
+                    <span style={{ fontSize: 9.5, fontWeight: 700, color: act ? "rgba(255,255,255,0.85)" : "#98A0AF", lineHeight: 1.4 }}>{sub}</span>
+                  </button>
                 );
               })}
             </div>
