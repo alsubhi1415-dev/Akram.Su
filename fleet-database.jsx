@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3290,8 +3290,28 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     return Object.entries(items).map(([k, it]) => ({ k, it, v: byPlate[k] || null }))
       .sort((a, b) => ((a.v && a.v.type) || "").localeCompare((b.v && b.v.type) || ""));
   }, [items, byPlate]);
-  const pending = rows.filter((r) => r.it.st === "fixed" && r.v && BROKEN_SET.includes((r.v.status || "").trim())
-    && faultKeyOf(r.v) && faultKeyOf(r.v) !== r.it.faultKey);
+  const READY_ST2 = ["تعمل", "تم الإصلاح"];
+  const REJ_ST2 = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
+  const liveSig = (v) => v ? ((v.status || "").trim() + "|" + faultKeyOf(v)) : "";
+  // كل آلية تغيّرت حالتها أو عطلها بعد آخر مراجعة تظهر بلوحة المراجعة
+  const changes = rows.filter((r) => {
+    if (!r.v) return false;
+    const now = liveSig(r.v);
+    if (r.it.sig) return now !== r.it.sig;
+    const s = (r.v.status || "").trim();
+    if (REJ_ST2.indexOf(s) >= 0) return r.it.st !== "rejee";
+    if (READY_ST2.indexOf(s) >= 0) return r.it.st !== "fixed";
+    if (BROKEN_SET.includes(s)) return r.it.st === "fixed";
+    return false;
+  }).map((r) => {
+    const s = (r.v.status || "").trim();
+    const kind = REJ_ST2.indexOf(s) >= 0 ? "rejee"
+      : READY_ST2.indexOf(s) >= 0 ? "fixed"
+      : (BROKEN_SET.includes(s) && r.it.st === "fixed") ? "ask" : "other";
+    return { ...r, kind, now: s, was: (r.it.sig || "").split("|")[0] || "—" };
+  });
+  const askRows = changes.filter((c) => c.kind === "ask");
+  const clearRows = changes.filter((c) => c.kind === "fixed" || c.kind === "rejee");
   const brokenRows = rows.filter((r) => r.it.st === "broken");
   const fixedRows = rows.filter((r) => r.it.st === "fixed");
   const rejeeRows = rows.filter((r) => r.it.st === "rejee");
@@ -3299,69 +3319,6 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   const partRows = brokenRows.filter((r) => r.it.partial);
   const fixedButBroken = fixedRows.filter((r) => r.v && BROKEN_SET.includes((r.v.status || "").trim()));
   const newFaultRows = fixedRows.filter((r) => r.it.newFault);
-  // اقتراحات انتقال بعد تحديث السجل — لا يُنفَّذ شيء إلا بموافقتك
-  const READY_ST = ["تعمل", "تم الإصلاح"];
-  const REJ_ST = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
-  const suggests = useMemo(() => {
-    if (!items) return [];
-    const out = [];
-    Object.entries(items).forEach(([k, it]) => {
-      const v = byPlate[k];
-      if (!v) return;
-      const s = (v.status || "").trim();
-      if (REJ_ST.includes(s) && it.st !== "rejee") out.push({ k, v, it, to: "rejee", why: "صدر قرار رجيعها أو دخلت إجراءات الرجيع" });
-      else if (READY_ST.includes(s) && it.st === "broken") out.push({ k, v, it, to: "fixed", why: "أصبحت حالتها بالسجل: " + s });
-    });
-    return out;
-  }, [items, byPlate]);
-  const applyOne = (s) => setSt(s.k, s.to, s.to === "fixed"
-    ? { warranty: false, newFault: false, partial: false, faultKey: "" }
-    : { warranty: false, newFault: false, partial: false });
-  const applyAll = () => {
-    const it = { ...(items || {}) };
-    suggests.forEach((s) => {
-      it[s.k] = { ...it[s.k], st: s.to, warranty: false, newFault: false, partial: false, at: Date.now(),
-        ...(s.to === "fixed" ? { faultKey: "" } : {}) };
-    });
-    onCohort({ ...(cohort || {}), items: it });
-    setMsg("اعتُمدت " + suggests.length + " حركة انتقال");
-    setTimeout(() => setMsg(""), 7000);
-  };
-  const setSt = (k, st, extra) => {
-    onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: { ...(items || {})[k], st, at: Date.now(), ...(extra || {}) } } });
-  };
-  const parsePlates = (s) => [...new Set(String(s).split(/[\n,،;]+/).map((x) => normPlate(x.trim())).filter(Boolean))];
-  const createCohort = () => {
-    const uniq = parsePlates(paste);
-    if (!uniq.length) { setMsg("لم تُقرأ أي لوحة — الصق اللوحات سطراً لكل لوحة."); return; }
-    const it = {};
-    uniq.forEach((k) => (it[k] = { st: "broken", faultKey: byPlate[k] ? faultKeyOf(byPlate[k]) : "", at: Date.now() }));
-    onCohort({ name: "بيان أعطال الـ 186 آلية", createdAt: Date.now(), items: it });
-    setPaste(""); setMsg("اعتُمدت المجموعة: " + uniq.length + " آلية");
-    setTimeout(() => setMsg(""), 6000);
-  };
-  const bulkMark = () => {
-    const keys = parsePlates(paste);
-    let hit = 0; const miss = [];
-    const it = { ...(items || {}) };
-    keys.forEach((k) => {
-      if (it[k]) {
-        const fk = byPlate[k] ? faultKeyOf(byPlate[k]) : it[k].faultKey;
-        const M = { fixed: { st: "fixed", warranty: false, newFault: false, partial: false },
-          rejee: { st: "rejee", warranty: false, newFault: false, partial: false },
-          broken: { st: "broken", warranty: false, newFault: false, partial: false },
-          newf: { st: "fixed", warranty: false, newFault: true, partial: false },
-          warr: { st: "broken", warranty: true, newFault: false, partial: false },
-          part: { st: "broken", warranty: false, newFault: false, partial: true } }[mode] || { st: mode };
-        it[k] = { ...it[k], ...M, at: Date.now(), faultKey: fk }; hit++;
-      }
-      else miss.push(k);
-    });
-    onCohort({ ...(cohort || {}), items: it });
-    setPaste("");
-    setMsg("عُدّلت " + hit + " آلية" + (miss.length ? " · " + miss.length + " لوحة خارج المجموعة" : ""));
-    setTimeout(() => setMsg(""), 8000);
-  };
   const openFault = (v) => {
     const fs = (v.faults || []).filter((f) => !f.repairDate);
     fs.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
@@ -3375,6 +3332,41 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   const noteOf = (it) => it.warranty ? "عاودت التعطل بعطل مقارب أو لم يُصلح عطلها الأصلي"
     : it.newFault ? "متوقفة حالياً بسبب عطل مختلف عما تم إصلاحه"
     : "";
+  const parsePlates = (s) => [...new Set(String(s).split(/[\n,،;]+/).map((x) => normPlate(x.trim())).filter(Boolean))];
+  const createCohort = () => {
+    const uniq = parsePlates(paste);
+    if (!uniq.length) { setMsg("لم تُقرأ أي لوحة — الصق اللوحات سطراً لكل لوحة."); return; }
+    const it = {};
+    uniq.forEach((k) => {
+      const v = byPlate[k];
+      it[k] = { st: "broken", faultKey: v ? faultKeyOf(v) : "", sig: v ? ((v.status || "").trim() + "|" + faultKeyOf(v)) : "", at: Date.now() };
+    });
+    onCohort({ name: "بيان أعطال الـ 186 آلية", createdAt: Date.now(), items: it });
+    setPaste(""); setMsg("اعتُمدت المجموعة: " + uniq.length + " آلية");
+    setTimeout(() => setMsg(""), 6000);
+  };
+  const setSt = (k, st, extra) => {
+    const v = byPlate[k];
+    onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: {
+      ...(items || {})[k], st, at: Date.now(), sig: liveSig(v), faultKey: v ? faultKeyOf(v) : "", ...(extra || {}),
+    } } });
+  };
+  const keepAs = (k) => {
+    const v = byPlate[k];
+    onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: {
+      ...(items || {})[k], at: Date.now(), sig: liveSig(v), faultKey: v ? faultKeyOf(v) : "",
+    } } });
+  };
+  const applyClear = () => {
+    const it = { ...(items || {}) };
+    clearRows.forEach((c) => {
+      it[c.k] = { ...it[c.k], st: c.kind, warranty: false, newFault: false, partial: false,
+        at: Date.now(), sig: liveSig(c.v), faultKey: c.kind === "fixed" ? "" : faultKeyOf(c.v) };
+    });
+    onCohort({ ...(cohort || {}), items: it });
+    setMsg("اعتُمدت " + clearRows.length + " حركة انتقال واضحة");
+    setTimeout(() => setMsg(""), 7000);
+  };
   const bd = "1px solid #141A28";
   const cell = { border: bd, padding: "2.5px 5px", fontSize: 9, fontWeight: 600, textAlign: "center", verticalAlign: "middle", overflow: "hidden" };
   const hcell = { border: bd, background: "#E7EAF0", padding: "4px 4px", fontSize: 10, fontWeight: 800, textAlign: "center" };
@@ -3488,55 +3480,68 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           )
         ) : (
           <div>
-            {canEdit && suggests.length > 0 && (
-              <div style={{ background: "#EEF6FF", border: "2px solid #C4DCF5", borderRadius: 14, padding: 14, marginBottom: 12 }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1F4E8C" }}>🔄 اقتراحات انتقال ({suggests.length})</span>
-                  <button onClick={applyAll} style={{ marginRight: "auto", background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 9, padding: "6px 15px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>اعتماد الكل</button>
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#1F4E8C", marginBottom: 10, lineHeight: 1.8 }}>
-                  تغيّرت حالة الآليات التالية بسجل الآليات. لا يُنقل أي بيان إلا بموافقتك:
-                </div>
-                {suggests.slice(0, 30).map((s) => (
-                  <div key={s.k} style={{ background: "#fff", border: "1px solid #E7E9EE", borderRadius: 12, padding: "9px 12px", marginBottom: 7, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: 170 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130" }}>{s.v.type} — {s.v.plate}</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", marginTop: 2 }}>{s.why}</div>
-                    </div>
-                    <button onClick={() => applyOne(s)} style={{
-                      background: s.to === "fixed" ? "#0E7A5F" : "#4E3D80", color: "#fff", border: "none", borderRadius: 9,
-                      padding: "7px 14px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-                    }}>{s.to === "fixed" ? "↩ نقلها لبيان ما تم إصلاحه" : "↩ نقلها لبيان الرجيع"}</button>
-                  </div>
-                ))}
-                {suggests.length > 30 && <div style={{ fontSize: 11, fontWeight: 800, color: "#5A6172" }}>وبقية المقترحات عددها {suggests.length - 30} — استخدم «اعتماد الكل»</div>}
-              </div>
-            )}
-
-            {canEdit && pending.length > 0 && (
+            {canEdit && changes.length > 0 && (
               <div style={{ background: "#FFF6E8", border: "2px solid #EBD5A8", borderRadius: 14, padding: 14, marginBottom: 12 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#7A5209", marginBottom: 4 }}>⚠️ قرارات مطلوبة ({pending.length})</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5209", marginBottom: 10, lineHeight: 1.8 }}>
-                  الآليات التالية سبق إصلاحها ضمن المجموعة ثم رصد البرنامج تعطلها من جديد بعد آخر تحديث للسجل. هل العطل الحالي له علاقة بالعطل السابق أم عطل جديد؟
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7A5209" }}>🔔 مراجعة تغييرات بعد آخر تحديث للسجل ({changes.length})</span>
+                  {clearRows.length > 0 && (
+                    <button onClick={applyClear} style={{ marginRight: "auto", background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 15px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                      ✅ اعتماد الحركات الواضحة ({clearRows.length})
+                    </button>
+                  )}
                 </div>
-                {pending.map((r) => (
-                  <div key={r.k} style={{ background: "#fff", border: "1px solid #E7E9EE", borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130" }}>{r.v.type} — {r.v.plate}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", margin: "3px 0 9px" }}>
-                      {r.v.unit || "—"} · {r.v.location || "المقر"}
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5209", marginBottom: 10, lineHeight: 1.8 }}>
+                  رصد البرنامج تغيّر حالة الآليات التالية بسجل الآليات (بعد استيراد الإكسل أو أي تعديل). لا يُنقل أي بيان إلا بقرارك:
+                </div>
+                {changes.slice(0, 40).map((c) => (
+                  <div key={c.k} style={{ background: "#fff", border: "1px solid #E7E9EE", borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130" }}>{c.v.type} — {c.v.plate}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", margin: "3px 0 8px" }}>
+                      {c.v.unit || "—"} · {c.v.location || "المقر"} · موضعها بالبيان: {c.it.st === "fixed" ? "تم إصلاحها" : c.it.st === "rejee" ? "أحيلت للرجيع" : "ما زالت متعطلة"}
+                      {" · "}<span style={{ color: "#8B93A3" }}>الحالة السابقة: {c.was}</span>
+                      {" ← "}<span style={{ color: "#B3121C", fontWeight: 800 }}>الحالة الآن: {c.now}</span>
                     </div>
                     <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-                      <button onClick={() => setSt(r.k, "broken", { warranty: true, newFault: false, faultKey: faultKeyOf(r.v) })}
-                        style={{ background: "#B3121C", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                        🔁 له علاقة بالعطل السابق أو خلال الضمان — يعود لبيان الأعطال
-                      </button>
-                      <button onClick={() => setSt(r.k, "fixed", { warranty: false, newFault: true, faultKey: faultKeyOf(r.v) })}
-                        style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                        🆕 عطل جديد لا علاقة له — يبقى ضمن ما تم إصلاحه
+                      {c.kind === "ask" ? (
+                        <>
+                          <button onClick={() => setSt(c.k, "broken", { warranty: true, newFault: false, partial: false })}
+                            style={{ background: "#B3121C", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                            🔁 له علاقة بالعطل السابق — يعود لبيان الأعطال
+                          </button>
+                          <button onClick={() => setSt(c.k, "fixed", { warranty: false, newFault: true, partial: false })}
+                            style={{ background: "#D9730D", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                            🆕 عطل جديد مختلف — يبقى ضمن ما تم إصلاحه
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {c.kind !== "fixed" && (
+                            <button onClick={() => setSt(c.k, "fixed", { warranty: false, newFault: false, partial: false })}
+                              style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ لبيان ما تم إصلاحه</button>
+                          )}
+                          {c.kind === "fixed" && (
+                            <button onClick={() => setSt(c.k, "fixed", { warranty: false, newFault: false, partial: false })}
+                              style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ نقلها لبيان ما تم إصلاحه</button>
+                          )}
+                          <button onClick={() => setSt(c.k, "broken", { warranty: false, newFault: false, partial: false })}
+                            style={{ background: "#B3121C", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>⚠️ لبيان المتعطلة</button>
+                          <button onClick={() => setSt(c.k, "rejee", { warranty: false, newFault: false, partial: false })}
+                            style={{ background: "#4E3D80", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>↩️ لبيان الرجيع</button>
+                        </>
+                      )}
+                      <button onClick={() => keepAs(c.k)}
+                        style={{ background: "#F0F1F5", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                        ⏸ إبقاؤها بموضعها الحالي
                       </button>
                     </div>
                   </div>
                 ))}
+                {changes.length > 40 && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#7A5209" }}>وبقية التغييرات عددها {changes.length - 40}</div>}
+              </div>
+            )}
+            {canEdit && changes.length === 0 && (
+              <div style={{ background: "#EAF7F0", border: "1.5px solid #A9DCC0", borderRadius: 12, padding: "10px 14px", marginBottom: 12, fontSize: 12.5, fontWeight: 800, color: "#14603F" }}>
+                ✅ البيان مطابق لسجل الآليات — لا تغييرات تنتظر مراجعتك
               </div>
             )}
           </div>
@@ -3609,6 +3614,24 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
 }
 
 function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents, cohort, onCohort }) {
+  // عدد تغييرات بيان الـ186 التي تنتظر مراجعة — يُعرض كشارة على التبويب
+  const c186Pending = useMemo(() => {
+    const items = (cohort && cohort.items) || null;
+    if (!items) return 0;
+    const READY = ["تعمل", "تم الإصلاح"], REJ = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
+    const byP = {}; vehicles.forEach((v) => { byP[normPlate(v.plate)] = v; });
+    let n = 0;
+    Object.entries(items).forEach(([k, it]) => {
+      const v = byP[k]; if (!v) return;
+      const s = (v.status || "").trim();
+      const sig = s + "|" + faultKeyOf(v);
+      if (it.sig) { if (sig !== it.sig) n++; return; }
+      if (REJ.indexOf(s) >= 0) { if (it.st !== "rejee") n++; return; }
+      if (READY.indexOf(s) >= 0) { if (it.st !== "fixed") n++; return; }
+      if (BROKEN_SET.includes(s) && it.st === "fixed") n++;
+    });
+    return n;
+  }, [cohort, vehicles]);
   const fitRef = useRef(null);
   const [fitW, setFitW] = useState(() => { try { return localStorage.getItem("fd_fitw") !== "0"; } catch (e) { return true; } });
   const [fitZ, setFitZ] = useState(1);
@@ -3879,7 +3902,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية"], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
