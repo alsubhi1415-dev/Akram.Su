@@ -1189,6 +1189,28 @@ function printIsolated(rootEl, opts) {
   }
   setTimeout(go, 2500);
 }
+// بطاقة فلترة موحّدة — نفس هوية بطاقات سجل الآليات
+function FilterCard({ ic, label, sub, n, color, active, onClick, min = 168 }) {
+  return (
+    <button onClick={onClick} title={sub || label} style={{
+      background: active ? color : "#fff", color: active ? "#fff" : "#1B2130",
+      border: "1.5px solid " + (active ? color : "#E1E4EA"), borderRadius: 15, padding: "11px 13px",
+      cursor: "pointer", fontFamily: "inherit", textAlign: "right", minHeight: sub ? 74 : 58, minWidth: min,
+      boxShadow: active ? "0 6px 16px " + color + "45" : "0 2px 8px rgba(20,26,40,0.05)",
+      display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 4, transition: "all .15s ease",
+    }}>
+      <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        {ic ? <span style={{
+          width: 27, height: 27, borderRadius: 9, flexShrink: 0, display: "inline-flex", alignItems: "center",
+          justifyContent: "center", fontSize: 14, background: active ? "rgba(255,255,255,0.22)" : color + "16",
+        }}>{ic}</span> : null}
+        <span style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.3 }}>{label}</span>
+        <span style={{ marginRight: "auto", fontSize: 15, fontWeight: 800, color: active ? "#fff" : color, whiteSpace: "nowrap" }}>{n}</span>
+      </span>
+      {sub ? <span style={{ fontSize: 9.5, fontWeight: 700, color: active ? "rgba(255,255,255,0.85)" : "#98A0AF", lineHeight: 1.4 }}>{sub}</span> : null}
+    </button>
+  );
+}
 function ChartCard({ title, icon, grad, children }) {
   return (
     <div style={{
@@ -1218,7 +1240,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -6111,17 +6133,16 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
           </div>
 
           {/* شريط الفلاتر الذكي */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-            {[["all", "الكل", levelCounts.total, "#141A28"],
-              ["red", "🔴 الحمراء", levelCounts.red, "#C4353C"],
-              ["yellow", "🟡 الصفراء", levelCounts.yellow, "#C77F1A"],
-              ["green", "🟢 المكتملة", levelCounts.green, "#2E9E63"]].map(([id, lbl, n, clr]) => (
-              <button key={id} onClick={() => setLvFilter(id)} style={{
-                background: lvFilter === id ? clr : "#F4F5F7", color: lvFilter === id ? "#fff" : "#3A4152",
-                border: "1.5px solid " + (lvFilter === id ? clr : "#C9CDD6"), borderRadius: 18,
-                padding: "6px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-              }}>{lbl} ({n})</button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 9, marginBottom: 12 }}>
+            {[["all", "📋", "كل المراكز", "المراكز الميدانية كافة", levelCounts.total, "#1B2440"],
+              ["green", "🟢", "مكتملة الجاهزية", "لا عجز بأي بند مطلوب", levelCounts.green, "#0E7A5F"],
+              ["yellow", "🟡", "عجز جزئي", "ينقصها بند أو أكثر", levelCounts.yellow, "#C77F1A"],
+              ["red", "🔴", "عجز كلي", "بلا وايت أو بلا إنقاذ", levelCounts.red, "#C4353C"]].map(([id, ic, lbl, sub, n, clr]) => (
+              <FilterCard key={id} ic={ic} label={lbl} sub={sub} n={n} color={clr}
+                active={lvFilter === id} onClick={() => setLvFilter(id)} />
             ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
             <select value={brFilter} onChange={(e) => setBrFilter(e.target.value)} style={{
               marginRight: "auto", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "7px 10px",
               fontSize: 12.5, fontWeight: 800, fontFamily: "inherit", background: "#F4F5F7", color: "#141A28", cursor: "pointer",
@@ -6153,16 +6174,13 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
                   borderRadius: 9, padding: "4px 12px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                 }}>✕ إلغاء الفلتر</button>
               </div>
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
-                {[["all", "المطبق عليها", critData.ok + critData.miss, "#141A28"],
-                  ["ok", "✅ متوفر", critData.ok, "#2E9E63"],
-                  ["miss", "⚠️ عجز", critData.miss, "#C4353C"],
-                  ["na", "— غير مطلوب", critData.na, "#8B93A3"]].map(([id, lbl, n, clr]) => (
-                  <button key={id} onClick={() => setCritSt(id)} style={{
-                    background: critSt === id ? clr : "#F4F5F7", color: critSt === id ? "#fff" : "#3A4152",
-                    border: "1.5px solid " + (critSt === id ? clr : "#C9CDD6"), borderRadius: 18,
-                    padding: "5px 13px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                  }}>{lbl} ({n})</button>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, marginBottom: 10 }}>
+                {[["all", "📊", "المطبق عليها", critData.ok + critData.miss, "#1B2440"],
+                  ["ok", "✅", "متوفر", critData.ok, "#0E7A5F"],
+                  ["miss", "⚠️", "عجز", critData.miss, "#C4353C"],
+                  ["na", "—", "غير مطلوب", critData.na, "#8B93A3"]].map(([id, ic, lbl, n, clr]) => (
+                  <FilterCard key={id} ic={ic} label={lbl} n={n} color={clr} min={140}
+                    active={critSt === id} onClick={() => setCritSt(id)} />
                 ))}
                 <span style={{ marginRight: "auto", fontSize: 12, fontWeight: 800, color: critData.ok + critData.miss ? readinessColor(Math.round((critData.ok / (critData.ok + critData.miss || 1)) * 100)) : "#8B93A3" }}>
                   نسبة التغطية {critData.ok + critData.miss ? Math.round((critData.ok / (critData.ok + critData.miss)) * 100) : 0}%
