@@ -1171,6 +1171,9 @@ function printIsolated(rootEl, opts) {
   tr { page-break-inside: avoid; }
   .rep-head { display: block; break-inside: avoid; page-break-inside: avoid; break-after: avoid; page-break-after: avoid; }
   .c186-sign, .sig-block, .nawi-sig { break-inside: avoid; page-break-inside: avoid; }
+  .sec-block + .sec-block, .rep-sec + .rep-sec { break-before: page; page-break-before: always; }
+  .sec-block > div:first-child, .rep-sec > div:first-child { break-after: avoid; page-break-after: avoid; }
+  h3, .sec-title { break-after: avoid; page-break-after: avoid; }
 </style></head><body>${clone.innerHTML}</body></html>`;
   win.document.open();
   win.document.write(html);
@@ -1215,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.9 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3196,7 +3199,7 @@ function CritReport({ centerReadiness, equip, logo }) {
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 800, margin: "10px 0 6px" }}>أولاً: موقف الشعب</div>
+          <div className="rep-sec"><div style={{ fontSize: 13, fontWeight: 800, margin: "10px 0 6px" }}>أولاً: موقف الشعب</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr>
               <th style={hcell}>م</th><th style={hcell}>الشعبة</th><th style={hcell}>عدد المراكز المطبق عليها</th>
@@ -3224,7 +3227,8 @@ function CritReport({ centerReadiness, equip, logo }) {
               </tr>
             </tbody>
           </table>
-          <div style={{ fontSize: 13, fontWeight: 800, margin: "14px 0 6px" }}>ثانياً: المراكز المكتملة ({data.ok})</div>
+          </div>
+          <div className="rep-sec"><div style={{ fontSize: 13, fontWeight: 800, margin: "14px 0 6px" }}>ثانياً: المراكز المكتملة ({data.ok})</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr><th style={hcell}>م</th><th style={hcell}>المركز</th><th style={hcell}>الشعبة</th></tr></thead>
             <tbody>
@@ -3234,7 +3238,8 @@ function CritReport({ centerReadiness, equip, logo }) {
               {data.ok === 0 && <tr><td style={{ ...cell, textAlign: "center" }} colSpan={3}>لا يوجد</td></tr>}
             </tbody>
           </table>
-          <div style={{ fontSize: 13, fontWeight: 800, margin: "14px 0 6px" }}>ثالثاً: المراكز التي بها عجز ({data.miss})</div>
+          </div>
+          <div className="rep-sec"><div style={{ fontSize: 13, fontWeight: 800, margin: "14px 0 6px" }}>ثالثاً: المراكز التي بها عجز ({data.miss})</div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr><th style={hcell}>م</th><th style={hcell}>المركز</th><th style={hcell}>الشعبة</th><th style={hcell}>البند الناقص</th></tr></thead>
             <tbody>
@@ -3245,6 +3250,7 @@ function CritReport({ centerReadiness, equip, logo }) {
               {data.miss === 0 && <tr><td style={{ ...cell, textAlign: "center" }} colSpan={4}>لا يوجد</td></tr>}
             </tbody>
           </table>
+          </div>
           {data.na > 0 && (
             <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152" }}>
               ملحوظة: عدد المراكز غير المطبق عليها هذا البند {data.na} مركزاً، ولم تُحتسب ضمن نسبة التكميل.
@@ -4377,7 +4383,7 @@ function WeeklyReport({ vehicles, logo }) {
       </div>
 
       {/* أولاً: مصفوفة التكميل */}
-      <div style={{ fontSize: 11.5, fontWeight: 800, marginBottom: 5 }}>اولاً: تكميل اجمالي الآليات والأعطال والإصلاحات: -</div>
+      <div className="rep-sec"><div style={{ fontSize: 11.5, fontWeight: 800, marginBottom: 5 }}>اولاً: تكميل اجمالي الآليات والأعطال والإصلاحات: -</div>
       <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <thead>
           <tr>
@@ -4399,7 +4405,8 @@ function WeeklyReport({ vehicles, logo }) {
       {note1 && <div style={{ fontSize: 9.5, fontWeight: 800, color: "#8F1C22", marginTop: 4 }}>{note1}</div>}
 
       {/* ثانياً: البيانات التفصيلية */}
-      <div style={{ fontSize: 11.5, fontWeight: 800, margin: "14px 0 2px" }}>ثانيا: البيان التفصيلي للآليات والمعدات المتعطلة والإجراءات التي تمت عليها:</div>
+      </div>
+      <div className="rep-sec"><div style={{ fontSize: 11.5, fontWeight: 800, margin: "14px 0 2px" }}>ثانيا: البيان التفصيلي للآليات والمعدات المتعطلة والإجراءات التي تمت عليها:</div>
       <DetailTable rows={data.brokenVeh} title="بيان اعطال الآليات" />
       {note2 && <div style={{ fontSize: 9.5, fontWeight: 800, color: "#8F1C22", marginTop: 4 }}>{note2}</div>}
       <SigBlock />
@@ -4407,7 +4414,8 @@ function WeeklyReport({ vehicles, logo }) {
       <DetailTable rows={data.brokenBikes} title="بيان أعطال الدراجات النارية" />
 
       {/* ثالثاً: الموقف العام */}
-      <div style={{ fontSize: 11.5, fontWeight: 800, margin: "14px 0 5px" }}>ثالثا: الموقف العام: -</div>
+      </div>
+      <div className="rep-sec"><div style={{ fontSize: 11.5, fontWeight: 800, margin: "14px 0 5px" }}>ثالثا: الموقف العام: -</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>{data.stats.map((s, i) => <th key={i} colSpan={2} style={{ ...dcellH, fontSize: 9 }}>{s.l}</th>)}</tr>
@@ -4423,6 +4431,7 @@ function WeeklyReport({ vehicles, logo }) {
           ))}</tr>
         </tbody>
       </table>
+      </div>
       <SigBlock />
     </div>
   );
@@ -7019,6 +7028,10 @@ export default function FleetApp() {
           .rep-head { display: block !important; break-inside: avoid !important; page-break-inside: avoid !important;
             break-after: avoid !important; page-break-after: avoid !important; position: static !important; }
           .rep-head img { display: inline-block !important; }
+          /* كل فقرة رئيسية (أولاً/ثانياً/ثالثاً) تبدأ بصفحة مستقلة */
+          .sec-block + .sec-block, .rep-sec + .rep-sec { break-before: page !important; page-break-before: always !important; }
+          .sec-block, .rep-sec { break-inside: auto; }
+          .sec-block > div:first-child, .rep-sec > div:first-child { break-after: avoid !important; page-break-after: avoid !important; }
         }
         body.dark { background: #DDE1E8; }
         body.dark main { filter: brightness(0.9) saturate(0.95); }
