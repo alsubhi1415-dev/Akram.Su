@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.8 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -6832,10 +6832,21 @@ export default function FleetApp() {
     const rej = vehicles.filter((v) => (v.status || "").trim() === "تحت إجراءات الرجيع");
     return { long, warr, rej, total: long.length + warr.length + rej.length };
   }, [vehicles]);
-  const SORT_KEYS = { "نوع الآلية": "type", "رقم اللوحة": "plate", "جهة الآلية": "unit", "رقم الصنف": "itemNo", "رقم الشاصية": "chassis", "اللون": "color", "الموديل": "model", "الموقع الحالي": "location", "الحالة الفنية": "status", "أعطال": "__f" };
+  const SORT_KEYS = { "نوع الآلية": "type", "رقم اللوحة": "plate", "الجهة": "unit", "الموديل": "model", "الموقع الحالي": "location", "الحالة الفنية": "status", "التاريخ": "__d" };
   const sortRows = (arr) => {
     if (!sortK) return arr;
-    const g = (v) => sortK === "__f" ? v.faults.length : String(v[sortK] || "");
+    const g = (v) => {
+      if (sortK === "__f") return v.faults.length;
+      if (sortK === "__d") {
+        const st = (v.status || "").trim();
+        const down = ["عطلانة", "تحت التجهيز والتسليم", "تعمل بوجود ملاحظات", "تحت إجراءات الرجيع", "صدر قرار الرجيع"].indexOf(st) >= 0;
+        const fs = v.faults || [];
+        if (down) { const f = fs.filter((x) => !x.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0]; return f ? String(f.date || "") : ""; }
+        const f2 = fs.filter((x) => x.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
+        return f2 ? String(f2.repairDate || "") : "";
+      }
+      return String(v[sortK] || "");
+    };
     return [...arr].sort((a, b) => {
       const A = g(a), B = g(b);
       return (typeof A === "number" ? A - B : A.localeCompare(B, "ar")) * sortD;
@@ -7071,6 +7082,12 @@ export default function FleetApp() {
           #print-area { padding: 14px 10px !important; }
           h3 { font-size: 14.5px !important; }
         }
+        /* جدول سجل الآليات — تصميم محدّث */
+        .fleet-tbl tbody tr { transition: background .12s ease, box-shadow .12s ease; }
+        .fleet-tbl tbody tr:hover { background: #EEF4FB !important; box-shadow: inset 0 0 0 1px #CFE0F1; }
+        .fleet-tbl tbody td { vertical-align: middle; }
+        .fleet-tbl thead th:first-child { border-top-right-radius: 12px; }
+        .fleet-tbl thead th:last-child { border-top-left-radius: 12px; }
         /* تناسق بصري وسلاسة: مساحات لمس مريحة وتباين أوضح وحركة ألطف */
         button, select, .fd-touch { min-height: 38px; }
         button, a, select, input, textarea { -webkit-tap-highlight-color: rgba(158,27,34,0.12); }
@@ -7801,16 +7818,24 @@ export default function FleetApp() {
                 maxHeight: "72vh", overflowY: "auto",
                 ...(listOvf && listFit && listZ < 1 ? { zoom: listZ } : {}),
               }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 900 }}>
+                <table className="fleet-tbl" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13, minWidth: 1020 }}>
                   <thead>
-                    <tr style={{ textAlign: "right" }}>
-                      {["نوع الآلية", "رقم اللوحة", "جهة الآلية", "رقم الصنف", "رقم الشاصية", "اللون", "الموديل", "الموقع الحالي", "الحالة الفنية", "أعطال", ...(isOwner ? ["إجراء سريع"] : [])].map((h) => {
+                    <tr>
+                      {[["🚒", "نوع الآلية"], ["🔖", "رقم اللوحة"], ["📅", "الموديل"], ["🏢", "الجهة"],
+                        ["📍", "الموقع الحالي"], ["🩺", "الحالة الفنية"], ["📝", "وصف العطل"], ["🗓", "التاريخ"],
+                        ...(isOwner ? [["⚡", "إجراء"]] : [])].map(([ic, h]) => {
                         const k = SORT_KEYS[h];
+                        const on = sortK === k && k;
                         return (
                           <th key={h} onClick={() => { if (!k) return; if (sortK === k) { if (sortD === 1) setSortD(-1); else { setSortK(null); setSortD(1); } } else { setSortK(k); setSortD(1); } }}
                             title={k ? "اضغط للفرز" : ""}
-                            style={{ padding: "12px 12px", fontWeight: 800, whiteSpace: "nowrap", position: "sticky", top: 0, background: "#141A28", color: sortK === k ? "#FFD166" : "#fff", zIndex: 2, cursor: k ? "pointer" : "default", userSelect: "none" }}>
-                            {h}{sortK === k ? (sortD === 1 ? " ▲" : " ▼") : ""}
+                            style={{
+                              padding: "11px 10px", fontWeight: 800, whiteSpace: "nowrap", position: "sticky", top: 0,
+                              background: "linear-gradient(180deg,#1B2440,#141A28)", color: on ? "#FFD166" : "#E8EBF2",
+                              zIndex: 2, cursor: k ? "pointer" : "default", userSelect: "none", textAlign: "right",
+                              borderBottom: "2px solid rgba(212,175,55,0.45)", fontSize: 12.5,
+                            }}>
+                            <span style={{ opacity: 0.85, marginLeft: 5 }}>{ic}</span>{h}{on ? (sortD === 1 ? " ▲" : " ▼") : ""}
                           </th>
                         );
                       })}
@@ -7818,29 +7843,57 @@ export default function FleetApp() {
                   </thead>
                   <tbody>
                     {filtered.length === 0 ? (
-                      <tr><td colSpan={10} style={{ padding: 30, textAlign: "center", color: "#8B93A3" }}>
+                      <tr><td colSpan={isOwner ? 9 : 8} style={{ padding: 34, textAlign: "center", color: "#8B93A3", fontWeight: 700 }}>
                         {vehicles.length === 0 ? "قاعدة البيانات فارغة — اضغط «+ إضافة آلية» لبدء التسجيل." : "لا توجد نتائج مطابقة للبحث."}
                       </td></tr>
-                    ) : sortRows(filtered).map((v) => (
-                      <tr key={v.id} className="row-hover" onClick={() => { setSelectedId(v.id); setView("detail"); }} style={{ borderBottom: "1px solid #E6E8EC", cursor: "pointer" }}>
-                        <td style={{ padding: "11px 12px", fontWeight: 800 }}>{v.type}</td>
-                        <td style={{ padding: "11px 12px", fontWeight: 700 }}>{v.plate}</td>
-                        <td style={{ padding: "11px 12px" }}>{v.unit}</td>
-                        <td style={{ padding: "11px 12px", color: "#5A6172" }}>{v.itemNo || "—"}</td>
-                        <td style={{ padding: "11px 12px", color: "#5A6172" }}>{v.chassis || "—"}</td>
-                        <td style={{ padding: "11px 12px" }}>{v.color || "—"}</td>
-                        <td style={{ padding: "11px 12px" }}>{v.model || "—"}</td>
-                        <td style={{ padding: "11px 12px" }}>{v.location || "—"}</td>
-                        <td style={{ padding: "11px 12px" }}><StatusBadge status={v.status} /></td>
-                        <td style={{ padding: "11px 12px", textAlign: "center", fontWeight: 700 }}>{v.faults.length}</td>
-                        {isOwner && (
-                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                            <button title="تسجيل عطل فوري" onClick={() => setQuick({ v, mode: "fault", date: "", desc: "", ftype: "ميكانيكي" })} style={{ background: "#FBE9EB", color: "#B3121C", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}>🔧</button>
-                            <button title="تسجيل إصلاح فوري" onClick={() => setQuick({ v, mode: "fix", date: "", desc: "" })} style={{ background: "#E5F5EE", color: "#0E7A5F", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 13, cursor: "pointer" }}>✅</button>
+                    ) : sortRows(filtered).map((v, ri) => {
+                      const st = (v.status || "").trim();
+                      const isDown = ["عطلانة", "تحت التجهيز والتسليم", "تعمل بوجود ملاحظات", "تحت إجراءات الرجيع", "صدر قرار الرجيع"].indexOf(st) >= 0;
+                      const fs = (v.faults || []);
+                      const openF = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+                      const fixF = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
+                      const desc = isDown ? ((openF && (openF.desc || openF.faultType)) || "—") : "—";
+                      const dt = isDown ? (openF && openF.date) : (fixF && fixF.repairDate);
+                      const dtIc = isDown ? "⚠️" : "🛠";
+                      const dtLbl = isDown ? "عطل" : "إصلاح";
+                      const accent = /رجيع/.test(st) ? "#7A0E14" : /عطلانة/.test(st) ? "#E0575F"
+                        : /ملاحظات/.test(st) ? "#D9A520" : /التجهيز/.test(st) ? "#7B4B2A" : "#0E7A5F";
+                      return (
+                        <tr key={v.id} className="row-hover" onClick={() => { setSelectedId(v.id); setView("detail"); }}
+                          style={{ background: ri % 2 ? "#FAFBFC" : "#fff", cursor: "pointer", borderBottom: "1px solid #EDEFF3" }}>
+                          <td style={{ padding: "9px 10px", borderRight: "4px solid " + accent }}>
+                            <div style={{ fontWeight: 800, color: "#141A28", lineHeight: 1.35 }}>{v.type}</div>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td style={{ padding: "9px 10px" }}>
+                            <span style={{
+                              display: "inline-block", background: "#F2F4F8", border: "1.5px solid #D5DAE4", borderRadius: 8,
+                              padding: "3px 9px", fontWeight: 800, color: "#1B2440", letterSpacing: 0.4, whiteSpace: "nowrap",
+                            }}>{v.plate}</span>
+                          </td>
+                          <td style={{ padding: "9px 10px", fontWeight: 700, color: "#5A6172", whiteSpace: "nowrap" }}>{v.model || "—"}</td>
+                          <td style={{ padding: "9px 10px", color: "#3A4152", fontWeight: 700, maxWidth: 190, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.unit || ""}>{v.unit || "—"}</td>
+                          <td style={{ padding: "9px 10px", color: "#3A4152", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.location || ""}>{v.location || "—"}</td>
+                          <td style={{ padding: "9px 10px" }}><StatusBadge status={v.status} /></td>
+                          <td style={{ padding: "9px 10px", color: isDown ? "#7A2E33" : "#9AA2B1", maxWidth: 230, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isDown ? 700 : 600 }} title={desc}>{desc}</td>
+                          <td style={{ padding: "9px 10px", whiteSpace: "nowrap" }}>
+                            {dt ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 800, color: isDown ? "#B3121C" : "#0E7A5F", fontSize: 12 }}>
+                                <span style={{ fontSize: 11 }}>{dtIc}</span>{dt}
+                                <span style={{ fontSize: 9.5, fontWeight: 800, color: "#9AA2B1" }}>{dtLbl}</span>
+                              </span>
+                            ) : <span style={{ color: "#B9BFCB" }}>—</span>}
+                          </td>
+                          {isOwner && (
+                            <td style={{ padding: "7px 9px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+                              <button title="تسجيل عطل فوري" onClick={() => setQuick({ v, mode: "fault", date: "", desc: "", ftype: "ميكانيكي" })}
+                                style={{ background: "#FBE9EB", color: "#B3121C", border: "1px solid #F2C3C6", borderRadius: 9, padding: "5px 8px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}>🔧</button>
+                              <button title="تسجيل إصلاح فوري" onClick={() => setQuick({ v, mode: "fix", date: "", desc: "" })}
+                                style={{ background: "#E5F5EE", color: "#0E7A5F", border: "1px solid #A9DCC0", borderRadius: 9, padding: "5px 8px", fontSize: 13, cursor: "pointer" }}>✅</button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
