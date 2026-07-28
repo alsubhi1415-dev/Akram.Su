@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3374,7 +3374,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   };
   const noteOf = (it) => it.warranty ? "عاودت التعطل بعطل مقارب أو لم يُصلح عطلها الأصلي"
     : it.newFault ? "متوقفة حالياً بسبب عطل مختلف عما تم إصلاحه"
-    : it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "";
+    : "";
   const bd = "1px solid #141A28";
   const cell = { border: bd, padding: "2.5px 5px", fontSize: 9, fontWeight: 600, textAlign: "center", verticalAlign: "middle", overflow: "hidden" };
   const hcell = { border: bd, background: "#E7EAF0", padding: "4px 4px", fontSize: 10, fontWeight: 800, textAlign: "center" };
@@ -3410,7 +3410,11 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                 <td style={cell}>{v ? v.plate : r.k}</td>
                 <td style={cell}>{v ? (v.model || "—") : "—"}</td>
                 <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
-                <td style={cell}>{forceStatus || (v ? v.status : "—")}</td>
+                {(() => {
+                  const stTxt = forceStatus || (v ? v.status : "—");
+                  const clr = /الرجيع/.test(stTxt) ? "#7A0E14" : /عطلانة/.test(stTxt) ? "#E0575F" : "#141A28";
+                  return <td style={{ ...cell, fontWeight: 800, color: clr }}>{stTxt}</td>;
+                })()}
                 <td style={{ ...cell, textAlign: "right" }}>{f ? (f.desc || f.faultType || "—") : "—"}</td>
                 <td style={cell}>{f ? (f.date || "—") : "—"}</td>
                 <td style={{ ...cell, fontWeight: 700 }}>{noteOf(r.it) || "—"}</td>
@@ -3574,11 +3578,6 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           <FaultTable list={brokenRows} title="أولاً: بيان الآليات التي ما زالت متعطلة" />
           <FixedTable list={fixedRows} title="ثانياً: بيان الآليات التي تم إصلاحها" />
           <FaultTable list={rejeeRows} title="ثالثاً: بيان الآليات التي أحيلت للرجيع" forceStatus="تحت إجراءات الإحالة للرجيع" />
-          {partRows.length > 0 && (
-            <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
-              ملحوظة: عدد {partRows.length} آلية سبق دخولها الصيانة ولم يكتمل إصلاحها، ما بين إصلاح جزئي، أو عطل تبيّن بعد الاستلام أنه لم يُعالج، أو عطل آخر نشأ عن طول مدة توقفها لدى الصيانة.
-            </div>
-          )}
           {warrRows.length > 0 && (
             <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
               ملحوظة: عدد {warrRows.length} آلية دخلت الصيانة وعاودت التعطل بعطل مقارب، أو تبيّن أن عطلها الأصلي لم يُصلح، وأُعيدت ضمن بيان الآليات المتعطلة.
