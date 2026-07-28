@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.7 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2956,55 +2956,118 @@ function CenterReport({ vehicles, logo }) {
   );
 }
 
-function CenterWa({ vehicles, centerReadiness, equip }) {
-  const [cn, setCn] = useState("");
+function BranchWa({ vehicles, centerReadiness, equip }) {
+  const [br, setBr] = useState("");
   const [copied, setCopied] = useState(false);
   const t = todayHijri();
   const WD = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const centers = useMemo(() => {
+    const b = MANUAL_CENTERS.find((x) => x.branch === br);
+    return b ? b.centers : [];
+  }, [br]);
   const msg = useMemo(() => {
-    if (!cn) return "";
-    const s = (centerReadiness || {})[cn] || {};
-    const eq = equip || {};
-    const miss = CRIT_ITEMS.filter((it) => critStateOf(it, cn, s, eq) === "miss");
-    const own = vehicles.filter((v) => (v.unit || "").trim() === cn);
+    if (!br || !centers.length) return "";
+    const cr = centerReadiness || {}, eq = equip || {};
+    const L = ["*🚨 موقف شعبة " + br.replace("شعبة ", "") + "*",
+      "*الدفاع المدني بجدة — شعبة الاطفاء والانقاذ*",
+      `📅 ${WD[new Date().getDay()]} ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y}هـ`, ""];
+    // أولاً: جاهزية المراكز
+    let g = 0, y = 0, r = 0;
+    const lv = {};
+    centers.forEach((c) => {
+      const l = fullCenterStatus(c, cr[c], eq).level;
+      lv[c] = l;
+      if (l === "green") g++; else if (l === "yellow") y++; else r++;
+    });
+    L.push("*أولاً — جاهزية مراكز الشعبة:*",
+      `عدد مراكز الشعبة عدد ${centers.length} مركزاً`,
+      `🟢 مكتملة الجاهزية عدد ${g} مركزاً`,
+      `🟡 بها عجز جزئي عدد ${y} مركزاً`,
+      `🔴 بها عجز كلي عدد ${r} مركزاً`, "");
+    // ثانياً: تكميل البنود على مستوى الشعبة
+    L.push("*ثانياً — تكميل البنود والمعدات:*");
+    const full = [], gaps = [];
+    CRIT_ITEMS.forEach((it) => {
+      let ok = 0; const missIn = [];
+      centers.forEach((c) => {
+        const s2 = critStateOf(it, c, cr[c], eq);
+        if (s2 === "ok") ok++; else if (s2 === "miss") missIn.push(c);
+      });
+      const applic = ok + missIn.length;
+      if (!applic) return;
+      if (!missIn.length) full.push(it.l);
+      else gaps.push({ l: it.l, ok, applic, missIn });
+    });
+    if (!gaps.length) L.push("جميع البنود المطلوبة مكتملة بمراكز الشعبة ✅");
+    else {
+      gaps.sort((a, b) => b.missIn.length - a.missIn.length);
+      gaps.forEach((x) => {
+        L.push(`- ${x.l}: متوفر عدد ${x.ok} من عدد ${x.applic} · ناقص عدد ${x.missIn.length}`);
+        L.push(`  (${x.missIn.map((c) => c.replace(/^مركز /, "").replace(/\s*\(.*\)$/, "")).join(" · ")})`);
+      });
+    }
+    if (full.length) L.push("", `بنود مكتملة بجميع المراكز: ${full.join(" · ")}`);
+    L.push("");
+    // ثالثاً: آليات الشعبة
+    const nb = (s) => String(s || "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/\s+/g, " ").trim();
+    const own = vehicles.filter((v) => {
+      const u = (v.unit || "").trim();
+      if (centers.indexOf(u) >= 0) return true;
+      const a = nb(unifyUnit(u)), b2 = nb(br);
+      return !!a && (a === b2 || b2.indexOf(a) === 0 || a.indexOf(b2) === 0);
+    });
+    const st = (x) => own.filter((v) => (v.status || "").trim() === x).length;
+    const rdy = st("تعمل") + st("تم الإصلاح");
+    const notes = st("تعمل بوجود ملاحظات");
     const down = own.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
-    const rdy = own.filter((v) => READY_SET.includes((v.status || "").trim())).length;
-    const L = ["*🚨 موقف الجاهزية*", "*" + cn + "*",
-      `📅 ${WD[new Date().getDay()]} ${t.d} ${HIJRI_MONTHS[t.m - 1]} ${t.y}هـ`, "",
-      `*أولاً — آليات المركز:*`,
+    const rej = own.filter((v) => (v.status || "").includes("الرجيع")).length;
+    L.push("*ثالثاً — آليات الشعبة:*",
       `عدد الآليات المسجلة عدد ${own.length} آلية`,
-      `عدد الجاهزة للعمل عدد ${rdy} آلية`,
-      `عدد المتعطلة عدد ${down.length} آلية`];
-    if (down.length) { L.push(""); down.slice(0, 12).forEach((v) => L.push(`- ${v.type} — ${v.plate} (${v.location || "المقر"})`)); }
-    L.push("", `*ثانياً — بنود الجاهزية الناقصة:*`);
-    if (!miss.length) L.push("لا يوجد نقص — جميع البنود المطلوبة مكتملة ✅");
-    else miss.forEach((it) => L.push(`- ${it.l}`));
-    L.push("", "_يرجى استكمال ما سبق وموافاتنا بالمستجدات_");
+      `عدد الجاهزة للعمل عدد ${rdy} آلية ✅`,
+      `عدد التي تعمل بوجود ملاحظات عدد ${notes} آلية 📋`,
+      `عدد المتعطلة عدد ${down.length} آلية ⚠️`,
+      `عدد المحالة للرجيع عدد ${rej} آلية ↩️`, "");
+    // رابعاً: بيان المتعطلة
+    if (down.length) {
+      L.push("*رابعاً — بيان الآليات المتعطلة:*");
+      down.slice(0, 40).forEach((v) => {
+        const c = (v.unit || "").replace(/^مركز /, "").replace(/\s*\(.*\)$/, "");
+        L.push(`- ${v.type} — ${v.plate} (${c} · ${v.location || "المقر"})`);
+      });
+      if (down.length > 40) L.push(`- وبقية الآليات عددها ${down.length - 40}`);
+      L.push("");
+    }
+    // خامساً: مراكز بعجز كلي
+    const red = centers.filter((c) => lv[c] === "red");
+    if (red.length) {
+      L.push("*خامساً — مراكز بعجز كلي بالجاهزية:*");
+      red.forEach((c) => L.push(`- ${c}`));
+      L.push("");
+    }
+    L.push("_يرجى استكمال ما سبق وموافاتنا بالمستجدات_");
     return L.join("\n");
-  }, [cn, centerReadiness, equip, vehicles]);
-  const allCenters = MANUAL_CENTERS.flatMap(({ branch, centers }) => centers.map((c) => ({ c, branch })));
+  }, [br, centers, centerReadiness, equip, vehicles]);
   return (
     <div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>📱 اختر المركز لتوليد رسالته:</span>
-        <select value={cn} onChange={(e) => { setCn(e.target.value); setCopied(false); }} style={{ ...inputStyle, minWidth: 280, padding: "9px 12px" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440" }}>📱 اختر الشعبة لتوليد رسالتها الشاملة:</span>
+        <select value={br} onChange={(e) => { setBr(e.target.value); setCopied(false); }} style={{ ...inputStyle, minWidth: 260, padding: "9px 12px" }}>
           <option value="">— اختر —</option>
-          {MANUAL_CENTERS.map(({ branch, centers }) => (
-            <optgroup key={branch} label={branch}>
-              {centers.map((c) => <option key={c} value={c}>{c}</option>)}
-            </optgroup>
-          ))}
+          {MANUAL_CENTERS.map(({ branch, centers: cs }) => <option key={branch} value={branch}>{branch} ({cs.length} مراكز)</option>)}
         </select>
+        {br && <span style={{ fontSize: 12, fontWeight: 800, color: "#0E7A5F" }}>✓ تشمل {centers.length} مركزاً بكل بنودها</span>}
       </div>
-      {!cn ? (
-        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر مركزاً لتُبنى رسالة موجزة بموقفه ونواقصه جاهزة للإرسال لقائده</div>
+      {!br ? (
+        <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>
+          اختر شعبة لتُبنى رسالة واحدة تجمع جاهزية مراكزها كافة، وتكميل بنودها ومعداتها، وموقف آلياتها، وبيان متعطلاتها
+        </div>
       ) : (
         <div>
           <textarea readOnly value={msg} style={{
-            width: "100%", boxSizing: "border-box", minHeight: 320, border: "1.5px solid #C9CDD6", borderRadius: 12,
+            width: "100%", boxSizing: "border-box", minHeight: 420, border: "1.5px solid #C9CDD6", borderRadius: 12,
             padding: 14, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", lineHeight: 1.9, color: "#141A28", background: "#F9FAFB", resize: "vertical",
           }} />
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
             <button onClick={() => {
               try { navigator.clipboard.writeText(msg); } catch (e) {
                 const ta = document.createElement("textarea"); ta.value = msg; document.body.appendChild(ta); ta.select();
@@ -3014,6 +3077,7 @@ function CenterWa({ vehicles, centerReadiness, equip }) {
             }} style={{ background: "#141A28", color: "#fff", border: "none", borderRadius: 11, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📋 {copied ? "تم النسخ ✓" : "نسخ الرسالة"}</button>
             <button onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank")}
               style={{ background: "#25D366", color: "#fff", border: "none", borderRadius: 11, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🟢 إرسال عبر واتساب</button>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A3" }}>طول الرسالة {msg.length} حرفاً</span>
           </div>
         </div>
       )}
@@ -3902,7 +3966,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة مركز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", "🏢 تقرير مركز"], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة شعبة"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", "🚒 تكميل الآليات النوعي الأسبوعي"], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)} style={{
               background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
               border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
@@ -4009,7 +4073,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         {repMode === "c186" && <Cohort186Report vehicles={vehicles} logo={logo} cohort={cohort} onCohort={onCohort} ro={ro} isOwner={isOwner} />}
         {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} />}
         {repMode === "tour" && <TourSheet logo={logo} />}
-        {repMode === "cwa" && <CenterWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
+        {repMode === "cwa" && <BranchWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
         {repMode === "archive" && (
           <div>
             {archSel ? (
