@@ -1240,7 +1240,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.1 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -1303,7 +1303,7 @@ function ShamelReport({ incidents, ro, logo, vehiclesCount, opsMeta, onSaveMeta,
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div style={{ fontSize: 13, fontWeight: 800, border: "2px solid #141A28", borderRadius: 8, padding: "5px 14px", alignSelf: "center" }}>النموذج الشامل</div>
           <div className="rep-head" style={{ textAlign: "center" }}>
-            {logo && <img src={logo} alt="" style={{ height: 56 }} />}
+            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 56 }} />}
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — وزارة الداخلية</div>
             <div style={{ fontSize: 11.5, fontWeight: 800 }}>المديرية العامة للدفاع المدني</div>
             <div style={{ fontSize: 10.5, fontWeight: 700 }}>272/3</div>
@@ -2925,7 +2925,7 @@ function CenterReport({ vehicles, logo }) {
       ) : (
         <div>
           <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
             <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان موقف آليات: {unit}</div>
@@ -3141,7 +3141,7 @@ function CompareReport({ archive, vehicles, logo }) {
       ) : (
         <div>
           <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
             <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان المقارنة بين فترتين</div>
@@ -3201,7 +3201,7 @@ function TourSheet({ logo }) {
           {centers.map((c, ci) => (
             <div key={c} style={{ pageBreakAfter: ci < centers.length - 1 ? "always" : "auto", marginBottom: 26 }}>
               <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-                {logo && <img src={logo} alt="" style={{ height: 52 }} />}
+                {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 52 }} />}
                 <div style={{ fontSize: 13, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
                 <div style={{ fontSize: 11.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
                 <div style={{ fontSize: 14, fontWeight: 800, marginTop: 6, textDecoration: "underline" }}>كشف جولة ميدانية: {c}</div>
@@ -3270,7 +3270,7 @@ function CritReport({ centerReadiness, equip, logo }) {
       ) : (
         <div>
           <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
+            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 62 }} />}
             <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
             <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
             <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان تكميل: {item.l}</div>
@@ -3651,7 +3651,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
             <div style={{ width: 120 }} />
             <div className="rep-head" style={{ textAlign: "center", flex: 1 }}>
-              {logo && <img src={logo} alt="" style={{ height: 46 }} />}
+              {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 46 }} />}
               <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — المديرية العامة للدفاع المدني</div>
               <div style={{ fontSize: 11.5, fontWeight: 700 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — شعبة الاطفاء والانقاذ</div>
             </div>
@@ -4624,7 +4624,7 @@ function NawiReport({ vehicles, logo }) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
         <div style={{ width: 120 }} />
         <div className="rep-head" style={{ textAlign: "center", flex: 1 }}>
-          {logo && <img src={logo} alt="" style={{ height: 46 }} />}
+          {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 46 }} />}
           <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — المديرية العامة للدفاع المدني</div>
           <div style={{ fontSize: 11.5, fontWeight: 700 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
         </div>
