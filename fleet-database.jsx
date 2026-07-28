@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 8.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.1 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3372,7 +3372,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     fs.sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")));
     return fs[0] || null;
   };
-  const noteOf = (it) => it.warranty ? "معاودة تعطل خلال فترة الضمان"
+  const noteOf = (it) => it.warranty ? "عاودت التعطل بعطل مقارب أو لم يُصلح عطلها الأصلي"
     : it.newFault ? "متوقفة حالياً بسبب عطل مختلف عما تم إصلاحه"
     : it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "";
   const bd = "1px solid #141A28";
@@ -3581,7 +3581,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           )}
           {warrRows.length > 0 && (
             <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 10, color: "#3A4152", lineHeight: 1.9 }}>
-              ملحوظة: عدد {warrRows.length} آلية عاودت التعطل بعطل مماثل أو مقارب أو خلال فترة الضمان، وأُعيدت ضمن بيان الآليات المتعطلة.
+              ملحوظة: عدد {warrRows.length} آلية دخلت الصيانة وعاودت التعطل بعطل مقارب، أو تبيّن أن عطلها الأصلي لم يُصلح، وأُعيدت ضمن بيان الآليات المتعطلة.
             </div>
           )}
           {newFaultRows.length > 0 && (
