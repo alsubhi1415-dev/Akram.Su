@@ -1240,7 +1240,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3436,6 +3436,8 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     onCohort({ ...(cohort || {}), items: { ...(items || {}), [k]: {
       ...(items || {})[k], st, at: Date.now(), sig: liveSig(v), faultKey: v ? faultKeyOf(v) : "", ...(extra || {}),
     } } });
+    setLastAct((v ? v.plate : k) + " → " + (st === "fixed" ? "بيان ما تم إصلاحه" : st === "rejee" ? "بيان الرجيع" : "بيان المتعطلة"));
+    setTimeout(() => setLastAct(""), 6000);
   };
   const keepAs = (k) => {
     const v = byPlate[k];
@@ -3443,6 +3445,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
       ...(items || {})[k], at: Date.now(), sig: liveSig(v), faultKey: v ? faultKeyOf(v) : "",
     } } });
   };
+  const [lastAct, setLastAct] = useState("");
   const applyClear = () => {
     const it = { ...(items || {}) };
     clearRows.forEach((c) => {
@@ -3623,6 +3626,11 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                   </div>
                 ))}
                 {changes.length > 40 && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#7A5209" }}>وبقية التغييرات عددها {changes.length - 40}</div>}
+              </div>
+            )}
+            {lastAct && (
+              <div style={{ background: "#E7F4ED", border: "1.5px solid #A9DCC0", color: "#14603F", borderRadius: 12, padding: "9px 13px", marginBottom: 10, fontSize: 12.5, fontWeight: 800 }}>
+                ✅ حُفظ القرار: {lastAct}
               </div>
             )}
             {canEdit && changes.length === 0 && (
@@ -6546,9 +6554,21 @@ export default function FleetApp() {
       const remoteDb = migrateDb(parsed.db || parsed);
       cfgRef.current = parsed.cfg || null;
       if (!tokenRef.current) tokenRef.current = tryDecryptToken(cfgRef.current, roleRef.current);
+      // دمج ثلاثي عند الاستلام بدل الاستبدال — يحفظ أي قرار محلي لم يُدفع بعد
+      const mine = dbRef.current;
+      let finalDb = remoteDb, note = "⬇ آخر استلام";
+      try {
+        if (mine && baseRef.current && JSON.stringify(mine) !== JSON.stringify(baseRef.current)) {
+          const { merged, stats } = mergeDb(baseRef.current, mine, remoteDb);
+          finalDb = merged;
+          if (stats.mine > 0) note = "⬇ استلام مع حفظ " + stats.mine + " تعديلاً محلياً";
+        }
+      } catch (e) {}
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
-      setDb(remoteDb); saveDB(remoteDb);
-      stampNow("⬇ آخر استلام");
+      setDb(finalDb); saveDB(finalDb);
+      // إن نتج عن الدمج فارق عن السحابة نُعيد دفعه ليستقر الطرفان
+      if (finalDb !== remoteDb) { try { queueCloud(finalDb); } catch (e) {} }
+      stampNow(note);
     } catch {}
   };
 
