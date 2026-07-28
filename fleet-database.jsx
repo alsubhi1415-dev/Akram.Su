@@ -1215,7 +1215,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 7.8 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3369,8 +3369,9 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   const noteOf = (it) => it.warranty ? "معاودة تعطل خلال فترة الضمان"
     : it.newFault ? "عطل جديد مختلف لا علاقة له بالعطل السابق"
     : it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "";
-  const cell = { border: "1px solid #141A28", padding: "4px 5px", fontSize: 10.5, textAlign: "center", verticalAlign: "middle" };
-  const hcell = { ...cell, background: "#E8EBF2", fontWeight: 800, fontSize: 10.5 };
+  const bd = "1px solid #141A28";
+  const cell = { border: bd, padding: "2.5px 5px", fontSize: 9, fontWeight: 600, textAlign: "center", verticalAlign: "middle", overflow: "hidden" };
+  const hcell = { border: bd, background: "#E7EAF0", padding: "4px 4px", fontSize: 10, fontWeight: 800, textAlign: "center" };
   const Stat = ({ n, l, c }) => (
     <div style={{ border: "1.5px solid " + c, borderRadius: 12, padding: "8px 16px", textAlign: "center", minWidth: 104 }}>
       <div style={{ fontSize: 19, fontWeight: 800, color: c, lineHeight: 1.1 }}>{n}</div>
@@ -3531,22 +3532,28 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
       {items && (
         <div>
           <style>{`
-            @page { size: A4 landscape; margin: 9mm 8mm; }
             @media print {
+              @page { size: A4 landscape; margin: 6mm 8mm; }
+              .c186-wrap { zoom: 0.88; }
               .sec-block { page-break-inside: auto; }
               .sec-block table { page-break-inside: auto; }
               .sec-block tr { page-break-inside: avoid; page-break-after: auto; }
               .sec-block thead { display: table-header-group; }
-              .c186-sign { page-break-inside: avoid; }
+              .c186-sign { break-inside: avoid; page-break-inside: avoid; }
             }
           `}</style>
-          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {logo && <img src={logo} alt="" style={{ height: 62 }} />}
-            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
-            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان أعطال الـ 186 آلية</div>
-            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
+          <div className="c186-wrap">
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
+            <div style={{ width: 120 }} />
+            <div className="rep-head" style={{ textAlign: "center", flex: 1 }}>
+              {logo && <img src={logo} alt="" style={{ height: 46 }} />}
+              <div style={{ fontSize: 12.5, fontWeight: 800 }}>المملكة العربية السعودية — المديرية العامة للدفاع المدني</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — شعبة الاطفاء والانقاذ</div>
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, width: 120, textAlign: "left" }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
           </div>
+          <div style={{ textAlign: "center", fontSize: 14, fontWeight: 800, margin: "4px 0 2px" }}>بيان أعطال الـ 186 آلية بالإدارة العامة للدفاع المدني بمحافظة جدة</div>
+          <div style={{ textAlign: "center", fontSize: 12, fontWeight: 800, marginBottom: 8 }}>موقف المجموعة: متعطلة {brokenRows.length} · تم إصلاحها {fixedRows.length} · أحيلت للرجيع {rejeeRows.length} من إجمالي {rows.length} آلية</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0", flexWrap: "wrap" }}>
             <Stat n={rows.length} l="إجمالي المجموعة" c="#1B2440" />
             <Stat n={brokenRows.length} l="ما زالت متعطلة" c="#B3121C" />
@@ -3576,9 +3583,15 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
               ملحوظة: عدد {newFaultRows.length} آلية أُصلحت من عطلها السابق ثم تعطلت بعطل جديد مختلف، وأُبقيت ضمن بيان ما تم إصلاحه.
             </div>
           )}
-          <div className="c186-sign" style={{ display: "flex", justifyContent: "space-between", marginTop: 24, fontSize: 12, fontWeight: 800 }}>
-            <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
-            <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
+          <div className="c186-sign" style={{ marginTop: 16, fontSize: 12, fontWeight: 800, breakInside: "avoid", pageBreakInside: "avoid" }}>
+            <div>معد البيان: نقيب / أكرم بن أحمد الصبحي</div>
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
+              التوقيع:
+              {isOwner && typeof SIGNATURE_IMG !== "undefined" && SIGNATURE_IMG
+                ? <img src={SIGNATURE_IMG} alt="" style={{ height: 36, objectFit: "contain" }} />
+                : <span>...............................</span>}
+            </div>
+          </div>
           </div>
         </div>
       )}
