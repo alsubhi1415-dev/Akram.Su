@@ -1218,7 +1218,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 7.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 8.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3373,7 +3373,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
     return fs[0] || null;
   };
   const noteOf = (it) => it.warranty ? "معاودة تعطل خلال فترة الضمان"
-    : it.newFault ? "عطل جديد مختلف لا علاقة له بالعطل السابق"
+    : it.newFault ? "متوقفة حالياً بسبب عطل مختلف عما تم إصلاحه"
     : it.partial ? "سبق دخولها الصيانة ولم يكتمل إصلاحها" : "";
   const bd = "1px solid #141A28";
   const cell = { border: bd, padding: "2.5px 5px", fontSize: 9, fontWeight: 600, textAlign: "center", verticalAlign: "middle", overflow: "hidden" };
@@ -3447,9 +3447,9 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                 <td style={cell}>{v ? v.plate : r.k}</td>
                 <td style={cell}>{v ? (v.model || "—") : "—"}</td>
                 <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
-                <td style={cell}>تم الإصلاح</td>
+                <td style={{ ...cell, fontWeight: 800, color: r.it.newFault ? "#D9730D" : "#0E7A5F" }}>تم الإصلاح</td>
                 <td style={cell}>{f ? (f.repairDate || "—") : "—"}</td>
-                <td style={{ ...cell, fontWeight: 700 }}>{noteOf(r.it) || "—"}</td>
+                <td style={{ ...cell, fontWeight: 800, color: r.it.newFault ? "#D9730D" : "#3A4152" }}>{noteOf(r.it) || "—"}</td>
               </tr>
             );
           })}
@@ -3586,7 +3586,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
           )}
           {newFaultRows.length > 0 && (
             <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 4, color: "#3A4152", lineHeight: 1.9 }}>
-              ملحوظة: عدد {newFaultRows.length} آلية أُصلحت من عطلها السابق ثم تعطلت بعطل جديد مختلف، وأُبقيت ضمن بيان ما تم إصلاحه.
+              ملحوظة: عدد {newFaultRows.length} آلية أُصلحت من عطلها السابق وأُبقيت ضمن بيان ما تم إصلاحه، وهي متوقفة حالياً بسبب عطل مختلف عما تم إصلاحه، وميّزت باللون البرتقالي.
             </div>
           )}
           <div className="c186-sign" style={{ marginTop: 16, fontSize: 12, fontWeight: 800, breakInside: "avoid", pageBreakInside: "avoid" }}>
