@@ -1376,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.2 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3037,7 +3037,7 @@ function ReadinessReport({ centerReadiness, equip, supportCounts, prio, prioWeig
 }
 
 // ====== تقرير موقف مركز واحد ======
-function CenterReport({ vehicles, logo }) {
+function CenterReport({ vehicles, logo, isOwner }) {
   const units = useMemo(() => [...new Set(vehicles.map((v) => (v.unit || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ar")), [vehicles]);
   const [unit, setUnit] = useState("");
   const t = todayHijri();
@@ -3060,13 +3060,8 @@ function CenterReport({ vehicles, logo }) {
         <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر مركزاً من القائمة أعلاه ليُبنى بيان موقفه الكامل جاهزاً للطباعة</div>
       ) : (
         <div>
-          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 62 }} />}
-            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
-            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان موقف آليات: {unit}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
-          </div>
+          <RepHead logo={logo} title={"بيان موقف آليات: " + unit}
+            meta={`إجمالي الآليات ${rows.length} · المتعطلة ${broken.length}`} />
           <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0" }}>
             {[["الإجمالي", rows.length, "#1B2440"], ["الجاهزة", ready.length, "#0E7A5F"], ["المتعطلة", broken.length, "#B3121C"], ["نسبة الجاهزية", rows.length ? Math.round((ready.length / rows.length) * 100) + "%" : "—", "#1F6FB8"]].map(([l, n, c]) => (
               <div key={l} style={{ border: "1.5px solid " + c, borderRadius: 10, padding: "6px 16px", textAlign: "center" }}>
@@ -3108,6 +3103,7 @@ function CenterReport({ vehicles, logo }) {
               </table>
             </div>
           )}
+          <RepSign isOwner={isOwner} />
         </div>
       )}
     </div>
@@ -3327,13 +3323,8 @@ function TourSheet({ logo }) {
         <div>
           {centers.map((c, ci) => (
             <div key={c} style={{ pageBreakAfter: ci < centers.length - 1 ? "always" : "auto", marginBottom: 26 }}>
-              <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-                {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 52 }} />}
-                <div style={{ fontSize: 13, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-                <div style={{ fontSize: 11.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
-                <div style={{ fontSize: 14, fontWeight: 800, marginTop: 6, textDecoration: "underline" }}>كشف جولة ميدانية: {c}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, marginTop: 3 }}>{br} · التاريخ: ....... / ....... / {t.y} هـ</div>
-              </div>
+              <RepHead logo={logo} compact title={"كشف جولة ميدانية: " + c} sub={br}
+                meta={"عدد البنود " + CRIT_ITEMS.length} />
               <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8 }}>
                 <thead><tr><th style={hcell}>م</th><th style={hcell}>البند</th><th style={hcell}>التصنيف</th><th style={hcell}>متوفر</th><th style={hcell}>غير متوفر</th><th style={hcell}>ملاحظات المفتش</th></tr></thead>
                 <tbody>
@@ -4212,7 +4203,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
           </div>
         )}
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
-        {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
+        {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} isOwner={isOwner} />}
         {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} isOwner={isOwner} />}
         {repMode === "c186" && <Cohort186Report vehicles={vehicles} logo={logo} cohort={cohort} onCohort={onCohort} ro={ro} isOwner={isOwner} />}
         {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} isOwner={isOwner} />}
