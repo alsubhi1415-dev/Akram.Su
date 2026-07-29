@@ -1265,6 +1265,88 @@ function FilterCard({ ic, label, sub, n, color, active, onClick, min = 168 }) {
     </button>
   );
 }
+// ══════════════════════════════════════════════════════════════
+//  محرك التقارير الموحّد — ترويسة وفقرات وجداول وتوقيع بمرجع واحد
+// ══════════════════════════════════════════════════════════════
+function RepHead({ logo, title, sub, meta, compact }) {
+  const t = todayHijri();
+  return (
+    <div className="rep-head" style={{ textAlign: "center", marginBottom: T.sp[3] }}>
+      <img src={logo || DEFAULT_LOGO} alt="" style={{ height: compact ? 44 : 52, objectFit: "contain" }} />
+      <div style={{ fontSize: T.fs.md - 1, fontWeight: 800, color: T.c.ink }}>المملكة العربية السعودية — المديرية العامة للدفاع المدني</div>
+      <div style={{ fontSize: T.fs.base, fontWeight: 700, color: T.c.ink2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — شعبة الاطفاء والانقاذ</div>
+      <div style={{ fontSize: T.fs.lg, fontWeight: 800, margin: "7px 0 3px", textDecoration: "underline", color: T.c.ink }}>{title}</div>
+      {sub ? <div style={{ fontSize: T.fs.base, fontWeight: 800, color: T.c.ink2 }}>{sub}</div> : null}
+      <div style={{ fontSize: T.fs.sm + 1, fontWeight: 700, color: T.c.ink2, marginTop: 2 }}>
+        التاريخ: {t.d} / {t.m} / {t.y} هـ{meta ? " · " + meta : ""}
+      </div>
+    </div>
+  );
+}
+function RepSection({ title, count, children, first }) {
+  return (
+    <div className={first ? "rep-sec-first" : "rep-sec"} style={{ marginTop: T.sp[6] }}>
+      {title ? (
+        <div style={{ fontSize: T.fs.md, fontWeight: 800, margin: "8px 0 5px", color: T.c.ink }}>
+          {title}{count != null ? " — العدد (" + count + ") آلية" : ""}
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+function RepTable({ cols, rows, empty }) {
+  const bd = "1px solid " + T.c.ink;
+  const th = { border: bd, background: "#E7EAF0", padding: "4px 4px", fontSize: T.fs.sm, fontWeight: 800, textAlign: "center" };
+  const td = { border: bd, padding: "2.5px 5px", fontSize: T.fs.xs, fontWeight: 600, textAlign: "center", verticalAlign: "middle", overflow: "hidden" };
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <thead><tr>
+        <th style={{ ...th, width: "3.5%" }}>م</th>
+        {cols.map((c) => <th key={c.k} style={{ ...th, width: c.w }}>{c.t}</th>)}
+      </tr></thead>
+      <tbody>
+        {rows.length === 0 ? (
+          <tr><td style={td} colSpan={cols.length + 1}>{empty || "لا يوجد"}</td></tr>
+        ) : rows.map((r, i) => (
+          <tr key={r.__k || i}>
+            <td style={td}>{i + 1}</td>
+            {cols.map((c) => {
+              const v = c.get(r, i);
+              return <td key={c.k} style={{ ...td, textAlign: c.a || "center", ...(c.style ? c.style(r) : {}) }} title={typeof v === "string" ? v : ""}>{v}</td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+function RepSign({ isOwner, role }) {
+  return (
+    <div className="sig-block" style={{ marginTop: T.sp[8], fontSize: T.fs.base, fontWeight: 800, color: T.c.ink }}>
+      <div>{role || "معد البيان"}: نقيب / أكرم بن أحمد الصبحي</div>
+      <div style={{ marginTop: T.sp[3], display: "flex", alignItems: "center", gap: T.sp[4] }}>
+        التوقيع:
+        {isOwner && typeof SIGNATURE_IMG !== "undefined" && SIGNATURE_IMG
+          ? <img src={SIGNATURE_IMG} alt="" style={{ height: 34, objectFit: "contain" }} />
+          : <span>...............................</span>}
+      </div>
+    </div>
+  );
+}
+function RepNote({ children }) {
+  return (
+    <div className="no-print" style={{ fontSize: T.fs.base - 1, fontWeight: 700, marginTop: T.sp[4], color: T.c.ink2, lineHeight: 1.9 }}>
+      {children}
+    </div>
+  );
+}
+function RepEmpty({ children }) {
+  return (
+    <div style={{ padding: "38px 20px", textAlign: "center", color: T.c.mute, fontWeight: 800, fontSize: T.fs.md }}>{children}</div>
+  );
+}
+
 function ChartCard({ title, icon, grad, children }) {
   return (
     <div style={{
@@ -1294,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.1 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3161,7 +3243,7 @@ function BranchWa({ vehicles, centerReadiness, equip }) {
   );
 }
 
-function CompareReport({ archive, vehicles, logo }) {
+function CompareReport({ archive, vehicles, logo, isOwner }) {
   const snaps = (archive || []).filter((a) => a && a.sum).slice().sort((a, b) => (b.n || 0) - (a.n || 0));
   const t = todayHijri();
   const live = (() => {
@@ -3194,13 +3276,7 @@ function CompareReport({ archive, vehicles, logo }) {
         <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>لا توجد لقطات مؤرشفة بعد — اعتمد تقريراً أسبوعياً ليُحفظ بالأرشيف ثم قارن بينه وبين الوضع الحالي</div>
       ) : (
         <div>
-          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 62 }} />}
-            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
-            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان المقارنة بين فترتين</div>
-            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>الفترة الأولى: {A.d} — الفترة الثانية: {B.d}</div>
-          </div>
+          <RepHead logo={logo} title="بيان المقارنة بين فترتين" sub={A.d + "  مقابل  " + B.d} />
           <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
             <thead><tr>
               <th style={hcell}>البيان</th><th style={hcell}>{A.d}</th><th style={hcell}>{B.d}</th><th style={hcell}>الفرق</th><th style={hcell}>الاتجاه</th>
@@ -3222,10 +3298,7 @@ function CompareReport({ archive, vehicles, logo }) {
               })}
             </tbody>
           </table>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontSize: 12, fontWeight: 800 }}>
-            <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
-            <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
-          </div>
+          <RepSign isOwner={isOwner} />
         </div>
       )}
     </div>
@@ -3288,7 +3361,7 @@ function TourSheet({ logo }) {
   );
 }
 
-function CritReport({ centerReadiness, equip, logo }) {
+function CritReport({ centerReadiness, equip, logo, isOwner }) {
   const [ck, setCk] = useState("");
   const t = todayHijri();
   const item = CRIT_ITEMS.find((x) => x.k === ck) || null;
@@ -3323,13 +3396,8 @@ function CritReport({ centerReadiness, equip, logo }) {
         <div style={{ padding: 40, textAlign: "center", color: "#8B93A3", fontWeight: 800, fontSize: 14 }}>اختر بنداً من القائمة أعلاه ليُبنى بيان تكميله بالمراكز والشعب جاهزاً للطباعة</div>
       ) : (
         <div>
-          <div className="rep-head" style={{ textAlign: "center", marginBottom: 4 }}>
-            {<img src={logo || DEFAULT_LOGO} alt="" style={{ height: 62 }} />}
-            <div style={{ fontSize: 14, fontWeight: 800 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-            <div style={{ fontSize: 12.5, fontWeight: 800 }}>إدارة العمليات — شعبة الاطفاء والانقاذ</div>
-            <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, textDecoration: "underline" }}>بيان تكميل: {item.l}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3 }}>التاريخ: {t.d} / {t.m} / {t.y} هـ</div>
-          </div>
+          <RepHead logo={logo} title={"بيان تكميل: " + item.l}
+            meta={`المطبق عليها ${data.applic} مركزاً · المكتملة ${data.ok} · بها عجز ${data.miss}`} />
           <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0", flexWrap: "wrap" }}>
             {[["المراكز المطبق عليها", data.applic, "#1B2440"], ["المكتملة", data.ok, "#0E7A5F"], ["التي بها عجز", data.miss, "#B3121C"],
               ["نسبة التكميل", data.applic ? Math.round((data.ok / data.applic) * 100) + "%" : "—", "#1F6FB8"]].map(([l, n, c]) => (
@@ -3396,10 +3464,7 @@ function CritReport({ centerReadiness, equip, logo }) {
               ملحوظة: عدد المراكز غير المطبق عليها هذا البند {data.na} مركزاً، ولم تُحتسب ضمن نسبة التكميل.
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 26, fontSize: 12, fontWeight: 800 }}>
-            <div style={{ textAlign: "center" }}>معد البيان<div style={{ marginTop: 26 }}>أكرم بن أحمد الصبحي — نقيب</div></div>
-            <div style={{ textAlign: "center" }}>مدير شعبة الاطفاء والانقاذ<div style={{ marginTop: 26 }}>...................................</div></div>
-          </div>
+          <RepSign isOwner={isOwner} />
         </div>
       )}
     </div>
@@ -4148,9 +4213,9 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         )}
         {repMode === "nawi" && <NawiReport vehicles={vehicles} logo={logo} />}
         {repMode === "center" && <CenterReport vehicles={vehicles} logo={logo} />}
-        {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} />}
+        {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} isOwner={isOwner} />}
         {repMode === "c186" && <Cohort186Report vehicles={vehicles} logo={logo} cohort={cohort} onCohort={onCohort} ro={ro} isOwner={isOwner} />}
-        {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} />}
+        {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} isOwner={isOwner} />}
         {repMode === "tour" && <TourSheet logo={logo} />}
         {repMode === "cwa" && <BranchWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
         {repMode === "archive" && (
