@@ -1246,7 +1246,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.7 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2965,7 +2965,7 @@ function CenterReport({ vehicles, logo }) {
             </tbody>
           </table>
           {broken.length > 0 && (
-            <div style={{ marginTop: 14 }}>
+            <div className="rep-sec" style={{ marginTop: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>بيان الآليات المتعطلة وتفاصيلها:</div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr><th style={hcell}>م</th><th style={hcell}>النوع</th><th style={hcell}>اللوحة</th><th style={hcell}>تاريخ العطل</th><th style={hcell}>وصف العطل</th><th style={hcell}>الموقع</th></tr></thead>
@@ -4268,7 +4268,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
                 cols: ["type", "plate", "model", "unit", "status", "faultDesc", "faultDate"], rows: stRows });
             });
             return sections.map((sec) => (
-              <div key={sec.key} style={{ marginBottom: 20 }}>
+              <div key={sec.key} className="rep-sec" style={{ marginBottom: 20 }}>
                 <div style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   background: "#141A28", color: "#fff", borderRadius: "8px 8px 0 0",
