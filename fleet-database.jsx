@@ -1240,7 +1240,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.4 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -6372,6 +6372,67 @@ export default function FleetApp() {
     window.addEventListener("resize", calc);
     return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener("resize", calc); };
   }, [view, listFit]);
+  const printList = (rowsToPrint) => {
+    const t = todayHijri();
+    const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const DOWN = ["عطلانة", "تحت التجهيز والتسليم", "تعمل بوجود ملاحظات", "تحت إجراءات الرجيع", "صدر قرار الرجيع"];
+    const clrOf = (s) => /رجيع|الإحالة/.test(s) ? "#7A0E14" : /عطلانة/.test(s) ? "#E0575F"
+      : /ملاحظات/.test(s) ? "#D9A520" : /التجهيز/.test(s) ? "#7B4B2A" : "#0E7A5F";
+    const body = rowsToPrint.map((v, i) => {
+      const st = (v.status || "").trim();
+      const down = DOWN.indexOf(st) >= 0;
+      const fs = v.faults || [];
+      const of2 = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+      const rf = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
+      const desc = down ? ((of2 && (of2.desc || of2.faultType)) || "—") : "—";
+      const dt = down ? (of2 && of2.date) || "—" : (rf && rf.repairDate) || "—";
+      return `<tr>
+        <td>${i + 1}</td><td class="rt">${esc(v.type)}</td><td>${esc(v.plate)}</td><td>${esc(v.model || "—")}</td>
+        <td class="rt">${esc(v.unit || "—")}</td><td class="rt">${esc(v.location || "—")}</td>
+        <td style="color:${clrOf(st)};font-weight:800">${esc(st)}</td>
+        <td class="rt">${esc(desc)}</td><td>${esc(dt)}</td></tr>`;
+    }).join("");
+    const chips = [];
+    if (q) chips.push("بحث: " + q);
+    if (fStatus.length) chips.push("الحالة: " + fStatus.join("، "));
+    if (fType.length) chips.push("النوع: " + fType.join("، "));
+    if (fModel.length) chips.push("الموديل: " + fModel.join("، "));
+    if (fBranch.length) chips.push("الشعبة: " + fBranch.join("، "));
+    if (fUnit.length) chips.push("المركز: " + fUnit.join("، "));
+    const el = document.createElement("div");
+    el.innerHTML = `
+      <div class="rep-head" style="text-align:center">
+        <img src="${logo || DEFAULT_LOGO}" style="height:52px" />
+        <div style="font-size:13px;font-weight:800">المملكة العربية السعودية — المديرية العامة للدفاع المدني</div>
+        <div style="font-size:12px;font-weight:700">الإدارة العامة للدفاع المدني بمحافظة جدة — شعبة الاطفاء والانقاذ</div>
+        <div style="font-size:15px;font-weight:800;margin-top:6px;text-decoration:underline">بيان الآليات</div>
+        <div style="font-size:11.5px;font-weight:700;margin-top:3px">التاريخ: ${t.d} / ${t.m} / ${t.y} هـ · عدد الآليات بالبيان: ${rowsToPrint.length} آلية</div>
+        ${chips.length ? `<div style="font-size:11px;font-weight:700;margin-top:4px">المرشحات المطبقة: ${esc(chips.join(" | "))}</div>` : ""}
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-top:10px">
+        <thead><tr>
+          <th>م</th><th>نوع الآلية</th><th>رقم اللوحة</th><th>الموديل</th><th>الجهة</th>
+          <th>الموقع الحالي</th><th>الحالة الفنية</th><th>وصف العطل</th><th>التاريخ</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+      <div class="sig-block" style="margin-top:16px;font-size:12px;font-weight:800">
+        <div>معد البيان: نقيب / أكرم بن أحمد الصبحي</div>
+        <div style="margin-top:8px">التوقيع: ${isOwner && typeof SIGNATURE_IMG !== "undefined" && SIGNATURE_IMG ? `<img src="${SIGNATURE_IMG}" style="height:34px;vertical-align:middle" />` : "..............................."}</div>
+      </div>
+      <style>
+        table { table-layout: fixed; }
+        th { background:#E7EAF0; border:1px solid #141A28; padding:4px 3px; font-size:10px; font-weight:800; }
+        td { border:1px solid #141A28; padding:2.5px 4px; font-size:9px; text-align:center; overflow:hidden; }
+        td.rt { text-align:right; }
+        th:nth-child(1),td:nth-child(1){width:3.5%} th:nth-child(2),td:nth-child(2){width:18%}
+        th:nth-child(3),td:nth-child(3){width:9%} th:nth-child(4),td:nth-child(4){width:6%}
+        th:nth-child(5),td:nth-child(5){width:16%} th:nth-child(6),td:nth-child(6){width:13%}
+        th:nth-child(7),td:nth-child(7){width:11%} th:nth-child(8),td:nth-child(8){width:16%}
+        th:nth-child(9),td:nth-child(9){width:7.5%}
+      </style>`;
+    printIsolated(el, { landscape: true, title: "بيان الآليات" });
+  };
   const goBack = () => {
     const h = histRef.current;
     if (!h.length) return;
@@ -7847,6 +7908,8 @@ export default function FleetApp() {
               <MultiSelect label="الموديل" options={allModels} values={fModel} onChange={setFModel} flex="1 1 120px" />
               <MultiSelect label="الشعبة / الجهة" options={allBranches} values={fBranch} onChange={setFBranch} flex="1 1 150px" />
               <MultiSelect label="المركز التفصيلي" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
+              {!ro && <button onClick={() => printList(sortRows(filtered))} title="طباعة البيان الحالي بمرشحاته بصيغة رسمية"
+                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>🖨 طباعة البيان</button>}
               {isOwner && <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
                 style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>}
             </div>
@@ -7870,19 +7933,21 @@ export default function FleetApp() {
                 maxHeight: "72vh", overflowY: "auto",
                 ...(listOvf && listFit && listZ < 1 ? { zoom: listZ } : {}),
               }}>
-                <table className="fleet-tbl" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13, minWidth: 1020 }}>
+                <table className="fleet-tbl" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12.5, tableLayout: "fixed" }}>
                   <thead>
                     <tr>
-                      {[["🚒", "نوع الآلية"], ["🔖", "رقم اللوحة"], ["📅", "الموديل"], ["🏢", "الجهة"],
-                        ["📍", "الموقع الحالي"], ["🩺", "الحالة الفنية"], ["📝", "وصف العطل"], ["🗓", "التاريخ"],
-                        ...(isOwner ? [["⚡", "إجراء"]] : [])].map(([ic, h]) => {
+                      {[["🚒", "نوع الآلية", isOwner ? "19%" : "21%"], ["🔖", "رقم اللوحة", "9.5%"], ["📅", "الموديل", "6%"],
+                        ["🏢", "الجهة", isOwner ? "16%" : "18%"], ["📍", "الموقع الحالي", "13%"], ["🩺", "الحالة الفنية", "11%"],
+                        ["📝", "وصف العطل", isOwner ? "13%" : "14.5%"], ["🗓", "التاريخ", "8%"],
+                        ...(isOwner ? [["⚡", "إجراء", "4.5%"]] : [])].map(([ic, h, wd]) => {
                         const k = SORT_KEYS[h];
                         const on = sortK === k && k;
                         return (
                           <th key={h} onClick={() => { if (!k) return; if (sortK === k) { if (sortD === 1) setSortD(-1); else { setSortK(null); setSortD(1); } } else { setSortK(k); setSortD(1); } }}
                             title={k ? "اضغط للفرز" : ""}
                             style={{
-                              padding: "11px 10px", fontWeight: 800, whiteSpace: "nowrap", position: "sticky", top: 0,
+                              width: wd, padding: "10px 7px", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden",
+                              textOverflow: "ellipsis", position: "sticky", top: 0,
                               background: "linear-gradient(180deg,#1B2440,#141A28)", color: on ? "#FFD166" : "#E8EBF2",
                               zIndex: 2, cursor: k ? "pointer" : "default", userSelect: "none", textAlign: "right",
                               borderBottom: "2px solid rgba(212,175,55,0.45)", fontSize: 12.5,
@@ -7913,25 +7978,25 @@ export default function FleetApp() {
                       return (
                         <tr key={v.id} className="row-hover" onClick={() => { setSelectedId(v.id); setView("detail"); }}
                           style={{ background: ri % 2 ? "#FAFBFC" : "#fff", cursor: "pointer", borderBottom: "1px solid #EDEFF3" }}>
-                          <td style={{ padding: "9px 10px", borderRight: "4px solid " + accent }}>
-                            <div style={{ fontWeight: 800, color: "#141A28", lineHeight: 1.35 }}>{v.type}</div>
+                          <td style={{ padding: "7px 8px", borderRight: "4px solid " + accent, overflow: "hidden" }} title={v.type}>
+                            <div style={{ fontWeight: 800, color: "#141A28", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.type}</div>
                           </td>
-                          <td style={{ padding: "9px 10px" }}>
+                          <td style={{ padding: "7px 6px", overflow: "hidden" }} title={v.plate}>
                             <span style={{
-                              display: "inline-block", background: "#F2F4F8", border: "1.5px solid #D5DAE4", borderRadius: 8,
-                              padding: "3px 9px", fontWeight: 800, color: "#1B2440", letterSpacing: 0.4, whiteSpace: "nowrap",
+                              display: "inline-block", maxWidth: "100%", background: "#F2F4F8", border: "1.5px solid #D5DAE4", borderRadius: 8,
+                              padding: "2px 7px", fontWeight: 800, color: "#1B2440", letterSpacing: 0.3, whiteSpace: "nowrap",
+                              overflow: "hidden", textOverflow: "ellipsis", boxSizing: "border-box", fontSize: 12,
                             }}>{v.plate}</span>
                           </td>
-                          <td style={{ padding: "9px 10px", fontWeight: 700, color: "#5A6172", whiteSpace: "nowrap" }}>{v.model || "—"}</td>
-                          <td style={{ padding: "9px 10px", color: "#3A4152", fontWeight: 700, maxWidth: 190, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.unit || ""}>{v.unit || "—"}</td>
-                          <td style={{ padding: "9px 10px", color: "#3A4152", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.location || ""}>{v.location || "—"}</td>
-                          <td style={{ padding: "9px 10px" }}><StatusBadge status={v.status} /></td>
-                          <td style={{ padding: "9px 10px", color: isDown ? "#7A2E33" : "#9AA2B1", maxWidth: 230, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isDown ? 700 : 600 }} title={desc}>{desc}</td>
-                          <td style={{ padding: "9px 10px", whiteSpace: "nowrap" }}>
+                          <td style={{ padding: "7px 6px", fontWeight: 700, color: "#5A6172", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.model || "—"}</td>
+                          <td style={{ padding: "7px 8px", color: "#3A4152", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.unit || ""}>{v.unit || "—"}</td>
+                          <td style={{ padding: "7px 8px", color: "#3A4152", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={v.location || ""}>{v.location || "—"}</td>
+                          <td style={{ padding: "7px 5px", overflow: "hidden" }} title={v.status}><StatusBadge status={v.status} /></td>
+                          <td style={{ padding: "7px 8px", color: isDown ? "#7A2E33" : "#9AA2B1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isDown ? 700 : 600 }} title={desc}>{desc}</td>
+                          <td style={{ padding: "7px 5px", whiteSpace: "nowrap", overflow: "hidden" }} title={dt ? dtLbl + ": " + dt : ""}>
                             {dt ? (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 800, color: isDown ? "#B3121C" : "#0E7A5F", fontSize: 12 }}>
-                                <span style={{ fontSize: 11 }}>{dtIc}</span>{dt}
-                                <span style={{ fontSize: 9.5, fontWeight: 800, color: "#9AA2B1" }}>{dtLbl}</span>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 800, color: isDown ? "#B3121C" : "#0E7A5F", fontSize: 11 }}>
+                                <span style={{ fontSize: 10 }}>{dtIc}</span>{dt}
                               </span>
                             ) : <span style={{ color: "#B9BFCB" }}>—</span>}
                           </td>
