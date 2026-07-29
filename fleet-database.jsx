@@ -1144,6 +1144,10 @@ function RingBreakdown({ items, centerValue, centerLabel, emptyText }) {
   );
 }
 // ====== طباعة نظيفة من مستند مستقل — تضمن ثبات الترويسة وترتيب الصفحات ======
+// بالتقارير: الآلية التي تم إصلاحها تُعرض "تعمل" — والتفاصيل تبقى بسجل الآلية
+const REPAIRED_ST = "تم الإصلاح";
+function repStatus(s) { return String(s || "").trim() === REPAIRED_ST ? "تعمل" : s; }
+function isPlainWorking(s) { const x = String(s || "").trim(); return x === "تعمل" || x === REPAIRED_ST; }
 function printIsolated(rootEl, opts) {
   if (!rootEl) return;
   const o = opts || {};
@@ -1242,7 +1246,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.6 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2952,9 +2956,9 @@ function CenterReport({ vehicles, logo }) {
                 return (
                   <tr key={v.id}>
                     <td style={cell}>{i + 1}</td><td style={cell}>{v.type}</td><td style={cell}>{v.plate}</td>
-                    <td style={cell}>{v.model || "—"}</td><td style={{ ...cell, fontWeight: 800, color: BROKEN_SET.includes((v.status || "").trim()) ? "#B3121C" : "#141A28" }}>{v.status}</td>
+                    <td style={cell}>{v.model || "—"}</td><td style={{ ...cell, fontWeight: 800, color: BROKEN_SET.includes((v.status || "").trim()) ? "#B3121C" : "#141A28" }}>{repStatus(v.status)}</td>
                     <td style={cell}>{v.location || "—"}</td>
-                    <td style={{ ...cell, textAlign: "right" }}>{lf ? (lf.desc || "").slice(0, 60) + (lf.date ? " (" + lf.date + ")" : "") : "—"}</td>
+                    <td style={{ ...cell, textAlign: "right" }}>{isPlainWorking(v.status) ? "—" : (lf ? (lf.desc || "").slice(0, 60) + (lf.date ? " (" + lf.date + ")" : "") : "—")}</td>
                   </tr>
                 );
               })}
@@ -4232,10 +4236,10 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
               if (c === "plate") return r.v.plate;
               if (c === "model") return r.v.model || "—";
               if (c === "unit") return r.v.unit;
-              if (c === "status") return r.v.status;
-              if (c === "faultDesc" || c === "noteDesc") return r.desc;
-              if (c === "faultDate" || c === "noteDate") return r.date;
-              if (c === "repairDate") return r.repairDate;
+              if (c === "status") return repStatus(r.v.status);
+              if (c === "faultDesc" || c === "noteDesc") return isPlainWorking(r.v.status) ? "—" : r.desc;
+              if (c === "faultDate" || c === "noteDate") return isPlainWorking(r.v.status) ? "—" : r.date;
+              if (c === "repairDate") return isPlainWorking(r.v.status) ? "—" : r.repairDate;
               return "—";
             };
             const noWrap = ["plate", "faultDate", "noteDate", "repairDate"];
@@ -6393,11 +6397,12 @@ export default function FleetApp() {
       const of2 = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
       const rf = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
       const desc = down ? ((of2 && (of2.desc || of2.faultType)) || "—") : "—";
-      const dt = down ? (of2 && of2.date) || "—" : (rf && rf.repairDate) || "—";
+      const dt = down ? (of2 && of2.date) || "—" : "—";
+      const stShow = repStatus(st);
       return `<tr>
         <td>${i + 1}</td><td class="rt">${esc(v.type)}</td><td>${esc(v.plate)}</td><td>${esc(v.model || "—")}</td>
         <td class="rt">${esc(v.unit || "—")}</td><td class="rt">${esc(v.location || "—")}</td>
-        <td style="color:${clrOf(st)};font-weight:800">${esc(st)}</td>
+        <td style="color:${clrOf(st)};font-weight:800">${esc(stShow)}</td>
         <td class="rt">${esc(desc)}</td><td>${esc(dt)}</td></tr>`;
     }).join("");
     const chips = [];
