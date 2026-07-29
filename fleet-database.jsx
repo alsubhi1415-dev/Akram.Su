@@ -4239,23 +4239,29 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
               return "—";
             };
             const noWrap = ["plate", "faultDate", "noteDate", "repairDate"];
+            // ثلاث مجموعات مدمجة: العاملة · المتعطلة · الرجيع — والتصنيف التفصيلي بعمود الحالة الفنية
+            const GROUPS = [
+              { key: "working", title: "أولاً: بيان الآليات العاملة", sts: ["تعمل", "تم الإصلاح", "تعمل بوجود ملاحظات"],
+                cols: ["type", "plate", "model", "unit", "status", "noteDesc", "repairDate"] },
+              { key: "down", title: "ثانياً: بيان الآليات المتعطلة", sts: ["عطلانة", "تحت التجهيز والتسليم"],
+                cols: ["type", "plate", "model", "unit", "status", "faultDesc", "faultDate"] },
+              { key: "rejee", title: "ثالثاً: بيان الآليات المحالة للرجيع", sts: ["تحت إجراءات الرجيع", "صدر قرار الرجيع"],
+                cols: ["type", "plate", "model", "unit", "status", "faultDesc", "faultDate"] },
+            ];
             const sections = [];
-            const readySelected = rStatus.includes(READY_GROUP);
-            // عند تحديد المجموعة الجاهزة: جدول واحد موحد بأعمدتها الخمسة
-            if (readySelected) {
-              const gRows = rows.filter((r) => READY_STATUSES.includes(r.v.status));
-              if (gRows.length) sections.push({ key: READY_GROUP, title: READY_GROUP, cols: ["type", "plate", "model", "unit", "status"], rows: gRows });
-            }
+            const covered = [];
+            GROUPS.forEach((g) => {
+              const gRows = rows.filter((r) => g.sts.indexOf((r.v.status || "").trim()) >= 0);
+              g.sts.forEach((s) => covered.push(s));
+              if (gRows.length) sections.push({ key: g.key, title: g.title + " — العدد (" + gRows.length + ") آلية", cols: g.cols, rows: gRows });
+            });
+            // أي حالة خارج المجموعات الثلاث تُعرض ببيان مستقل حفاظاً على شمول البيان
             STATUSES.forEach((st) => {
-              if (readySelected && READY_STATUSES.includes(st)) return; // مشمولة في جدول المجموعة
+              if (covered.indexOf(st) >= 0) return;
               const stRows = rows.filter((r) => r.v.status === st);
-              if (stRows.length === 0) return;
-              let cols;
-              if (st === "تعمل") cols = ["type", "plate", "unit", "status"];
-              else if (st === "تم الإصلاح") cols = ["type", "plate", "model", "unit", "status", "repairDate"];
-              else if (st === "تعمل بوجود ملاحظات") cols = ["type", "plate", "unit", "status", "noteDesc", "noteDate"];
-              else cols = ["type", "plate", "unit", "status", "faultDesc", "faultDate"];
-              sections.push({ key: st, title: st, cols, rows: stRows });
+              if (!stRows.length) return;
+              sections.push({ key: st, title: "الحالة الفنية: " + st + " — العدد (" + stRows.length + ") آلية",
+                cols: ["type", "plate", "model", "unit", "status", "faultDesc", "faultDate"], rows: stRows });
             });
             return sections.map((sec) => (
               <div key={sec.key} style={{ marginBottom: 20 }}>
@@ -4264,7 +4270,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
                   background: "#141A28", color: "#fff", borderRadius: "8px 8px 0 0",
                   padding: "8px 12px", fontSize: 13.5, fontWeight: 800,
                 }}>
-                  <span>{sec.key === READY_GROUP ? sec.title : "الحالة الفنية: " + sec.title}</span>
+                  <span>{sec.title}</span>
                   <span>عدد الآليات: {sec.rows.length}</span>
                 </div>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
