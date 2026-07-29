@@ -314,6 +314,47 @@ import {
 } from "recharts";
 
 // ====== الثوابت ======
+// ══════════════════════════════════════════════════════════════
+//  الأساس الموحّد — قاموس الحالات ونظام التصميم (مرجع واحد للبرنامج)
+// ══════════════════════════════════════════════════════════════
+const T = {
+  sp: [0, 4, 6, 8, 10, 12, 14, 16, 20, 24, 32],           // سلّم المسافات
+  r: { xs: 8, sm: 10, md: 12, lg: 15, xl: 18, pill: 999 },  // سلّم الحواف
+  fs: { xs: 9.5, sm: 10.5, base: 12.5, md: 13.5, lg: 15, xl: 18, xxl: 26 },
+  c: {
+    ink: "#141A28", ink2: "#3A4152", mute: "#8B93A3", faint: "#B9BFCB",
+    line: "#E1E4EA", line2: "#EDEFF3", bg: "#F7F8FA", card: "#FFFFFF",
+    navy: "#1B2440", crimson: "#9E1B22", gold: "#D4AF37",
+    ok: "#0E7A5F", warn: "#C77F1A", bad: "#C4353C", info: "#1F6FB8", purple: "#4E3D80",
+  },
+  sh: { sm: "0 2px 8px rgba(20,26,40,0.05)", md: "0 4px 14px rgba(20,26,40,0.08)", lg: "0 12px 34px rgba(20,26,40,0.10)" },
+};
+// قاموس الحالات الفنية: مجموعتها ولونها وأيقونتها وكيف تُعرض بالتقارير
+const ST = {
+  "تعمل": { g: "working", c: "#0E7A5F", ic: "✅", rep: "تعمل" },
+  "تم الإصلاح": { g: "working", c: "#0E7A5F", ic: "✅", rep: "تعمل" },
+  "تعمل بوجود ملاحظات": { g: "working", c: "#D9A520", ic: "📋", rep: "تعمل بوجود ملاحظات" },
+  "عطلانة": { g: "down", c: "#E0575F", ic: "⚠️", rep: "عطلانة" },
+  "تحت التجهيز والتسليم": { g: "down", c: "#7B4B2A", ic: "🛠", rep: "تحت التجهيز والتسليم" },
+  "تحت إجراءات الرجيع": { g: "rejee", c: "#7A0E14", ic: "↩️", rep: "تحت إجراءات الرجيع" },
+  "صدر قرار الرجيع": { g: "rejee", c: "#7A0E14", ic: "↩️", rep: "صدر قرار الرجيع" },
+};
+const ST_GROUPS = [
+  { key: "working", label: "آليات تعمل حالياً", ic: "✅", c: "#0E7A5F", sts: ["تعمل", "تم الإصلاح", "تعمل بوجود ملاحظات"], sub: "تعمل · تم الإصلاح · بملاحظات" },
+  { key: "down", label: "آليات عطلانة", ic: "⚠️", c: "#C4353C", sts: ["عطلانة", "تحت التجهيز والتسليم"], sub: "عطلانة · تحت التجهيز والتسليم" },
+  { key: "rejee", label: "آليات الرجيع", ic: "↩️", c: "#4E3D80", sts: ["تحت إجراءات الرجيع", "صدر قرار الرجيع"], sub: "تحت الإجراءات · صدر القرار" },
+];
+const stKey = (s) => String(s || "").trim();
+const stInfo = (s) => ST[stKey(s)] || { g: "other", c: T.c.ink, ic: "•", rep: stKey(s) };
+const stGroup = (s) => stInfo(s).g;
+const stColor = (s) => stInfo(s).c;
+const stIcon = (s) => stInfo(s).ic;
+const stReport = (s) => stInfo(s).rep;            // الاسم المعتمد بالتقارير
+const isWorkingSt = (s) => stGroup(s) === "working";
+const isDownSt = (s) => stGroup(s) === "down" || stGroup(s) === "rejee";
+// آلية تُعرض بلا وصف عطل ولا تاريخ بالتقارير (تعمل أو تم الإصلاح)
+const isCleanWorking = (s) => stGroup(s) === "working" && stKey(s) !== "تعمل بوجود ملاحظات";
+
 const STATUSES = [
   "تعمل", "عطلانة", "تم الإصلاح", "تعمل بوجود ملاحظات",
   "تحت التجهيز والتسليم", "تحت إجراءات الرجيع", "صدر قرار الرجيع",
@@ -488,15 +529,18 @@ async function saveDB(db) {
 }
 
 // ====== مكونات صغيرة ======
-function StatusBadge({ status }) {
-  const c = STATUS_COLORS[status] || STATUS_COLORS["صدر قرار الرجيع"];
+function StatusBadge({ status, compact }) {
+  const clr = stColor(status);
   return (
-    <span style={{
-      background: c.bg, color: c.text, borderRadius: 20, padding: "3px 12px",
-      fontSize: 13, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
+    <span title={stKey(status)} style={{
+      background: clr + "14", color: clr, border: "1px solid " + clr + "33",
+      borderRadius: T.r.pill, padding: compact ? "2px 8px" : "3px 11px",
+      fontSize: compact ? T.fs.sm : T.fs.base, fontWeight: 800,
+      display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+      maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis",
     }}>
-      <span style={{ width: 8, height: 8, borderRadius: "50%", background: c.dot, display: "inline-block" }} />
-      {status}
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: clr, display: "inline-block", flexShrink: 0 }} />
+      {stKey(status)}
     </span>
   );
 }
@@ -1146,8 +1190,8 @@ function RingBreakdown({ items, centerValue, centerLabel, emptyText }) {
 // ====== طباعة نظيفة من مستند مستقل — تضمن ثبات الترويسة وترتيب الصفحات ======
 // بالتقارير: الآلية التي تم إصلاحها تُعرض "تعمل" — والتفاصيل تبقى بسجل الآلية
 const REPAIRED_ST = "تم الإصلاح";
-function repStatus(s) { return String(s || "").trim() === REPAIRED_ST ? "تعمل" : s; }
-function isPlainWorking(s) { const x = String(s || "").trim(); return x === "تعمل" || x === REPAIRED_ST; }
+const repStatus = (s) => stReport(s);          // الاسم المعتمد بالتقارير من القاموس
+const isPlainWorking = (s) => isCleanWorking(s);
 function printIsolated(rootEl, opts) {
   if (!rootEl) return;
   const o = opts || {};
@@ -1250,7 +1294,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.0 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -3503,11 +3547,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                 <td style={{ ...cell, textAlign: "right" }}>{v ? (v.unit || "—") : "—"}</td>
                 {(() => {
                   const stTxt = forceStatus || (v ? v.status : "—");
-                  const clr = /رجيع|الإحالة/.test(stTxt) ? "#7A0E14"
-                    : /عطلانة/.test(stTxt) ? "#E0575F"
-                    : /ملاحظات/.test(stTxt) ? "#D9A520"
-                    : /التجهيز/.test(stTxt) ? "#7B4B2A"
-                    : "#141A28";
+                  const clr = /الإحالة/.test(stTxt) ? "#7A0E14" : stColor(stTxt);
                   return <td style={{ ...cell, fontWeight: 800, color: clr }}>{stTxt}</td>;
                 })()}
                 <td style={{ ...cell, textAlign: "right" }}>{f ? (f.desc || f.faultType || "—") : "—"}</td>
@@ -6398,12 +6438,11 @@ export default function FleetApp() {
   const printList = (rowsToPrint) => {
     const t = todayHijri();
     const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const DOWN = ["عطلانة", "تحت التجهيز والتسليم", "تعمل بوجود ملاحظات", "تحت إجراءات الرجيع", "صدر قرار الرجيع"];
-    const clrOf = (s) => /رجيع|الإحالة/.test(s) ? "#7A0E14" : /عطلانة/.test(s) ? "#E0575F"
-      : /ملاحظات/.test(s) ? "#D9A520" : /التجهيز/.test(s) ? "#7B4B2A" : "#0E7A5F";
+    const DOWN = Object.keys(ST).filter((k) => !isCleanWorking(k));
+    const clrOf = (s) => stColor(s);
     const body = rowsToPrint.map((v, i) => {
       const st = (v.status || "").trim();
-      const down = DOWN.indexOf(st) >= 0;
+      const down = !isCleanWorking(st);
       const fs = v.faults || [];
       const of2 = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
       const rf = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
@@ -7896,10 +7935,8 @@ export default function FleetApp() {
         {view === "list" && !adding && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 9, marginBottom: 14 }}>
-              {[["📋", "كل الآليات", [], "#1B2440", "الملاك كاملاً"],
-                ["✅", "آليات تعمل حالياً", ["تعمل", "تم الإصلاح", "تعمل بوجود ملاحظات"], "#0E7A5F", "تعمل · تم الإصلاح · بملاحظات"],
-                ["⚠️", "آليات عطلانة", ["عطلانة", "تحت التجهيز والتسليم"], "#C4353C", "عطلانة · تحت التجهيز والتسليم"],
-                ["↩️", "آليات الرجيع", ["تحت إجراءات الرجيع", "صدر قرار الرجيع"], "#4E3D80", "تحت الإجراءات · صدر القرار"]].map(([ic, lbl, arr, clr, sub]) => {
+              {[["📋", "كل الآليات", [], T.c.navy, "الملاك كاملاً"],
+                ...ST_GROUPS.map((g) => [g.ic, g.label, g.sts, g.c, g.sub])].map(([ic, lbl, arr, clr, sub]) => {
                 const act = arr.length === 0 ? fStatus.length === 0 : arr.length === fStatus.length && arr.every((x) => fStatus.includes(x));
                 const n = arr.length === 0 ? vehicles.length : vehicles.filter((v) => arr.indexOf((v.status || "").trim()) >= 0).length;
                 return (
@@ -7993,7 +8030,7 @@ export default function FleetApp() {
                       </td></tr>
                     ) : sortRows(filtered).map((v, ri) => {
                       const st = (v.status || "").trim();
-                      const isDown = ["عطلانة", "تحت التجهيز والتسليم", "تعمل بوجود ملاحظات", "تحت إجراءات الرجيع", "صدر قرار الرجيع"].indexOf(st) >= 0;
+                      const isDown = !isCleanWorking(st);
                       const fs = (v.faults || []);
                       const openF = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
                       const fixF = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
@@ -8001,8 +8038,7 @@ export default function FleetApp() {
                       const dt = isDown ? (openF && openF.date) : (fixF && fixF.repairDate);
                       const dtIc = isDown ? "⚠️" : "🛠";
                       const dtLbl = isDown ? "عطل" : "إصلاح";
-                      const accent = /رجيع/.test(st) ? "#7A0E14" : /عطلانة/.test(st) ? "#E0575F"
-                        : /ملاحظات/.test(st) ? "#D9A520" : /التجهيز/.test(st) ? "#7B4B2A" : "#0E7A5F";
+                      const accent = stColor(st);
                       return (
                         <tr key={v.id} className="row-hover" onClick={() => { setSelectedId(v.id); setView("detail"); }}
                           style={{ background: ri % 2 ? "#FAFBFC" : "#fff", cursor: "pointer", borderBottom: "1px solid #EDEFF3" }}>
