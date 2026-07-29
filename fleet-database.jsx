@@ -1159,11 +1159,13 @@ function printIsolated(rootEl, opts) {
     n.parentNode && n.parentNode.replaceChild(span, n);
   });
   const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8" />
-<title>${(o.title || "تقرير").replace(/</g, "")}</title>
+<title></title>
 <style>
-  @page { size: A4 ${land ? "landscape" : "portrait"}; margin: ${land ? "9mm 8mm" : "11mm 10mm"}; }
+  /* هامش صفر: يمنع المتصفح من طباعة عنوان المستند والتاريخ والرابط برأس الورقة وتذييلها */
+  @page { size: A4 ${land ? "landscape" : "portrait"}; margin: 0; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; padding: 0; background: #fff; color: #141A28;
+  html, body { margin: 0 !important; }
+  body { padding: ${land ? "9mm 8mm" : "11mm 10mm"}; background: #fff; color: #141A28;
     font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif; direction: rtl; }
   img { max-height: 70px; object-fit: contain; }
   table { width: 100%; border-collapse: collapse; }
@@ -1240,7 +1242,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.5 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
