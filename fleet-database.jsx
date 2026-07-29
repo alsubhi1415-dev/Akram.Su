@@ -1240,7 +1240,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -2075,7 +2075,7 @@ function TVMode({ vehicles, incidents, centerReadiness, equip, onClose }) {
   const s = slides[idx];
   const arrowSt = { position: "absolute", top: "50%", transform: "translateY(-50%)", zIndex: 5, background: "rgba(255,255,255,0.10)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 999, width: F(52, 40), height: F(52, 40), fontSize: F(24, 18), fontWeight: 800, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center" };
   return (
-    <div className="modal-overlay no-print"
+    <div className="no-print"
       onTouchStart={(e) => { tRef.current = e.touches[0].clientX; }}
       onTouchEnd={(e) => { if (tRef.current == null) return; const dx = e.changedTouches[0].clientX - tRef.current; tRef.current = null; if (dx > 45) go(1); else if (dx < -45) go(-1); }}
       style={{ position: "fixed", inset: 0, zIndex: 950, background: "linear-gradient(140deg, #0E1322, #1B2440 55%, #2A1218)", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: F("0 70px", "0 14px"), overflow: "hidden" }}>
@@ -2617,7 +2617,7 @@ function MultiSelect({ label, options, values, onChange, flex }) {
       </button>
       {open && (
         <>
-          <div className="modal-overlay" onClick={() => { setOpen(false); setQ2(""); }} style={{ position: "fixed", inset: 0, zIndex: 55 }} />
+          <div className="no-print" onClick={() => { setOpen(false); setQ2(""); }} style={{ position: "fixed", inset: 0, zIndex: 55 }} />
           <div style={{
             position: "absolute", top: "calc(100% + 4px)", right: 0, minWidth: "100%", width: "max-content",
             maxWidth: "min(320px, calc(100vw - 28px))", background: "#F4F5F7", border: "1.5px solid #C9CDD6", borderRadius: 12,
