@@ -1376,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.3 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -4288,18 +4288,10 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
             ))}
           </div>
         )}
-        {!ro && (repMode === "vehicles" || repMode === "readiness") && (
-        <div className="rep-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, borderBottom: "2.5px solid #141A28", paddingBottom: 14, marginBottom: 6 }}>
-          <div style={{ textAlign: "right", fontSize: 12.5, fontWeight: 800, lineHeight: 1.7 }}>
-            المملكة العربية السعودية<br />الإدارة العامة للدفاع المدني بمحافظة جدة<br />إدارة العمليات
-          </div>
-          <img src={logo || DEFAULT_LOGO} alt="الشعار" style={{ width: 74, height: 74, objectFit: "contain" }} />
-          <div style={{ textAlign: "left", fontSize: 12.5, fontWeight: 700, lineHeight: 1.7, color: "#3A4152" }}>
-            التاريخ: {todayTxt}<br />{repMode === "vehicles" ? <>عدد الآليات: {rows.length}</> : <>التصنيف: جاهزية ميدانية</>}<br />سجل متابعة الآليات الرقمي
-          </div>
-        </div>
+        {(repMode === "vehicles" || repMode === "readiness") && (
+          <RepHead logo={logo} title={repMode === "vehicles" ? title : "تقرير الجاهزية الميدانية"}
+            meta={repMode === "vehicles" ? `عدد الآليات بالبيان ${rows.length} آلية` : "التصنيف: جاهزية ميدانية"} />
         )}
-        {(repMode === "vehicles" || repMode === "readiness") && <div style={{ textAlign: "center", fontSize: 18, fontWeight: 800, margin: "10px 0 6px", textDecoration: "underline" }}>{repMode === "vehicles" ? title : "تقرير الجاهزية الميدانية"}</div>}
         {repMode === "readiness" && (
           <ReadinessReport centerReadiness={centerReadiness} equip={equip}
             supportCounts={supportCounts} prio={prio} prioWeights={prioWeights} />
@@ -4401,17 +4393,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
           })()
         ))}
 
-        {!ro && (repMode === "vehicles" || repMode === "readiness") && (
-        <div className="sig-block" style={{ marginTop: 40, fontSize: 13.5, fontWeight: 800 }}>
-          <div>معد التقرير: نقيب / أكرم بن أحمد الصبحي</div>
-          <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
-            التوقيع:
-            {typeof SIGNATURE_IMG !== "undefined" && SIGNATURE_IMG
-              ? <img src={SIGNATURE_IMG} alt="التوقيع" style={{ height: 38, objectFit: "contain" }} />
-              : <span>...............................</span>}
-          </div>
-        </div>
-        )}
+        {(repMode === "vehicles" || repMode === "readiness") && <RepSign isOwner={isOwner} role="معد التقرير" />}
       </div>
     </div>
   );
