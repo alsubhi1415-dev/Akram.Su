@@ -1376,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.4 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -7370,19 +7370,24 @@ export default function FleetApp() {
       <aside className="side-rail no-print" aria-label="التنقل">
         <div className="rail-title">جاهزية المراكز الميدانية</div>
         {[
-          ["overview", "🏠", "نظرة عامة"],
-          ["readiness", "📋", "الجاهزية الميدانية"],
-          ["list", "🚒", "سجل الآليات"],
-          ["dashboard", "📊", "لوحة المعلومات"],
-          ["charts", "📈", "مؤشرات الجاهزية والأعطال"],
-          ["decision", "🎯", "مركز القرار"],
-          ["ops", "📟", "إحصائيات عملياتية"],
-          ["reports", "🖨️", "التقارير"],
-        ].map(([id, ic, lbl]) => (
-          <button key={id} className={view === id ? "act" : ""}
-            onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); }}>
-            <span className="ric">{ic}</span><span className="rlb">{lbl}</span>
-          </button>
+          { g: "القيادة", items: [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]] },
+          { g: "الآليات", items: [["list", "🚒", "سجل الآليات"], ["charts", "📈", "المؤشرات والتحليلات"]] },
+          { g: "الجاهزية", items: [["readiness", "📋", "الجاهزية الميدانية"]] },
+          { g: "العمليات", items: [["ops", "📟", "إحصائيات عملياتية"]] },
+          { g: "المطبوعات", items: [["reports", "🖨️", "التقارير والبيانات"]] },
+        ].map(({ g, items }) => (
+          <div key={g} style={{ marginBottom: 6 }}>
+            <div style={{
+              fontSize: 9.5, fontWeight: 800, color: "rgba(212,175,55,0.72)", letterSpacing: 0.6,
+              padding: "7px 12px 3px", textAlign: "right",
+            }}>{g}</div>
+            {items.map(([id, ic, lbl]) => (
+              <button key={id} className={view === id ? "act" : ""}
+                onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); }}>
+                <span className="ric">{ic}</span><span className="rlb">{lbl}</span>
+              </button>
+            ))}
+          </div>
         ))}
         {(isOwner || ro) && typeof window !== "undefined" && window.__STANDALONE__ && (
           <button onClick={downloadIndex} style={{ marginTop: "auto", background: "rgba(31,111,184,0.25)", color: "#BBD9F2" }}>
