@@ -1178,6 +1178,10 @@ function printIsolated(rootEl, opts) {
   .rep-head { display: block; break-inside: avoid; page-break-inside: avoid; break-after: avoid; page-break-after: avoid; }
   .c186-sign, .sig-block, .nawi-sig { break-inside: avoid; page-break-inside: avoid; }
   .sec-block + .sec-block, .rep-sec + .rep-sec { break-before: page; page-break-before: always; }
+  ${o.watermark ? `body::before { content: "نسخة استعراض — غير معتمدة للتداول الرسمي";
+    position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) rotate(-28deg);
+    font-size: 40px; font-weight: 800; color: rgba(158,27,34,0.12); white-space: nowrap;
+    z-index: 9999; pointer-events: none; letter-spacing: 1px; }` : ""}
   .sec-block > div:first-child, .rep-sec > div:first-child { break-after: avoid; page-break-after: avoid; }
   h3, .sec-title { break-after: avoid; page-break-after: avoid; }
 </style></head><body>${clone.innerHTML}</body></html>`;
@@ -1246,7 +1250,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 9.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 9.8 · 1448/02/09هـ";
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -4053,12 +4057,11 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <button onClick={() => {
-            if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض — تسجيل الدخول يتيحها للمحرر والمشرف"); return; }
             const LAND = ["c186", "weekly", "nawi", "tour"];
             const el = document.getElementById("print-area");
             const titles = { c186: "بيان أعطال الـ 186 آلية", weekly: "تقرير الأعطال الأسبوعي", nawi: "تقرير التكميل النوعي",
               tour: "كشف الجولة الميدانية", crit: "بيان تكميل البنود", center: "تقرير مركز", compare: "بيان المقارنة بين فترتين" };
-            printIsolated(el, { landscape: LAND.indexOf(repMode) >= 0, title: titles[repMode] || "تقرير" });
+            printIsolated(el, { landscape: LAND.indexOf(repMode) >= 0, title: titles[repMode] || "تقرير", watermark: ro });
           }} style={{
             background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 30px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
@@ -6335,6 +6338,12 @@ export default function FleetApp() {
     return () => { stop = true; clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
   }, []);
   const [conflict, setConflict] = useState(null);
+  const [narrowList, setNarrowList] = useState(typeof window !== "undefined" ? window.innerWidth <= 900 : false);
+  useEffect(() => {
+    const h = () => setNarrowList(window.innerWidth <= 900);
+    window.addEventListener("resize", h); h();
+    return () => window.removeEventListener("resize", h);
+  }, []);
   const listFitRef = useRef(null);
   const [listFit, setListFit] = useState(() => { try { return localStorage.getItem("fd_fitw_list") !== "0"; } catch (e) { return true; } });
   const [listZ, setListZ] = useState(1);
@@ -6374,7 +6383,9 @@ export default function FleetApp() {
       if (!tbl) { setListZ(1); setListOvf(false); return; }
       const prev = el.style.zoom;
       el.style.zoom = "1";
-      const need = Math.max(el.scrollWidth, tbl.scrollWidth), have = (el.parentElement || el).clientWidth;
+      const measured = Math.max(el.scrollWidth, tbl.scrollWidth);
+      const need = measured > 0 ? measured : 1040; // احتياط إن تعذر القياس
+      const have = (el.parentElement || el).clientWidth || window.innerWidth - 24;
       el.style.zoom = prev;
       const over = need > 0 && have > 0 && need > have * 1.02;
       setListOvf(over);
@@ -6444,7 +6455,7 @@ export default function FleetApp() {
         th:nth-child(7),td:nth-child(7){width:11%} th:nth-child(8),td:nth-child(8){width:16%}
         th:nth-child(9),td:nth-child(9){width:7.5%}
       </style>`;
-    printIsolated(el, { landscape: true, title: "بيان الآليات" });
+    printIsolated(el, { landscape: true, title: "بيان الآليات", watermark: ro });
   };
   const goBack = () => {
     const h = histRef.current;
@@ -7921,13 +7932,13 @@ export default function FleetApp() {
               <MultiSelect label="الموديل" options={allModels} values={fModel} onChange={setFModel} flex="1 1 120px" />
               <MultiSelect label="الشعبة / الجهة" options={allBranches} values={fBranch} onChange={setFBranch} flex="1 1 150px" />
               <MultiSelect label="المركز التفصيلي" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
-              {!ro && <button onClick={() => printList(sortRows(filtered))} title="طباعة البيان الحالي بمرشحاته بصيغة رسمية"
-                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>🖨 طباعة البيان</button>}
+              <button onClick={() => printList(sortRows(filtered))} title={ro ? "طباعة نسخة استعراض بعلامة مائية" : "طباعة البيان الحالي بمرشحاته بصيغة رسمية"}
+                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>🖨 طباعة البيان</button>
               {isOwner && <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
                 style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>}
             </div>
 
-            {listOvf && (
+            {(listOvf || narrowList) && (
               <div className="no-print" style={{
                 display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
                 fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8",
@@ -7946,7 +7957,11 @@ export default function FleetApp() {
                 maxHeight: "72vh", overflowY: "auto",
                 ...(listOvf && listFit && listZ < 1 ? { zoom: listZ } : {}),
               }}>
-                <table className="fleet-tbl" style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 12.5, tableLayout: "fixed" }}>
+                <table className="fleet-tbl" style={{
+                  width: "100%", borderCollapse: "separate", borderSpacing: 0,
+                  fontSize: narrowList ? 13 : 12.5,
+                  ...(narrowList ? { minWidth: 1040 } : { tableLayout: "fixed" }),
+                }}>
                   <thead>
                     <tr>
                       {[["🚒", "نوع الآلية", isOwner ? "19%" : "21%"], ["🔖", "رقم اللوحة", "9.5%"], ["📅", "الموديل", "6%"],
@@ -7959,7 +7974,7 @@ export default function FleetApp() {
                           <th key={h} onClick={() => { if (!k) return; if (sortK === k) { if (sortD === 1) setSortD(-1); else { setSortK(null); setSortD(1); } } else { setSortK(k); setSortD(1); } }}
                             title={k ? "اضغط للفرز" : ""}
                             style={{
-                              width: wd, padding: "10px 7px", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden",
+                              width: narrowList ? undefined : wd, padding: "10px 7px", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden",
                               textOverflow: "ellipsis", position: "sticky", top: 0,
                               background: "linear-gradient(180deg,#1B2440,#141A28)", color: on ? "#FFD166" : "#E8EBF2",
                               zIndex: 2, cursor: k ? "pointer" : "default", userSelect: "none", textAlign: "right",
