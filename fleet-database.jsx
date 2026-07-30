@@ -1215,10 +1215,10 @@ function printIsolated(rootEl, opts) {
 <title></title>
 <style>
   /* هامش صفر: يمنع المتصفح من طباعة عنوان المستند والتاريخ والرابط برأس الورقة وتذييلها */
-  @page { size: A4 ${land ? "landscape" : "portrait"}; margin: 0; }
+  @page { size: A4 ${land ? "landscape" : "portrait"}; margin: ${land ? "8mm" : "10mm"} 0; }
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0 !important; }
-  body { padding: ${land ? "9mm 8mm" : "11mm 10mm"}; background: #fff; color: #141A28;
+  body { padding: ${land ? "0 8mm" : "0 10mm"}; background: #fff; color: #141A28;
     font-family: "Tajawal", "Segoe UI", Tahoma, Arial, sans-serif; direction: rtl; }
   img { max-height: 70px; object-fit: contain; }
   table { width: 100%; border-collapse: collapse; }
@@ -1226,7 +1226,10 @@ function printIsolated(rootEl, opts) {
   tr { page-break-inside: avoid; }
   .rep-head { display: block; break-inside: avoid; page-break-inside: avoid; break-after: avoid; page-break-after: avoid; }
   .c186-sign, .sig-block, .nawi-sig { break-inside: avoid; page-break-inside: avoid; }
-  .sec-block + .sec-block, .rep-sec + .rep-sec { break-before: page; page-break-before: always; }
+  .sec-block ~ .sec-block, .rep-sec ~ .rep-sec { break-before: page; page-break-before: always; }
+  /* متنفس أسفل كل جدول وفقرة فلا يلاصق حد الورقة */
+  table { margin-bottom: 5mm; }
+  .sec-block, .rep-sec, .rep-sec-first { padding-bottom: 3mm; }
   ${o.watermark ? `body::before { content: "نسخة استعراض — غير معتمدة للتداول الرسمي";
     position: fixed; top: 46%; left: 50%; transform: translate(-50%,-50%) rotate(-28deg);
     font-size: 40px; font-weight: 800; color: rgba(158,27,34,0.12); white-space: nowrap;
@@ -1381,7 +1384,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.3 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -4426,7 +4429,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
           })()
         ))}
 
-        {(repMode === "vehicles" || repMode === "readiness") && <RepSign isOwner={isOwner} role="معد التقرير" />}
+        {repMode === "vehicles" && <RepSign isOwner={isOwner} role="معد التقرير" />}
       </div>
     </div>
   );
@@ -7412,7 +7415,9 @@ export default function FleetApp() {
             break-after: avoid !important; page-break-after: avoid !important; position: static !important; }
           .rep-head img { display: inline-block !important; }
           /* كل فقرة رئيسية (أولاً/ثانياً/ثالثاً) تبدأ بصفحة مستقلة */
-          .sec-block + .sec-block, .rep-sec + .rep-sec { break-before: page !important; page-break-before: always !important; }
+          .sec-block ~ .sec-block, .rep-sec ~ .rep-sec { break-before: page !important; page-break-before: always !important; }
+          #print-area table { margin-bottom: 5mm; }
+          .sec-block, .rep-sec, .rep-sec-first { padding-bottom: 3mm; }
           .sec-block, .rep-sec { break-inside: auto; }
           .sec-block > div:first-child, .rep-sec > div:first-child { break-after: avoid !important; page-break-after: avoid !important; }
         }
@@ -7424,7 +7429,7 @@ export default function FleetApp() {
         body.dark main img, body.dark main svg image, body.dark main canvas { filter: invert(1) hue-rotate(180deg); }
         @media print { body.dark main { filter: none !important; } body.dark main img, body.dark main svg image, body.dark main canvas { filter: none !important; } }
         @media print {
-          @page { size: A4; margin: 12mm; }
+          @page { size: A4; margin: 14mm 12mm; }
           .no-print, header { display: none !important; }
           body { background: #fff !important; }
           main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
