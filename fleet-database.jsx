@@ -1542,7 +1542,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 13.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.5 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6744,6 +6744,8 @@ export default function FleetApp() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
+  const [syncBusy, setSyncBusy] = useState(false);
   const toolsRef = useRef(null);
   const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
   useEffect(() => {
@@ -7021,6 +7023,39 @@ export default function FleetApp() {
       tokenRef.current = tryDecryptToken(cfgRef.current, role);
     }
   }, [role]);
+
+  // تحديث فوري بطلب المستخدم: طلب واحد مباشر من الواجهة الرسمية
+  // (لا يُستعمل في الاستطلاع الدوري كي لا تُستنزف حصة الزائر)
+  const forceSync = async () => {
+    if (syncBusy) return;
+    setSyncBusy(true); setSyncMsg("جارٍ التحديث من السحابة…");
+    try {
+      let text = null;
+      try {
+        const h = { Accept: "application/vnd.github.raw" };
+        if (tokenRef.current) h.Authorization = "Bearer " + tokenRef.current;
+        const r = await fetch(API_BASE + GH.path + "?ref=" + GH.branch, { headers: h, cache: "no-store" });
+        if (r.ok) { text = await r.text(); SYNC.src = "الواجهة الرسمية"; }
+      } catch (e) {}
+      if (!text) {
+        const nc = "?nc=" + Date.now();
+        const res = await fetchFirst([...(SELF_BASE ? [SELF_BASE + GH.path + nc] : []), RAW + GH.path + nc]);
+        if (res && res.text) text = res.text;
+      }
+      if (!text) { setSyncMsg("تعذّر الوصول للسحابة الآن — أعد المحاولة بعد قليل"); setSyncBusy(false); setTimeout(() => setSyncMsg(""), 6000); return; }
+      const parsed = JSON.parse(text);
+      const cur = parseInt(lastRevRef.current) || 0;
+      if (parseInt(parsed.rev) > cur) {
+        lastRevRef.current = parsed.rev;
+        applyRemote(text);
+        setSyncMsg("وصلت نسخة أحدث — حُدّثت القائمة");
+      } else {
+        setSyncMsg("أنت على أحدث نسخة معتمدة");
+      }
+    } catch (e) { setSyncMsg("تعذّر التحديث — أعد المحاولة"); }
+    setSyncBusy(false);
+    setTimeout(() => setSyncMsg(""), 6000);
+  };
 
   const doPush = async (nextDb) => {
     const tok = tokenRef.current;
@@ -7720,6 +7755,7 @@ export default function FleetApp() {
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginBottom: 14, lineHeight: 1.9 }}>
               هذه القائمة مقروءة من قاعدة البيانات في السحابة لا من جهازك — فما تراه هنا يراه كل من يفتح الرابط.
               وجود تعديلك فيها يعني أنه اعتُمد ووصل للجميع.
+              وإن كنت تتصفح بلا تسجيل دخول فاضغط «تحديث الآن» لجلب أحدث نسخة فوراً بدل انتظار التحديث التلقائي.
             </div>
             {(db.syncLog || []).length === 0 ? (
               <div style={{ padding: "26px 10px", textAlign: "center", color: "#8B93A8", fontWeight: 700, fontSize: 12.5, lineHeight: 1.9 }}>
@@ -7744,7 +7780,15 @@ export default function FleetApp() {
                 </div>
               </div>
             ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+            {syncMsg && (
+              <div style={{ marginTop: 12, background: "#EEF4FB", border: "1px solid #CFE0F1", color: "#1F4E8C",
+                borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 800, textAlign: "center" }}>{syncMsg}</div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 14, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button onClick={forceSync} disabled={syncBusy}
+                style={{ background: syncBusy ? "#C9CDD6" : "#1F6FB8", color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: syncBusy ? "default" : "pointer", fontFamily: "inherit" }}>
+                {syncBusy ? "…جارٍ التحديث" : "🔄 تحديث الآن"}
+              </button>
               <button onClick={() => setSyncOpen(false)}
                 style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
             </div>
@@ -7978,7 +8022,7 @@ export default function FleetApp() {
                     !ro && ["⚙️", "عتبة تنبيه الجاهزية", () => setAlertOpen(true), null],
                     isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), (db.trash || []).length || null],
                     isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
-                    isOwner && ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), ((db.syncLog || []).length || null)],
+                    ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), ((db.syncLog || []).length || null)],
                     isOwner && ["💾", "نسخة احتياطية", backupNow, null],
                     isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
                     ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],

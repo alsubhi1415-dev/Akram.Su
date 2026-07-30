@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 13.4", D.getElementById("root").textContent.includes("13.4"));
+  ok("ختم الإصدار 13.5", D.getElementById("root").textContent.includes("13.5"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
