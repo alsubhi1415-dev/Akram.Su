@@ -637,6 +637,41 @@ function mirrorWrite(db, rev, cfg) {
   } catch (e) { return false; } // تجاوز سعة التخزين: يُتجاهل بلا إزعاج
 }
 
+// ====== تلخيص التغيير: ماذا تبدّل بين نسختين من قاعدة البيانات ======
+function summarizeChange(base, next) {
+  try {
+    const B = base || {}, N = next || {};
+    const bv = {}, nv = {};
+    (B.vehicles || []).forEach((v) => { bv[v.id] = v; });
+    (N.vehicles || []).forEach((v) => { nv[v.id] = v; });
+    const added = [], removed = [], changed = [];
+    Object.keys(nv).forEach((id) => {
+      if (!bv[id]) added.push(nv[id]);
+      else if (JSON.stringify(bv[id]) !== JSON.stringify(nv[id])) changed.push(nv[id]);
+    });
+    Object.keys(bv).forEach((id) => { if (!nv[id]) removed.push(bv[id]); });
+    const cnt = (o) => (o.vehicles || []).reduce((a, v) => a + ((v.faults || []).length), 0);
+    const df = cnt(N) - cnt(B);
+    const di = ((N.incidents || []).length) - ((B.incidents || []).length);
+    const dr = Object.keys(N.rdyHist || {}).length - Object.keys(B.rdyHist || {}).length;
+    const rdyChanged = JSON.stringify(B.centerReadiness || {}) !== JSON.stringify(N.centerReadiness || {});
+    const eqChanged = JSON.stringify(B.equipReadiness || {}) !== JSON.stringify(N.equipReadiness || {})
+      || JSON.stringify(B.supportReadiness || {}) !== JSON.stringify(N.supportReadiness || {});
+    const parts = [];
+    if (added.length) parts.push("إضافة " + added.length + " آلية");
+    if (removed.length) parts.push("حذف " + removed.length + " آلية");
+    if (changed.length) parts.push("تعديل " + changed.length + " آلية");
+    if (df > 0) parts.push("تسجيل " + df + " عطل");
+    if (df < 0) parts.push("إزالة " + (-df) + " عطل");
+    if (di > 0) parts.push("تسجيل " + di + " حادث");
+    if (dr > 0) parts.push("لقطة جاهزية جديدة");
+    if (rdyChanged) parts.push("تحديث جاهزية المراكز");
+    if (eqChanged) parts.push("تحديث جاهزية المعدات والإسناد");
+    const plates = [...changed, ...added].map((v) => v.plate).filter(Boolean).slice(0, 3);
+    return { txt: parts.length ? parts.join(" · ") : "تحديث بيانات", plates };
+  } catch (e) { return { txt: "تحديث بيانات", plates: [] }; }
+}
+
 async function loadDB() {
   // الأولوية للمرآة المحلية (آخر نسخة سحابية حقيقية)، ثم التخزين القديم،
   // ولا يُلجأ لبيانات الإكسل إلا في أول زيارة على الإطلاق.
@@ -1507,7 +1542,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 13.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.4 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6708,6 +6743,7 @@ export default function FleetApp() {
   const bellRef = useRef(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const toolsRef = useRef(null);
   const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
   useEffect(() => {
@@ -7000,14 +7036,24 @@ export default function FleetApp() {
     pushPendingRef.current = true;
     const rev = Date.now() + "-" + _cid;
     attemptRevRef.current = rev;
-    const payload = JSON.stringify({ cfg: cfgRef.current || {}, db: nextDb, rev, meta: { by: _cid, at: Date.now() } });
+    // قيد يوثّق ما تغيّر — يُكتب داخل الملف نفسه فيراه كل من يفتح الرابط
+    const _t = todayHijri(); const _c = new Date();
+    const sm = summarizeChange(baseRef.current, nextDb);
+    const entry = {
+      t: _t.d + "/" + _t.m + "/" + _t.y + "هـ " + String(_c.getHours()).padStart(2, "0") + ":" + String(_c.getMinutes()).padStart(2, "0"),
+      r: roleRef.current === "owner" ? "المشرف" : "المحرر",
+      a: sm.txt, p: sm.plates, rev,
+    };
+    const pushed = { ...nextDb, syncLog: [...((nextDb.syncLog) || []), entry].slice(-30) };
+    const payload = JSON.stringify({ cfg: cfgRef.current || {}, db: pushed, rev, meta: { by: _cid, at: Date.now() } });
     if (shaDataRef.current === undefined) shaDataRef.current = await ghGetSha(tok, GH.path);
     if (shaVerRef.current === undefined) shaVerRef.current = await ghGetSha(tok, VER_PATH);
     shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
     shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
-    baseRef.current = JSON.parse(JSON.stringify(nextDb)); // ما دُفع صار الأساس المتفق عليه
+    baseRef.current = JSON.parse(JSON.stringify(pushed)); // ما دُفع صار الأساس المتفق عليه
     baseRevRef.current = rev;
-    mirrorWrite(nextDb, rev, cfgRef.current);
+    setDb(pushed); dbRef.current = pushed;
+    mirrorWrite(pushed, rev, cfgRef.current);
     lastPushedRevRef.current = rev;
     lastRevRef.current = rev;
     pushPendingRef.current = false;
@@ -7666,6 +7712,46 @@ export default function FleetApp() {
         }
       `}</style>
 
+      {syncOpen && (
+        <div className="modal-overlay no-print" onClick={() => setSyncOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 872, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: "min(560px,100%)", maxHeight: "84vh", overflowY: "auto" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#141A28", marginBottom: 4 }}>آخر التغييرات المعتمدة</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginBottom: 14, lineHeight: 1.9 }}>
+              هذه القائمة مقروءة من قاعدة البيانات في السحابة لا من جهازك — فما تراه هنا يراه كل من يفتح الرابط.
+              وجود تعديلك فيها يعني أنه اعتُمد ووصل للجميع.
+            </div>
+            {(db.syncLog || []).length === 0 ? (
+              <div style={{ padding: "26px 10px", textAlign: "center", color: "#8B93A8", fontWeight: 700, fontSize: 12.5, lineHeight: 1.9 }}>
+                لم تُسجَّل تغييرات بعد — يظهر أول قيد هنا بعد أول حفظ تكتمل مزامنته.
+              </div>
+            ) : [...(db.syncLog || [])].reverse().slice(0, 10).map((e, i) => (
+              <div key={e.rev || i} style={{
+                display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 4px",
+                borderBottom: "1px solid #F0F2F7",
+              }}>
+                <span style={{ background: i === 0 ? "#E5F5EE" : "#F2F3F7", color: i === 0 ? "#0E7A5F" : "#5B6478",
+                  border: "1px solid " + (i === 0 ? "#A9DCC0" : "#E1E4EA"), borderRadius: 8,
+                  padding: "3px 9px", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0 }}>
+                  {i === 0 ? "الأحدث" : "#" + (i + 1)}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2440", lineHeight: 1.7 }}>{e.a}</div>
+                  {e.p && e.p.length > 0 && (
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5B6478", marginTop: 2 }}>اللوحات: {e.p.join(" · ")}</div>
+                  )}
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A8", marginTop: 3 }}>{e.t} — {e.r}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+              <button onClick={() => setSyncOpen(false)}
+                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {diagOpen && (
         <div className="modal-overlay no-print" onClick={() => setDiagOpen(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
@@ -7892,6 +7978,7 @@ export default function FleetApp() {
                     !ro && ["⚙️", "عتبة تنبيه الجاهزية", () => setAlertOpen(true), null],
                     isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), (db.trash || []).length || null],
                     isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
+                    isOwner && ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), ((db.syncLog || []).length || null)],
                     isOwner && ["💾", "نسخة احتياطية", backupNow, null],
                     isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
                     ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],
