@@ -1452,7 +1452,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 12.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 12.2 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7423,14 +7423,18 @@ export default function FleetApp() {
           font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s;
           white-space: nowrap; overflow: hidden; }
         .side-rail button > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* العبارة الرئيسية لكل مقصد باللون الذهبي، والمقصد المفتوح بالأبيض للتباين */
+        .side-rail .rlb { color: #E8CF8F; }
+        .side-rail button.act .rlb { color: #FFFFFF; }
+        .side-rail button:hover .rlb { color: #F6E7BE; }
         .side-rail button:hover { background: rgba(255,255,255,0.09); color: #fff; transform: translateX(-2px); }
         .side-rail button.act { background: linear-gradient(120deg, #B3121C, #7E1A2F); color: #fff;
           box-shadow: 0 4px 16px rgba(158,27,34,0.5), inset 0 1px 0 rgba(255,255,255,0.18); }
         .side-rail .ric { font-size: 20px; line-height: 1; width: 26px; text-align: center; flex-shrink: 0; }
         @media (max-width: 760px) {
           /* الشريط الجانبي في الجوال: اسم المقصد كاملاً فوق الأيقونة */
-          .app-shell { margin-right: 72px; }
-          .side-rail { width: 72px; padding: 9px 3px; }
+          .app-shell { margin-right: 64px; }
+          .side-rail { width: 64px; padding: 9px 2px; }
           .side-rail .rail-title { display: none; }
           .side-rail .rail-grp {
             font-size: 8px !important; letter-spacing: 0 !important;
@@ -7641,24 +7645,17 @@ export default function FleetApp() {
       <aside className="side-rail no-print" aria-label="التنقل">
         <div className="rail-title">جاهزية المراكز الميدانية</div>
         {[
-          { g: "القيادة", items: [["overview", "🎛️", "مركز القيادة"]] },
-          { g: "الآليات", items: [["list", "🚒", "سجل الآليات"], ["charts", "📈", "المؤشرات والتحليلات"]] },
-          { g: "الجاهزية", items: [["readiness", "📋", "الجاهزية الميدانية"]] },
-          { g: "العمليات", items: [["ops", "📟", "إحصائيات عملياتية"]] },
-          { g: "المطبوعات", items: [["reports", "🖨️", "التقارير والبيانات"]] },
-        ].map(({ g, items }) => (
-          <div key={g} style={{ marginBottom: 6 }}>
-            <div className="rail-grp" style={{
-              fontSize: 9.5, fontWeight: 800, color: "rgba(212,175,55,0.72)", letterSpacing: 0.6,
-              padding: "7px 12px 3px", textAlign: "right",
-            }}>{g}</div>
-            {items.map(([id, ic, lbl]) => (
-              <button key={id} className={(id === "overview" ? CMD_TABS.some(([t]) => t === view) : view === id) ? "act" : ""}
-                onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); }}>
-                <span className="ric">{ic}</span><span className="rlb">{lbl}</span>
-              </button>
-            ))}
-          </div>
+          ["overview", "🧭", "نظرة عامة"],
+          ["list", "🚛", "سجل الآليات"],
+          ["charts", "📈", "المؤشرات والتحليلات"],
+          ["readiness", "🛡️", "الجاهزية الميدانية"],
+          ["ops", "🚨", "إحصائيات عملياتية"],
+          ["reports", "🖨️", "التقارير والبيانات"],
+        ].map(([id, ic, lbl]) => (
+          <button key={id} className={(id === "overview" ? CMD_TABS.some(([t]) => t === view) : view === id) ? "act" : ""}
+            onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); }}>
+            <span className="ric">{ic}</span><span className="rlb">{lbl}</span>
+          </button>
         ))}
         {(isOwner || ro) && typeof window !== "undefined" && window.__STANDALONE__ && (
           <button onClick={downloadIndex} style={{ marginTop: "auto", background: "rgba(31,111,184,0.25)", color: "#BBD9F2" }}>

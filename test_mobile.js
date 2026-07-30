@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 12.1", D.getElementById("root").textContent.includes("12.1"));
+  ok("ختم الإصدار 12.2", D.getElementById("root").textContent.includes("12.2"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -57,7 +57,7 @@ const click = async (label, ms) => {
 
   // --- انحدار: باقي المقاصد تعمل بالجوال ---
   setW(390); await wait(500);
-  for (const lbl of ["مركز القيادة", "المؤشرات والتحليلات", "الجاهزية الميدانية", "إحصائيات عملياتية", "التقارير والبيانات"]) {
+  for (const lbl of ["نظرة عامة", "المؤشرات والتحليلات", "الجاهزية الميدانية", "إحصائيات عملياتية", "التقارير والبيانات"]) {
     const f = await click(lbl, 700);
     ok("[جوال] مقصد: " + lbl, f && D.getElementById("root").textContent.length > 200);
   }
@@ -85,13 +85,17 @@ const click = async (label, ms) => {
     const b0 = btns2.find(b => b.querySelector(".rlb"));
     const kids = Array.from(b0.children).map(c => c.className);
     ok("[شريط] ترتيب العناصر: أيقونة ثم نص (والقلب بالتنسيق)", kids[0] === "ric" && kids[1] === "rlb");
-    const grps = Array.from(rail.querySelectorAll(".rail-grp")).map(g => g.textContent.trim());
-    ok("[شريط] عناوين المساحات الخمسة", grps.length === 5 && grps.includes("المطبوعات") && grps.includes("الجاهزية"));
+    const grps = Array.from(rail.querySelectorAll(".rail-grp"));
+    ok("[شريط] لا عناوين مساحات فوق المقاصد", grps.length === 0);
+    const MAIN = ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"];
+    ok("[شريط] عبارة واحدة لكل مقصد", MAIN.every(x => labels.includes(x)));
+    ok("[شريط] نظرة عامة بدل مركز القيادة", labels.includes("نظرة عامة") && !labels.includes("مركز القيادة"));
   }
   ok("[شريط] النص يُعرض فوق الأيقونة", html.includes("flex-direction: column-reverse"));
-  ok("[شريط] عرض الشريط وُسّع", html.includes("width: 72px"));
+  ok("[شريط] عرض الشريط وُسّع", html.includes("width: 64px"));
   ok("[شريط] لا اختصار بالنقاط", html.includes("text-overflow: clip"));
-  ok("[شريط] عناوين المساحات مصغّرة لتظهر كاملة", html.includes("font-size: 8px !important"));
+  ok("[شريط] العبارة باللون الذهبي", html.includes(".side-rail .rlb { color: #E8CF8F; }"));
+  ok("[شريط] المقصد المفتوح بالأبيض", html.includes(".side-rail button.act .rlb { color: #FFFFFF; }"));
 
   ok("لا أخطاء تشغيل", errs.length === 0);
 
