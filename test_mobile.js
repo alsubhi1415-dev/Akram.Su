@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 12.8", D.getElementById("root").textContent.includes("12.8"));
+  ok("ختم الإصدار 12.9", D.getElementById("root").textContent.includes("12.9"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -88,11 +88,11 @@ const click = async (label, ms) => {
     const grps = Array.from(rail.querySelectorAll(".rail-grp"));
     ok("[شريط] لا عناوين مساحات فوق المقاصد", grps.length === 0);
     const vimg = rail.querySelectorAll(".ric-img img");
-    ok("[شريط] رمزان مصوّران (الآليات والجاهزية)", vimg.length === 2 && Array.from(vimg).every(i => String(i.getAttribute("src")).indexOf("data:image/png") === 0));
+    ok("[شريط] ثلاثة رموز مصوّرة (الآليات · الجاهزية · العمليات)", vimg.length === 3 && Array.from(vimg).every(i => String(i.getAttribute("src")).indexOf("data:image/png") === 0));
     const vbtn = Array.from(rail.querySelectorAll("button")).find(b => b.querySelector(".ric-img img"));
     ok("[شريط] الصورة على مقصد سجل الآليات", vbtn && (vbtn.querySelector(".rlb")||{}).textContent.trim() === "سجل الآليات");
     const icons = Array.from(rail.querySelectorAll("button .ric")).map(e => e.querySelector("img") ? "IMG" : e.textContent.trim());
-    ok("[شريط] رمز الجاهزية صورة درع", icons.filter(x => x === "IMG").length === 2);
+    ok("[شريط] رموز مصوّرة بثلاثة مقاصد", icons.filter(x => x === "IMG").length === 3);
     const MAIN = ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"];
     ok("[شريط] عبارة واحدة لكل مقصد", MAIN.every(x => labels.includes(x)));
     ok("[شريط] نظرة عامة بدل مركز القيادة", labels.includes("نظرة عامة") && !labels.includes("مركز القيادة"));
