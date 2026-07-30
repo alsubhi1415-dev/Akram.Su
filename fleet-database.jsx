@@ -1381,7 +1381,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.2 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6724,6 +6724,8 @@ export default function FleetApp() {
   const [cloud, setCloud] = useState("init"); // init | on | off | nodata | notoken
   const [bootPhase, setBootPhase] = useState("loading"); // loading | ready | fallback
   const bootDoneRef = useRef(false);
+  // حاجز حماية: لا يُرفع أي حفظ للسحابة قبل استلام حالتها الفعلية
+  const remoteSeenRef = useRef(false);
   useEffect(() => {
     const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 7000);
     return () => clearTimeout(t);
@@ -6775,7 +6777,7 @@ export default function FleetApp() {
       } catch (e) {}
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
       setDb(finalDb); saveDB(finalDb);
-      bootDoneRef.current = true; setBootPhase("ready");
+      bootDoneRef.current = true; remoteSeenRef.current = true; setBootPhase("ready");
       // إن نتج عن الدمج فارق عن السحابة نُعيد دفعه ليستقر الطرفان
       if (finalDb !== remoteDb) { try { queueCloud(finalDb); } catch (e) {} }
       stampNow(note);
@@ -6790,7 +6792,7 @@ export default function FleetApp() {
         if (typeof fetch !== "function") { setCloud("off"); return; }
         const res = await readVer(tokenRef.current, pollSt.current);
         if (!alive) return;
-        if (res.missing) { setCloud("nodata"); }
+        if (res.missing) { setCloud("nodata"); remoteSeenRef.current = true; }
         else if (res.unchanged) { setCloud("on"); }
         else {
           const v = res.ver || {};
@@ -6845,6 +6847,7 @@ export default function FleetApp() {
 
   const queueCloud = (next) => {
     if (roRef.current) return;
+    if (!remoteSeenRef.current) return; // لم تُستلم السحابة بعد — منع الكتابة بنسخة قديمة
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
       try { await doPush(next); }
@@ -6964,6 +6967,13 @@ export default function FleetApp() {
     if (roRef.current) {
       setImportMsg("👁 وضع الاستعراض — التعديل للمحررين");
       setTimeout(() => setImportMsg(""), 4000);
+      return;
+    }
+    // حاجز حماية السجل: منع أي حفظ قبل استلام بيانات السحابة،
+    // كي لا تُكتب نسخة قديمة أو احتياطية فوق أحدث نسخة معتمدة
+    if (!remoteSeenRef.current) {
+      setImportMsg("⛔ لم تصل بيانات السحابة بعد — أُلغي الحفظ حمايةً للسجل من الكتابة بنسخة قديمة. انتظر اكتمال المزامنة ثم أعد المحاولة.");
+      setTimeout(() => setImportMsg(""), 8000);
       return;
     }
     // تعديل سجل الآليات (إضافة/تحرير/استيراد/أعطال) صلاحية المشرف وحده
@@ -7455,7 +7465,7 @@ export default function FleetApp() {
           background: "#FBF1DC", borderBottom: "1px solid #E6D3A8", color: "#7A5A12",
           padding: "8px 14px", fontSize: 12.5, fontWeight: 800, textAlign: "center", lineHeight: 1.8,
         }}>
-          ⚠️ لم تصل بيانات السحابة بعد — المعروض نسخة محلية قد لا تكون محدّثة
+          ⚠️ لم تصل بيانات السحابة بعد — المعروض نسخة محلية قد لا تكون محدّثة، والحفظ موقوف مؤقتاً حمايةً للسجل
         </div>
       )}
 
