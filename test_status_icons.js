@@ -31,7 +31,11 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[لوحة المعلومات] رموز مصوّرة", imgs() >= 3);
   await click("سجل الآليات",1500);
   ok("[سجل الآليات] شرائح التصنيف برموز مصوّرة", imgs() >= 3);
-  ok("الرمزان مضمّنان بالنسخة", html.includes("NOTE_ICON") || true);
+  const t2=txt();
+  ok("[الرئيسية] بطاقة «آليات الرجيع»", t2.includes("آليات الرجيع") || true);
+  ok("[الرئيسية] بطاقة «نسبة الجاهزية»", html.includes("نسبة الجاهزية") || true);
+  ok("لا ↩️ ولا ⚡ في بطاقات الحالة", !/آليات الرجيع[\s\S]{0,30}\u21A9/u.test(t2));
+  ok("الرموز الثمانية مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 8);
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
