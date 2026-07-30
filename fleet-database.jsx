@@ -1376,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.7 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7295,6 +7295,8 @@ export default function FleetApp() {
         .fleet-tbl tbody tr { transition: background .12s ease, box-shadow .12s ease; }
         .fleet-tbl tbody tr:hover { background: #EEF4FB !important; box-shadow: inset 0 0 0 1px #CFE0F1; }
         .fleet-tbl tbody td { vertical-align: middle; }
+        .veh-card { transition: box-shadow .14s ease, transform .14s ease; }
+        .veh-card:active { transform: scale(0.995); box-shadow: 0 2px 8px rgba(20,26,40,0.13); }
         .fleet-tbl thead th:first-child { border-top-right-radius: 12px; }
         .fleet-tbl thead th:last-child { border-top-left-radius: 12px; }
         /* تناسق بصري وسلاسة: مساحات لمس مريحة وتباين أوضح وحركة ألطف */
@@ -8056,7 +8058,7 @@ export default function FleetApp() {
                 style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>}
             </div>
 
-            {(listOvf || narrowList) && (
+            {!narrowHdr && (listOvf || narrowList) && (
               <div className="no-print" style={{
                 display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap",
                 fontSize: 11.5, fontWeight: 800, color: "#5A6172", background: "#EEF2F8",
@@ -8069,6 +8071,7 @@ export default function FleetApp() {
                 </button>
               </div>
             )}
+            {!narrowHdr && (
             <div style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, overflow: "hidden" }}>
               <div ref={listFitRef} style={{
                 overflowX: listOvf && listFit && listZ < 1 ? "hidden" : "auto",
@@ -8160,6 +8163,72 @@ export default function FleetApp() {
                 </table>
               </div>
             </div>
+            )}
+
+            {narrowHdr && (
+            <div style={{ display: "grid", gap: 9 }}>
+              {filtered.length === 0 ? (
+                <div style={{
+                  background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 14,
+                  padding: "30px 18px", textAlign: "center", color: "#8B93A3", fontWeight: 700, fontSize: 13, lineHeight: 1.8,
+                }}>
+                  {vehicles.length === 0 ? "\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0641\u0627\u0631\u063a\u0629 \u2014 \u0627\u0636\u063a\u0637 \u00ab+ \u0625\u0636\u0627\u0641\u0629 \u0622\u0644\u064a\u0629\u00bb \u0644\u0628\u062f\u0621 \u0627\u0644\u062a\u0633\u062c\u064a\u0644." : "\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u062a\u0627\u0626\u062c \u0645\u0637\u0627\u0628\u0642\u0629 \u0644\u0644\u0628\u062d\u062b."}
+                </div>
+              ) : sortRows(filtered).map((v) => {
+                const st = (v.status || "").trim();
+                const isDown = !isCleanWorking(st);
+                const fs = (v.faults || []);
+                const openF = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+                const fixF = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
+                const desc = isDown ? ((openF && (openF.desc || openF.faultType)) || "") : "";
+                const dt = isDown ? (openF && openF.date) : (fixF && fixF.repairDate);
+                const accent = stColor(st);
+                return (
+                  <div key={v.id} className="veh-card" onClick={() => { setSelectedId(v.id); setView("detail"); }}
+                    style={{
+                      background: "#fff", border: "1px solid #E1E5EC", borderRight: "5px solid " + accent,
+                      borderRadius: 13, padding: "11px 12px", cursor: "pointer",
+                      boxShadow: "0 1px 3px rgba(20,26,40,0.07)",
+                    }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", justifyContent: "space-between" }}>
+                      <div style={{ fontWeight: 800, color: "#141A28", fontSize: 14, lineHeight: 1.45, flex: 1 }}>{v.type}</div>
+                      <StatusBadge status={v.status} />
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+                      <span style={{
+                        background: "#F2F4F8", border: "1.5px solid #D5DAE4", borderRadius: 8,
+                        padding: "2px 9px", fontWeight: 800, color: "#1B2440", fontSize: 12, letterSpacing: 0.3,
+                      }}>{v.plate}</span>
+                      {v.model ? <span style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172" }}>📅 {v.model}</span> : null}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: "#3A4152", fontWeight: 700, lineHeight: 1.75 }}>
+                      <div>🏢 {v.unit || "—"}</div>
+                      <div>📍 {v.location || "—"}</div>
+                    </div>
+                    {(desc || dt) && (
+                      <div style={{
+                        marginTop: 8, paddingTop: 8, borderTop: "1px dashed #E4E8EF",
+                        fontSize: 11.5, fontWeight: 700, color: isDown ? "#7A2E33" : "#0E7A5F",
+                        display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center",
+                      }}>
+                        <span>{isDown ? "\u26a0\ufe0f" : "\ud83d\udee0"}</span>
+                        {desc ? <span style={{ flex: 1, minWidth: 110 }}>{desc}</span> : null}
+                        {dt ? <span style={{ color: isDown ? "#B3121C" : "#0E7A5F", fontWeight: 800 }}>{dt}</span> : null}
+                      </div>
+                    )}
+                    {isOwner && (
+                      <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 9, display: "flex", gap: 7 }}>
+                        <button onClick={() => setQuick({ v, mode: "fault", date: "", desc: "", ftype: "\u0645\u064a\u0643\u0627\u0646\u064a\u0643\u064a" })}
+                          style={{ flex: 1, background: "#FBE9EB", color: "#B3121C", border: "1px solid #F2C3C6", borderRadius: 9, padding: "7px 0", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🔧 عطل</button>
+                        <button onClick={() => setQuick({ v, mode: "fix", date: "", desc: "" })}
+                          style={{ flex: 1, background: "#E5F5EE", color: "#0E7A5F", border: "1px solid #A9DCC0", borderRadius: 9, padding: "7px 0", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ إصلاح</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            )}
             <div style={{ fontSize: 12.5, color: "#8B93A3", marginTop: 10 }}>عدد النتائج: {filtered.length} من أصل {vehicles.length} آلية</div>
           </div>
         )}
