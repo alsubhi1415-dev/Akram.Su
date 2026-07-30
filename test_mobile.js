@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 11.6", D.getElementById("root").textContent.includes("11.6"));
+  ok("ختم الإصدار 11.7", D.getElementById("root").textContent.includes("11.7"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -72,6 +72,26 @@ const click = async (label, ms) => {
   ok("[جوال] لا بطاقات حوادث (السجل فارغ فعلاً)", D.querySelectorAll(".inc-card").length === 0);
   setW(1280); await wait(800);
   ok("[مكتب] صفحة العمليات سليمة بعد التوسيع", D.getElementById("root").textContent.includes("أحدث الحوادث المسجلة"));
+
+  // --- الشريط الجانبي في الجوال: النص كاملاً فوق الأيقونة ---
+  setW(390); await wait(500);
+  const rail = D.querySelector(".side-rail");
+  ok("[شريط] الشريط موجود", !!rail);
+  if (rail) {
+    const btns2 = Array.from(rail.querySelectorAll("button"));
+    const labels = btns2.map(b => { const e = b.querySelector(".rlb"); return e ? e.textContent.trim() : ""; }).filter(Boolean);
+    ok("[شريط] كل مقصد يحمل نصه", labels.length >= 6);
+    ok("[شريط] النصوص كاملة بلا اختصار", labels.includes("المؤشرات والتحليلات") && labels.includes("الجاهزية الميدانية") && labels.includes("التقارير والبيانات"));
+    const b0 = btns2.find(b => b.querySelector(".rlb"));
+    const kids = Array.from(b0.children).map(c => c.className);
+    ok("[شريط] ترتيب العناصر: أيقونة ثم نص (والقلب بالتنسيق)", kids[0] === "ric" && kids[1] === "rlb");
+    const grps = Array.from(rail.querySelectorAll(".rail-grp")).map(g => g.textContent.trim());
+    ok("[شريط] عناوين المساحات الخمسة", grps.length === 5 && grps.includes("المطبوعات") && grps.includes("الجاهزية"));
+  }
+  ok("[شريط] النص يُعرض فوق الأيقونة", html.includes("flex-direction: column-reverse"));
+  ok("[شريط] عرض الشريط وُسّع", html.includes("width: 86px"));
+  ok("[شريط] لا اختصار بالنقاط", html.includes("text-overflow: clip"));
+  ok("[شريط] عناوين المساحات مصغّرة لتظهر كاملة", html.includes("font-size: 8.5px !important"));
 
   ok("لا أخطاء تشغيل", errs.length === 0);
 

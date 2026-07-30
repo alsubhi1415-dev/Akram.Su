@@ -1425,7 +1425,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.7 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7378,10 +7378,26 @@ export default function FleetApp() {
           box-shadow: 0 4px 16px rgba(158,27,34,0.5), inset 0 1px 0 rgba(255,255,255,0.18); }
         .side-rail .ric { font-size: 20px; line-height: 1; width: 26px; text-align: center; flex-shrink: 0; }
         @media (max-width: 760px) {
-          .app-shell { margin-right: 62px; }
-          .side-rail { width: 62px; padding: 12px 7px; }
-          .side-rail .rail-title, .side-rail .rlb { display: none; }
-          .side-rail button { justify-content: center; padding: 12px 0; }
+          /* الشريط الجانبي في الجوال: اسم المقصد كاملاً فوق الأيقونة */
+          .app-shell { margin-right: 86px; }
+          .side-rail { width: 86px; padding: 10px 4px; }
+          .side-rail .rail-title { display: none; }
+          .side-rail .rail-grp {
+            font-size: 8.5px !important; letter-spacing: 0 !important;
+            padding: 8px 2px 3px !important; text-align: center !important;
+            white-space: normal !important; line-height: 1.4 !important;
+          }
+          .side-rail button {
+            flex-direction: column-reverse; align-items: center; justify-content: center;
+            gap: 3px; padding: 7px 2px; border-radius: 10px; min-height: 52px;
+          }
+          .side-rail .rlb, .side-rail button > span:last-child {
+            display: block; white-space: normal; overflow: visible; text-overflow: clip;
+            font-size: 9px; line-height: 1.35; text-align: center; width: 100%;
+            word-break: keep-all; overflow-wrap: break-word;
+          }
+          .side-rail .ric { font-size: 17px; width: auto; }
+          .side-rail button:hover { transform: none; }
         }
         @media print { .app-shell { margin-right: 0 !important; } .side-rail { display: none !important; } }
         /* تحسينات العرض على شاشات الهواتف */
@@ -7578,7 +7594,7 @@ export default function FleetApp() {
           { g: "المطبوعات", items: [["reports", "🖨️", "التقارير والبيانات"]] },
         ].map(({ g, items }) => (
           <div key={g} style={{ marginBottom: 6 }}>
-            <div style={{
+            <div className="rail-grp" style={{
               fontSize: 9.5, fontWeight: 800, color: "rgba(212,175,55,0.72)", letterSpacing: 0.6,
               padding: "7px 12px 3px", textAlign: "right",
             }}>{g}</div>
