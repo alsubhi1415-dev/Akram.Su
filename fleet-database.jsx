@@ -608,12 +608,13 @@ function mirrorRead() {
   } catch (e) {}
   return null;
 }
-function mirrorWrite(db, rev) {
+function mirrorWrite(db, rev, cfg) {
   try {
-    // إن لم يُمرّر مؤشر فيُحافظ على المؤشر المحفوظ بدل محوه
-    let keep = rev || "";
-    if (!keep) { const prev = mirrorRead(); keep = (prev && prev.rev) || ""; }
-    localStorage.setItem(MIRROR_KEY, JSON.stringify({ rev: keep, at: Date.now(), db }));
+    // إن لم يُمرّر مؤشر أو إعدادات فيُحافظ على المحفوظ بدل محوه
+    const prev = mirrorRead();
+    const keep = rev || (prev && prev.rev) || "";
+    const kcfg = cfg || (prev && prev.cfg) || null;
+    localStorage.setItem(MIRROR_KEY, JSON.stringify({ rev: keep, at: Date.now(), db, cfg: kcfg }));
     return true;
   } catch (e) { return false; } // تجاوز سعة التخزين: يُتجاهل بلا إزعاج
 }
@@ -622,7 +623,7 @@ async function loadDB() {
   // الأولوية للمرآة المحلية (آخر نسخة سحابية حقيقية)، ثم التخزين القديم،
   // ولا يُلجأ لبيانات الإكسل إلا في أول زيارة على الإطلاق.
   const m = mirrorRead();
-  if (m) return { db: m.db, rev: m.rev || "", from: "mirror" };
+  if (m) return { db: m.db, rev: m.rev || "", cfg: m.cfg || null, from: "mirror" };
   try {
     const r = await stGet(STORAGE_KEY);
     if (r) {
@@ -632,8 +633,8 @@ async function loadDB() {
   } catch {}
   return { db: { vehicles: SEED_DB.vehicles }, rev: "", from: "seed" };
 }
-async function saveDB(db, rev) {
-  mirrorWrite(db, rev);
+async function saveDB(db, rev, cfg) {
+  mirrorWrite(db, rev, cfg);
   await stSet(STORAGE_KEY, JSON.stringify(db));
 }
 
@@ -1488,7 +1489,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 13.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.1 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6798,6 +6799,12 @@ export default function FleetApp() {
         baseRevRef.current = boot.rev || "";
         lastRevRef.current = boot.rev || null;
         remoteSeenRef.current = !!boot.rev;   // لدينا أساس سحابي معروف
+        if (boot.cfg) {
+          cfgRef.current = boot.cfg;
+          // رمز الكتابة يُفكّ من الإعدادات المحفوظة فلا يتعطّل الحفظ إن لم تتغيّر السحابة
+          try { if (!tokenRef.current) tokenRef.current = tryDecryptToken(boot.cfg, roleRef.current); } catch (e) {}
+          SYNC.token = !!tokenRef.current;
+        }
         if (boot.rev) { SYNC.lastRev = boot.rev; SYNC.src = "المرآة المحلية"; setSaveLocked(false); setBootPhase("ready"); bootDoneRef.current = true; }
       }
       const rl = await stGet(LOGO_KEY); if (rl) setLogo(rl.value);
@@ -6897,7 +6904,7 @@ export default function FleetApp() {
         }
       } catch (e) {}
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
-      setDb(finalDb); saveDB(finalDb, parsed.rev || "");
+      setDb(finalDb); saveDB(finalDb, parsed.rev || "", cfgRef.current);
       baseRevRef.current = String(parsed.rev || "");
       bootDoneRef.current = true; remoteSeenRef.current = true; setBootPhase("ready");
       setSaveLocked(!!newVerRef.current);
@@ -6921,13 +6928,14 @@ export default function FleetApp() {
         else {
           const v = res.ver || {};
           const newer = parseInt(v.rev) > (parseInt(lastRevRef.current) || 0);
-          if (v.rev && newer && v.by !== _cid && !pushPendingRef.current) {
+          const needCfg = !cfgRef.current; // بلا إعدادات لا يوجد رمز كتابة
+          if (v.rev && (newer || needCfg) && v.by !== _cid && !pushPendingRef.current) {
             const text = await readData(tokenRef.current, v.rev);
             if (!alive) return;
             try {
               const parsed = JSON.parse(text);
               // لا نطبق إلا نسخة بنفس المؤشر أو أحدث (يصد النسخ المخبأة القديمة)
-              if (parseInt(parsed.rev) >= parseInt(v.rev) || parseInt(parsed.rev) > (parseInt(lastRevRef.current) || 0)) {
+              if (parseInt(parsed.rev) >= parseInt(v.rev) || parseInt(parsed.rev) > (parseInt(lastRevRef.current) || 0) || !cfgRef.current) {
                 lastRevRef.current = parsed.rev || v.rev;
                 applyRemote(text);
               }
@@ -6971,7 +6979,7 @@ export default function FleetApp() {
     shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
     baseRef.current = JSON.parse(JSON.stringify(nextDb)); // ما دُفع صار الأساس المتفق عليه
     baseRevRef.current = rev;
-    mirrorWrite(nextDb, rev);
+    mirrorWrite(nextDb, rev, cfgRef.current);
     lastPushedRevRef.current = rev;
     lastRevRef.current = rev;
     pushPendingRef.current = false;
