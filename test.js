@@ -37,7 +37,7 @@ const helpers = (w) => {
   await wait(3500); // تجاوز شاشة الإقلاع (مهلة 7 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 11.0", V.txt().includes("الإصدار 11.0"));
+  ok("[زائر] ختم الإصدار 11.1", V.txt().includes("الإصدار 11.1"));
   ok("[زائر] مقصد مركز القيادة", V.txt().includes("مركز القيادة"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
@@ -61,6 +61,10 @@ const helpers = (w) => {
     const f = await V.click(lbl, 600);
     ok("[زائر] مقصد: " + lbl, f && V.txt().length > 200);
   }
+  ok("[زائر] الوضع الليلي يقلب إضاءة المحتوى فعلاً", html.includes("invert(0.94) hue-rotate(180deg)"));
+  ok("[زائر] الطباعة محميّة من مرشح الوضع الليلي", html.includes("body.dark main { filter: none !important; }"));
+  ok("[زائر] مساحات لمس 44px للشاشات الصغيرة", html.includes("min-height: 44px"));
+  ok("[زائر] الصور معكوسة عكساً مضاداً بالوضع الليلي", html.includes("body.dark main img"));
   await V.click("المؤشرات والتحليلات", 700);
   ok("[زائر] عنوان الرأس موحّد مع القائمة", V.txt().includes("المؤشرات والتحليلات") && !V.txt().includes("مؤشرات الجاهزية والأعطال"));
   await V.click("مركز القيادة", 700);

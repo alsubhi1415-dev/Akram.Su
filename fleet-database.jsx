@@ -1381,7 +1381,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.1 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7342,6 +7342,10 @@ export default function FleetApp() {
         .fleet-tbl thead th:last-child { border-top-left-radius: 12px; }
         /* تناسق بصري وسلاسة: مساحات لمس مريحة وتباين أوضح وحركة ألطف */
         button, select, .fd-touch { min-height: 38px; }
+        @media (max-width: 700px) {
+          button, select, .fd-touch { min-height: 44px; }
+          input, textarea { min-height: 44px; }
+        }
         button, a, select, input, textarea { -webkit-tap-highlight-color: rgba(158,27,34,0.12); }
         button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
           outline: 3px solid rgba(31,111,184,0.55) !important; outline-offset: 2px !important;
@@ -7402,9 +7406,13 @@ export default function FleetApp() {
           .sec-block, .rep-sec { break-inside: auto; }
           .sec-block > div:first-child, .rep-sec > div:first-child { break-after: avoid !important; page-break-after: avoid !important; }
         }
-        body.dark { background: #DDE1E8; }
-        body.dark main { filter: brightness(0.9) saturate(0.95); }
-        @media print { body.dark main { filter: none !important; } }
+        /* الوضع الليلي: قلب إضاءة منطقة المحتوى مع إعادة دوران التدرج اللوني
+           لتبقى دلالة الألوان كما هي: الأحمر أحمر والأخضر أخضر.
+           الرأس والقائمة والتذييل كحلية أصلاً فلا تُمس. */
+        body.dark { background: #0E1320; }
+        body.dark main { filter: invert(0.94) hue-rotate(180deg); }
+        body.dark main img, body.dark main svg image, body.dark main canvas { filter: invert(1) hue-rotate(180deg); }
+        @media print { body.dark main { filter: none !important; } body.dark main img, body.dark main svg image, body.dark main canvas { filter: none !important; } }
         @media print {
           @page { size: A4; margin: 12mm; }
           .no-print, header { display: none !important; }
