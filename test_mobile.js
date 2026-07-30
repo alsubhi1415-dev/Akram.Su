@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 12.2", D.getElementById("root").textContent.includes("12.2"));
+  ok("ختم الإصدار 12.3", D.getElementById("root").textContent.includes("12.3"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -94,6 +94,7 @@ const click = async (label, ms) => {
   ok("[شريط] النص يُعرض فوق الأيقونة", html.includes("flex-direction: column-reverse"));
   ok("[شريط] عرض الشريط وُسّع", html.includes("width: 64px"));
   ok("[شريط] لا اختصار بالنقاط", html.includes("text-overflow: clip"));
+  ok("[شريط] مسافة بين العبارة والأيقونة", html.includes("gap: 6px; padding: 8px 1px 7px"));
   ok("[شريط] العبارة باللون الذهبي", html.includes(".side-rail .rlb { color: #E8CF8F; }"));
   ok("[شريط] المقصد المفتوح بالأبيض", html.includes(".side-rail button.act .rlb { color: #FFFFFF; }"));
 
