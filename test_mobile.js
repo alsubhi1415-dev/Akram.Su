@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 13.6", D.getElementById("root").textContent.includes("13.6"));
+  ok("ختم الإصدار 13.7", D.getElementById("root").textContent.includes("13.7"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -57,7 +57,7 @@ const click = async (label, ms) => {
 
   // --- انحدار: باقي المقاصد تعمل بالجوال ---
   setW(390); await wait(500);
-  for (const lbl of ["نظرة عامة", "المؤشرات والتحليلات", "الجاهزية الميدانية", "إحصائيات عملياتية", "التقارير والبيانات"]) {
+  for (const lbl of ["الصفحة الرئيسية", "المؤشرات والتحليلات", "الجاهزية الميدانية", "إحصائيات عملياتية", "التقارير والبيانات"]) {
     const f = await click(lbl, 700);
     ok("[جوال] مقصد: " + lbl, f && D.getElementById("root").textContent.length > 200);
   }
@@ -91,12 +91,12 @@ const click = async (label, ms) => {
     ok("[شريط] المقاصد الستة كلها برموز مصوّرة", vimg.length === 6 && Array.from(vimg).every(i => String(i.getAttribute("src")).indexOf("data:image/png") === 0));
     const named = Array.from(rail.querySelectorAll("button")).filter(b => b.querySelector(".ric-img img"))
       .map(b => (b.querySelector(".rlb")||{}).textContent.trim());
-    ok("[شريط] الصور موزّعة على المقاصد الستة", ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"].every(x => named.includes(x)));
+    ok("[شريط] الصور موزّعة على المقاصد الستة", ["الصفحة الرئيسية","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"].every(x => named.includes(x)));
     const icons = Array.from(rail.querySelectorAll("button .ric")).map(e => e.querySelector("img") ? "IMG" : e.textContent.trim());
     ok("[شريط] لا إيموجي في المقاصد", icons.filter(x => x === "IMG").length === 6);
-    const MAIN = ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"];
+    const MAIN = ["الصفحة الرئيسية","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"];
     ok("[شريط] عبارة واحدة لكل مقصد", MAIN.every(x => labels.includes(x)));
-    ok("[شريط] نظرة عامة بدل مركز القيادة", labels.includes("نظرة عامة") && !labels.includes("مركز القيادة"));
+    ok("[شريط] الصفحة الرئيسية بدل مركز القيادة", labels.includes("الصفحة الرئيسية") && !labels.includes("مركز القيادة"));
   }
   ok("[شريط] النص يُعرض فوق الأيقونة", html.includes("flex-direction: column-reverse"));
   ok("[شريط] عرض الشريط وُسّع", html.includes("width: 64px"));

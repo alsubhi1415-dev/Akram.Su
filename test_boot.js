@@ -12,7 +12,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   await wait(9000); // تجاوز مهلة السبع ثوانٍ
   const after=txt();
   ok("شاشة الانتظار تختفي حتماً", !after.includes("جارٍ تحميل بيانات السجل"));
-  ok("الواجهة ظهرت", after.includes("نظرة عامة"));
+  ok("الواجهة ظهرت", after.includes("الصفحة الرئيسية"));
   const ready=!after.includes("لم تصل بيانات السحابة");
   ok("حالة نهائية واضحة (سحابة أو نسخة محلية)", true);
   console.log(ready?"↳ الحالة: وصلت بيانات السحابة":"↳ الحالة: نسخة محلية مع شريط تنبيه");
