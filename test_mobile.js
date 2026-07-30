@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 13.5", D.getElementById("root").textContent.includes("13.5"));
+  ok("ختم الإصدار 13.6", D.getElementById("root").textContent.includes("13.6"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -84,15 +84,16 @@ const click = async (label, ms) => {
     ok("[شريط] النصوص كاملة بلا اختصار", labels.includes("المؤشرات والتحليلات") && labels.includes("الجاهزية الميدانية") && labels.includes("التقارير والبيانات"));
     const b0 = btns2.find(b => b.querySelector(".rlb"));
     const kids = Array.from(b0.children).map(c => c.className);
-    ok("[شريط] ترتيب العناصر: أيقونة ثم نص (والقلب بالتنسيق)", kids[0] === "ric" && kids[1] === "rlb");
+    ok("[شريط] ترتيب العناصر: أيقونة ثم نص (والقلب بالتنسيق)", String(kids[0]).indexOf("ric") === 0 && kids[1] === "rlb");
     const grps = Array.from(rail.querySelectorAll(".rail-grp"));
     ok("[شريط] لا عناوين مساحات فوق المقاصد", grps.length === 0);
     const vimg = rail.querySelectorAll(".ric-img img");
-    ok("[شريط] خمسة رموز مصوّرة", vimg.length === 5 && Array.from(vimg).every(i => String(i.getAttribute("src")).indexOf("data:image/png") === 0));
-    const vbtn = Array.from(rail.querySelectorAll("button")).find(b => b.querySelector(".ric-img img"));
-    ok("[شريط] الصورة على مقصد سجل الآليات", vbtn && (vbtn.querySelector(".rlb")||{}).textContent.trim() === "سجل الآليات");
+    ok("[شريط] المقاصد الستة كلها برموز مصوّرة", vimg.length === 6 && Array.from(vimg).every(i => String(i.getAttribute("src")).indexOf("data:image/png") === 0));
+    const named = Array.from(rail.querySelectorAll("button")).filter(b => b.querySelector(".ric-img img"))
+      .map(b => (b.querySelector(".rlb")||{}).textContent.trim());
+    ok("[شريط] الصور موزّعة على المقاصد الستة", ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"].every(x => named.includes(x)));
     const icons = Array.from(rail.querySelectorAll("button .ric")).map(e => e.querySelector("img") ? "IMG" : e.textContent.trim());
-    ok("[شريط] خمسة مقاصد بصور والبوصلة إيموجي", icons.filter(x => x === "IMG").length === 5 && icons.includes("🧭"));
+    ok("[شريط] لا إيموجي في المقاصد", icons.filter(x => x === "IMG").length === 6);
     const MAIN = ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"];
     ok("[شريط] عبارة واحدة لكل مقصد", MAIN.every(x => labels.includes(x)));
     ok("[شريط] نظرة عامة بدل مركز القيادة", labels.includes("نظرة عامة") && !labels.includes("مركز القيادة"));
