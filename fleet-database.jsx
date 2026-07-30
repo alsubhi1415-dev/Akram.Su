@@ -1427,7 +1427,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.9 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6486,8 +6486,8 @@ export default function FleetApp() {
         if (stop || !j || !j.build) return;
         const remote = verNum(j.build), local = verNum(APP_BUILD);
         // التنبيه فقط إن كانت النسخة المنشورة أحدث فعلاً
-        if (remote > 0 && local > 0 && remote > local) { newVerRef.current = j.build; setNewVer(j.build); }
-        else { newVerRef.current = null; setNewVer(null); }
+        if (remote > 0 && local > 0 && remote > local) { newVerRef.current = j.build; setNewVer(j.build); setSaveLocked(true); }
+        else { newVerRef.current = null; setNewVer(null); setSaveLocked(!remoteSeenRef.current); }
       } catch (e) {}
     };
     check();
@@ -6775,6 +6775,7 @@ export default function FleetApp() {
   const bootDoneRef = useRef(false);
   // حاجز حماية: لا يُرفع أي حفظ للسحابة قبل استلام حالتها الفعلية
   const remoteSeenRef = useRef(false);
+  const [saveLocked, setSaveLocked] = useState(true); // يُعرض بالرأس فيعرف المستخدم قبل أن يكتب
   useEffect(() => {
     const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 10000);
     return () => clearTimeout(t);
@@ -6827,6 +6828,7 @@ export default function FleetApp() {
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
       setDb(finalDb); saveDB(finalDb);
       bootDoneRef.current = true; remoteSeenRef.current = true; setBootPhase("ready");
+      setSaveLocked(!!newVerRef.current);
       SYNC.lastRev = String(parsed.rev || ""); SYNC.lastAt = Date.now(); SYNC.token = !!tokenRef.current; SYNC.err = "";
       // إن نتج عن الدمج فارق عن السحابة نُعيد دفعه ليستقر الطرفان
       if (finalDb !== remoteDb) { try { queueCloud(finalDb); } catch (e) {} }
@@ -6842,7 +6844,7 @@ export default function FleetApp() {
         if (typeof fetch !== "function") { setCloud("off"); return; }
         const res = await readVer(tokenRef.current, pollSt.current);
         if (!alive) return;
-        if (res.missing) { setCloud("nodata"); remoteSeenRef.current = true; }
+        if (res.missing) { setCloud("nodata"); remoteSeenRef.current = true; setSaveLocked(!!newVerRef.current); }
         else if (res.unchanged) { setCloud("on"); }
         else {
           const v = res.ver || {};
@@ -7529,6 +7531,10 @@ export default function FleetApp() {
               ["مؤشر آخر استلام", SYNC.lastRev || "—"],
               ["وقت آخر استلام", SYNC.lastAt ? new Date(SYNC.lastAt).toLocaleTimeString("ar-SA") : "—"],
               ["رمز الكتابة", SYNC.token ? "مفكوك وجاهز" : "غير متاح"],
+              ["الصلاحية", isOwner ? "مشرف" : ro ? "مستعرض" : "محرر"],
+              ["استُلمت السحابة", remoteSeenRef.current ? "نعم" : "لا"],
+              ["نسخة أحدث منشورة", newVerRef.current || "لا توجد"],
+              ["الحفظ متاح الآن", ro ? "لا (وضع استعراض)" : saveLocked ? "لا" : "نعم"],
               ["آخر رفع", SYNC.push || "لم يُرفع شيء في هذه الجلسة"],
               ["عدد الآليات المعروضة", String(vehicles.length)],
             ].map(([k, v]) => (
@@ -7543,7 +7549,7 @@ export default function FleetApp() {
               </div>
             )}
             <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length })); } catch (e) {} }}
+              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length, seen: remoteSeenRef.current, lock: saveLocked, newVer: newVerRef.current || null, role: isOwner ? "owner" : ro ? "viewer" : "editor" })); } catch (e) {} }}
                 style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>نسخ التفاصيل</button>
               <button onClick={() => { try { if (window.caches && caches.keys) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))); } catch (e) {} window.location.reload(true); }}
                 style={{ background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تحديث كامل</button>
@@ -7708,6 +7714,13 @@ export default function FleetApp() {
                 border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 12px",
                 fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
               }}>⋯ أدوات</button>
+              {!ro && saveLocked && (
+                <span onClick={() => setDiagOpen(true)} title="اضغط لمعرفة السبب" style={{
+                  marginRight: 8, background: "rgba(179,18,28,0.9)", color: "#fff", borderRadius: 9,
+                  padding: "6px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                }}>🔒 الحفظ موقوف</span>
+              )}
               {toolsOpen && (
                 <div className="no-print" style={narrowHdr ? {
                   position: "fixed", top: 68, left: 10, right: 10, width: "auto", maxHeight: "70vh", overflowY: "auto",
