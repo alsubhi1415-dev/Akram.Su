@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 12.3", D.getElementById("root").textContent.includes("12.3"));
+  ok("ختم الإصدار 12.4", D.getElementById("root").textContent.includes("12.4"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -87,6 +87,12 @@ const click = async (label, ms) => {
     ok("[شريط] ترتيب العناصر: أيقونة ثم نص (والقلب بالتنسيق)", kids[0] === "ric" && kids[1] === "rlb");
     const grps = Array.from(rail.querySelectorAll(".rail-grp"));
     ok("[شريط] لا عناوين مساحات فوق المقاصد", grps.length === 0);
+    const vimg = rail.querySelectorAll(".ric-img img");
+    ok("[شريط] رمز سجل الآليات صورة الآلية", vimg.length === 1 && String(vimg[0].getAttribute("src")).indexOf("data:image/png") === 0);
+    const vbtn = Array.from(rail.querySelectorAll("button")).find(b => b.querySelector(".ric-img img"));
+    ok("[شريط] الصورة على مقصد سجل الآليات", vbtn && (vbtn.querySelector(".rlb")||{}).textContent.trim() === "سجل الآليات");
+    const icons = Array.from(rail.querySelectorAll("button .ric")).map(e => e.querySelector("img") ? "IMG" : e.textContent.trim());
+    ok("[شريط] رمز الجاهزية درع", icons.includes("🛡️"));
     const MAIN = ["نظرة عامة","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"];
     ok("[شريط] عبارة واحدة لكل مقصد", MAIN.every(x => labels.includes(x)));
     ok("[شريط] نظرة عامة بدل مركز القيادة", labels.includes("نظرة عامة") && !labels.includes("مركز القيادة"));
@@ -95,6 +101,7 @@ const click = async (label, ms) => {
   ok("[شريط] عرض الشريط وُسّع", html.includes("width: 64px"));
   ok("[شريط] لا اختصار بالنقاط", html.includes("text-overflow: clip"));
   ok("[شريط] مسافة بين العبارة والأيقونة", html.includes("gap: 6px; padding: 8px 1px 7px"));
+  ok("[شريط] مقاس الصورة كمقاس الإيموجي", html.includes(".side-rail .ric-img img { height: 19px") && html.includes(".side-rail .ric-img img { height: 15px; }"));
   ok("[شريط] العبارة باللون الذهبي", html.includes(".side-rail .rlb { color: #E8CF8F; }"));
   ok("[شريط] المقصد المفتوح بالأبيض", html.includes(".side-rail button.act .rlb { color: #FFFFFF; }"));
 
