@@ -164,41 +164,72 @@ const RAW = "https://raw.githubusercontent.com/" + GH.owner + "/" + GH.repo + "/
 const VER_PATH = "ver.json";
 const API_BASE = "https://api.github.com/repos/" + GH.owner + "/" + GH.repo + "/contents/";
 // قراءة المؤشر: الواجهة الرسمية أولاً (طازجة دائماً، والـ304 لا يُحتسب)، والخام احتياط عند تجاوز الحصة
-async function readVer(token, st) {
+// مسار قراءة ثالث: نفس أصل الصفحة.
+// ما دامت صفحة البرنامج قد فُتحت فإن ملفات البيانات بجوارها تُقرأ حتماً:
+// لا حد استخدام ولا نطاق خارجي قد يُحجب على بعض الشبكات.
+const SELF_BASE = (() => {
   try {
-    const h = { Accept: "application/vnd.github.raw" };
-    if (token) h.Authorization = "Bearer " + token;
-    if (st.etagV) h["If-None-Match"] = st.etagV;
-    const r = await fetch(API_BASE + VER_PATH + "?ref=" + GH.branch, { headers: h, cache: "no-store" });
-    if (r.status === 304) return { unchanged: true };
-    if (r.status === 404) return { missing: true };
-    if (r.status === 403 || r.status === 429) throw new Error("rate");
-    if (!r.ok) throw new Error("ver " + r.status);
-    st.etagV = r.headers.get("ETag");
-    return { fresh: true, ver: JSON.parse(await r.text()) };
-  } catch (e) {
-    // احتياط الخام (قد يتأخر دقائق بسبب كاش الشبكة لكنه لا يتوقف أبداً)
-    const r2 = await fetch(RAW + VER_PATH + "?nc=" + Date.now(), { cache: "no-store", headers: st.etagRV ? { "If-None-Match": st.etagRV } : {} });
-    if (r2.status === 304) return { unchanged: true };
-    if (r2.status === 404) return { missing: true };
-    if (!r2.ok) throw e;
-    st.etagRV = r2.headers.get("ETag");
-    return { fresh: false, ver: await r2.json() };
+    if (typeof window === "undefined" || !window.location) return "";
+    const p = window.location.protocol;
+    if (p !== "http:" && p !== "https:") return "";
+    const href = window.location.href.split("#")[0].split("?")[0];
+    return href.replace(/[^/]*$/, "");
+  } catch (e) { return ""; }
+})();
+
+async function fetchFirst(urls) {
+  let sawMissing = false;
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache: "no-store" });
+      if (r.status === 404) { sawMissing = true; continue; }
+      if (!r.ok) continue;
+      return { text: await r.text() };
+    } catch (e) {}
   }
+  if (sawMissing) return { missing: true };
+  return null;
 }
-async function readData(token, wantRev) {
-  try {
-    const h = { Accept: "application/vnd.github.raw" };
-    if (token) h.Authorization = "Bearer " + token;
-    const r = await fetch(API_BASE + GH.path + "?ref=" + GH.branch, { headers: h, cache: "no-store" });
-    if (r.status === 403 || r.status === 429) throw new Error("rate");
-    if (!r.ok) throw new Error("data " + r.status);
-    return await r.text();
-  } catch (e) {
-    const r2 = await fetch(RAW + GH.path + "?nc=" + encodeURIComponent(wantRev), { cache: "no-store" });
-    if (!r2.ok) throw e;
-    return await r2.text();
+
+async function readVer(token, st) {
+  // برمز الربط: الواجهة الرسمية أولاً لأنها طازجة لحظياً.
+  // بلا رمز: لا تُستعمل إطلاقاً لأن حصتها 60 طلباً في الساعة وتُستنفد في دقائق.
+  if (token) {
+    try {
+      const h = { Accept: "application/vnd.github.raw", Authorization: "Bearer " + token };
+      if (st.etagV) h["If-None-Match"] = st.etagV;
+      const r = await fetch(API_BASE + VER_PATH + "?ref=" + GH.branch, { headers: h, cache: "no-store" });
+      if (r.status === 304) return { unchanged: true };
+      if (r.status === 404) return { missing: true };
+      if (r.ok) { st.etagV = r.headers.get("ETag"); return { fresh: true, ver: JSON.parse(await r.text()) }; }
+    } catch (e) {}
   }
+  const nc = "?nc=" + Date.now();
+  const urls = [];
+  if (SELF_BASE) urls.push(SELF_BASE + VER_PATH + nc);
+  urls.push(RAW + VER_PATH + nc);
+  const res = await fetchFirst(urls);
+  if (!res) throw new Error("ver-unreachable");
+  if (res.missing) return { missing: true };
+  return { fresh: false, ver: JSON.parse(res.text) };
+}
+
+async function readData(token, wantRev) {
+  if (token) {
+    try {
+      const r = await fetch(API_BASE + GH.path + "?ref=" + GH.branch, {
+        headers: { Accept: "application/vnd.github.raw", Authorization: "Bearer " + token }, cache: "no-store",
+      });
+      if (r.ok) return await r.text();
+    } catch (e) {}
+  }
+  const nc = "?nc=" + encodeURIComponent(wantRev || Date.now());
+  const urls = [];
+  if (SELF_BASE) urls.push(SELF_BASE + GH.path + nc);
+  urls.push(RAW + GH.path + nc);
+  const res = await fetchFirst(urls);
+  if (!res || res.missing) throw new Error("data-unreachable");
+  return res.text;
 }
 // الكتابة عبر واجهة GitHub الرسمية (برمز الربط)
 async function ghGetSha(token, path) {
@@ -1384,7 +1415,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.5 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6436,9 +6467,10 @@ export default function FleetApp() {
     };
     const check = async () => {
       try {
-        const r = await fetch(RAW + "app-ver.json?nc=" + Date.now(), { cache: "no-store" });
-        if (!r.ok) return;
-        const j = await r.json();
+        const nc = "app-ver.json?nc=" + Date.now();
+        const res = await fetchFirst([...(SELF_BASE ? [SELF_BASE + nc] : []), RAW + nc]);
+        if (!res || res.missing) return;
+        const j = JSON.parse(res.text);
         if (stop || !j || !j.build) return;
         const remote = verNum(j.build), local = verNum(APP_BUILD);
         // التنبيه فقط إن كانت النسخة المنشورة أحدث فعلاً
@@ -6731,7 +6763,7 @@ export default function FleetApp() {
   // حاجز حماية: لا يُرفع أي حفظ للسحابة قبل استلام حالتها الفعلية
   const remoteSeenRef = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 7000);
+    const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 10000);
     return () => clearTimeout(t);
   }, []);
   const [syncStamp, setSyncStamp] = useState("");
