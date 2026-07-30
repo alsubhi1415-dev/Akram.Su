@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 13.7", D.getElementById("root").textContent.includes("13.7"));
+  ok("ختم الإصدار 13.8", D.getElementById("root").textContent.includes("13.8"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -103,7 +103,7 @@ const click = async (label, ms) => {
   ok("[شريط] لا اختصار بالنقاط", html.includes("text-overflow: clip"));
   ok("[شريط] مسافة بين العبارة والأيقونة", html.includes("gap: 6px; padding: 8px 1px 7px"));
   ok("[شريط] مقاس الصورة كمقاس الإيموجي", html.includes(".side-rail .ric-img img { height: 19px") && html.includes(".side-rail .ric-img img { height: 15px; }"));
-  ok("[شريط] العبارة باللون الذهبي", html.includes(".side-rail .rlb { color: #E8CF8F; }"));
+  ok("[شريط] لون العبارة فاتح واضح", html.includes(".side-rail .rlb { color: #F6EEDA;"));
   ok("[شريط] المقصد المفتوح بالأبيض", html.includes(".side-rail button.act .rlb { color: #FFFFFF; }"));
 
   ok("لا أخطاء تشغيل", errs.length === 0);

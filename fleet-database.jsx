@@ -1546,7 +1546,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 13.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.8 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7596,19 +7596,19 @@ export default function FleetApp() {
           border-left: 1px solid rgba(212,175,55,0.22); box-shadow: -6px 0 24px rgba(10,14,26,0.35); overflow-y: auto; }
         .side-rail .rail-title { color: #F2E9D8; font-size: 13.5px; font-weight: 800; padding: 4px 8px 10px;
           border-bottom: 1px solid rgba(212,175,55,0.35); margin-bottom: 4px; letter-spacing: 0.2px; }
-        .side-rail button { display: flex; align-items: center; gap: 9px; width: 100%; text-align: right;
-          background: transparent; color: #D6D9E4; border: none; border-radius: 12px; padding: 11px 11px;
-          font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s;
+        .side-rail button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: right;
+          background: transparent; color: #D6D9E4; border: none; border-radius: 12px; padding: 11px 9px;
+          font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s;
           white-space: nowrap; overflow: hidden; }
         .side-rail button > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         /* العبارة الرئيسية لكل مقصد باللون الذهبي، والمقصد المفتوح بالأبيض للتباين */
-        .side-rail .rlb { color: #E8CF8F; }
+        .side-rail .rlb { color: #F6EEDA; letter-spacing: -0.1px; }
         .side-rail button.act .rlb { color: #FFFFFF; }
-        .side-rail button:hover .rlb { color: #F6E7BE; }
+        .side-rail button:hover .rlb { color: #FFFFFF; }
         .side-rail button:hover { background: rgba(255,255,255,0.09); color: #fff; transform: translateX(-2px); }
         .side-rail button.act { background: linear-gradient(120deg, #B3121C, #7E1A2F); color: #fff;
           box-shadow: 0 4px 16px rgba(158,27,34,0.5), inset 0 1px 0 rgba(255,255,255,0.18); }
-        .side-rail .ric { font-size: 20px; line-height: 1; width: 26px; text-align: center; flex-shrink: 0; }
+        .side-rail .ric { font-size: 20px; line-height: 1; width: 24px; text-align: center; flex-shrink: 0; }
         /* رمز مصوّر بدل الإيموجي: بارتفاع الإيموجي نفسه وعرض متناسب */
         .side-rail .ric-img { width: auto; display: inline-flex; align-items: center; justify-content: center; }
         .side-rail .ric-img img { height: 19px; width: auto; display: block; object-fit: contain; }
@@ -7913,7 +7913,7 @@ export default function FleetApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
             <Logo logoSrc={logo} onUpload={uploadLogo} />
             <div style={{ flex: 1, minWidth: 210 }}>
-              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "المؤشرات والتحليلات" : "جاهزية المراكز الميدانية"}</div>
+              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "المؤشرات والتحليلات" : "المنصة الرقمية لجاهزية الآليات والمراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

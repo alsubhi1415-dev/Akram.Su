@@ -37,7 +37,7 @@ const helpers = (w) => {
   await wait(5500); // تجاوز شاشة الإقلاع (مهلة 10 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 13.7", V.txt().includes("الإصدار 13.7"));
+  ok("[زائر] ختم الإصدار 13.8", V.txt().includes("الإصدار 13.8"));
   ok("[زائر] مقصد الصفحة الرئيسية بالشريط", V.txt().includes("الصفحة الرئيسية"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
@@ -66,6 +66,10 @@ const helpers = (w) => {
     const m = html.match(/\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \\d+\\.\\d+/) || [];
     ok("ختم الإصدار المنشور مطابق للنسخة", json.build && V.txt().includes(json.build.split(" \u00b7 ")[0]));
   }
+  ok("[زائر] عنوان البرنامج الجديد", V.txt().includes("المنصة الرقمية لجاهزية الآليات والمراكز الميدانية"));
+  ok("[زائر] عبارات الشريط أكبر", html.includes("font-size: 14px; font-weight: 800; cursor: pointer"));
+  ok("[زائر] عبارات الشريط أنصع", html.includes(".side-rail .rlb { color: #F6EEDA;"));
+  ok("[زائر] الشريط لم يتّسع", html.includes("width: 246px"));
   ok("[زائر] الوضع الليلي يقلب إضاءة المحتوى فعلاً", html.includes("invert(0.94) hue-rotate(180deg)"));
   ok("[زائر] الطباعة محميّة من مرشح الوضع الليلي", html.includes("body.dark main { filter: none !important; }"));
   ok("[زائر] مساحات لمس 44px للشاشات الصغيرة", html.includes("min-height: 44px"));
