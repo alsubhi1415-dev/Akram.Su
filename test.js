@@ -37,7 +37,7 @@ const helpers = (w) => {
   await wait(5500); // تجاوز شاشة الإقلاع (مهلة 10 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 12.0", V.txt().includes("الإصدار 12.0"));
+  ok("[زائر] ختم الإصدار 12.1", V.txt().includes("الإصدار 12.1"));
   ok("[زائر] مقصد مركز القيادة", V.txt().includes("مركز القيادة"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));

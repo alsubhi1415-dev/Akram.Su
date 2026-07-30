@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 12.0", D.getElementById("root").textContent.includes("12.0"));
+  ok("ختم الإصدار 12.1", D.getElementById("root").textContent.includes("12.1"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -89,9 +89,9 @@ const click = async (label, ms) => {
     ok("[شريط] عناوين المساحات الخمسة", grps.length === 5 && grps.includes("المطبوعات") && grps.includes("الجاهزية"));
   }
   ok("[شريط] النص يُعرض فوق الأيقونة", html.includes("flex-direction: column-reverse"));
-  ok("[شريط] عرض الشريط وُسّع", html.includes("width: 86px"));
+  ok("[شريط] عرض الشريط وُسّع", html.includes("width: 72px"));
   ok("[شريط] لا اختصار بالنقاط", html.includes("text-overflow: clip"));
-  ok("[شريط] عناوين المساحات مصغّرة لتظهر كاملة", html.includes("font-size: 8.5px !important"));
+  ok("[شريط] عناوين المساحات مصغّرة لتظهر كاملة", html.includes("font-size: 8px !important"));
 
   ok("لا أخطاء تشغيل", errs.length === 0);
 

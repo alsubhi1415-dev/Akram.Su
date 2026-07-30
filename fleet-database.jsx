@@ -1452,7 +1452,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 12.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 12.1 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7429,24 +7429,24 @@ export default function FleetApp() {
         .side-rail .ric { font-size: 20px; line-height: 1; width: 26px; text-align: center; flex-shrink: 0; }
         @media (max-width: 760px) {
           /* الشريط الجانبي في الجوال: اسم المقصد كاملاً فوق الأيقونة */
-          .app-shell { margin-right: 86px; }
-          .side-rail { width: 86px; padding: 10px 4px; }
+          .app-shell { margin-right: 72px; }
+          .side-rail { width: 72px; padding: 9px 3px; }
           .side-rail .rail-title { display: none; }
           .side-rail .rail-grp {
-            font-size: 8.5px !important; letter-spacing: 0 !important;
-            padding: 8px 2px 3px !important; text-align: center !important;
+            font-size: 8px !important; letter-spacing: 0 !important;
+            padding: 7px 1px 2px !important; text-align: center !important;
             white-space: normal !important; line-height: 1.4 !important;
           }
           .side-rail button {
             flex-direction: column-reverse; align-items: center; justify-content: center;
-            gap: 3px; padding: 7px 2px; border-radius: 10px; min-height: 52px;
+            gap: 2px; padding: 6px 1px; border-radius: 9px; min-height: 48px;
           }
           .side-rail .rlb, .side-rail button > span:last-child {
             display: block; white-space: normal; overflow: visible; text-overflow: clip;
-            font-size: 9px; line-height: 1.35; text-align: center; width: 100%;
+            font-size: 8.5px; line-height: 1.3; text-align: center; width: 100%;
             word-break: keep-all; overflow-wrap: break-word;
           }
-          .side-rail .ric { font-size: 17px; width: auto; }
+          .side-rail .ric { font-size: 16px; width: auto; }
           .side-rail button:hover { transform: none; }
         }
         @media print { .app-shell { margin-right: 0 !important; } .side-rail { display: none !important; } }
