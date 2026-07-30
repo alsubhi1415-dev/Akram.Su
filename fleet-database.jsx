@@ -1376,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.6 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6546,6 +6546,8 @@ export default function FleetApp() {
   };
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef(null);
   const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
   useEffect(() => {
     const upd = () => {
@@ -6591,6 +6593,12 @@ export default function FleetApp() {
     document.addEventListener("touchstart", h);
     return () => { document.removeEventListener("mousedown", h); document.removeEventListener("touchstart", h); };
   }, [bellOpen]);
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const h = (e) => { if (toolsRef.current && !toolsRef.current.contains(e.target)) setToolsOpen(false); };
+    document.addEventListener("mousedown", h); document.addEventListener("touchstart", h);
+    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("touchstart", h); };
+  }, [toolsOpen]);
   const [dark, setDark] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   useEffect(() => {
@@ -7447,12 +7455,6 @@ export default function FleetApp() {
                 display: "inline-flex", alignItems: "center", gap: 5, boxShadow: "0 3px 12px rgba(0,0,0,0.18)",
               }}>→ رجوع</button>
             )}
-            {!ro && (
-              <button onClick={() => setAlertOpen(true)} title="عتبة تنبيه الجاهزية" style={{
-                background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-                borderRadius: 10, padding: "7px 10px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-              }}>⚙️</button>
-            )}
             <button onClick={() => { setCmdQ(""); setCmdOpen(true); }} title="بحث سريع وتنقّل (Ctrl+K)" style={{
               background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.28)",
               borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
@@ -7490,22 +7492,45 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
-            {isOwner && <button onClick={() => setTrashOpen(true)} title="سلة المحذوفات — استعادة خلال 30 يوماً" style={{
-              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit", position: "relative",
-            }}>🗑{(db.trash || []).length > 0 && <span style={{ position: "absolute", top: -6, left: -6, background: "#8B93A8", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1.5px 6px" }}>{(db.trash || []).length}</span>}</button>}
-            {isOwner && <button onClick={() => setAuditOpen(true)} title="سجل التدقيق — من فعل ماذا ومتى" style={{
-              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
-            }}>🕘</button>}
-            {isOwner && <button onClick={backupNow} title="تنزيل نسخة احتياطية كاملة لقاعدة البيانات" style={{
-              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
-            }}>💾</button>}
-            <button onClick={() => setDark(!dark)} title={dark ? "الوضع النهاري" : "الوضع الليلي"} style={{
-              background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-              borderRadius: 10, padding: "8px 12px", fontSize: 14, cursor: "pointer", fontFamily: "inherit",
-            }}>{dark ? "☀️" : "🌙"}</button>
+            <span ref={toolsRef} style={{ position: "relative", display: "inline-flex" }}>
+              <button onClick={() => setToolsOpen(!toolsOpen)} title="أدوات إضافية" style={{
+                background: toolsOpen ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.1)", color: "#fff",
+                border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 12px",
+                fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              }}>⋯ أدوات</button>
+              {toolsOpen && (
+                <div className="no-print" style={narrowHdr ? {
+                  position: "fixed", top: 68, left: 10, right: 10, width: "auto", maxHeight: "70vh", overflowY: "auto",
+                  background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.5)", zIndex: 880,
+                  padding: 10, textAlign: "right",
+                } : {
+                  position: "absolute", top: 44, left: 0, width: 268, background: "#fff", borderRadius: 16,
+                  boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500, padding: 10, textAlign: "right",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#8B93A8", padding: "2px 8px 8px" }}>أدوات إضافية</div>
+                  {[
+                    !ro && ["⚙️", "عتبة تنبيه الجاهزية", () => setAlertOpen(true), null],
+                    isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), (db.trash || []).length || null],
+                    isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
+                    isOwner && ["💾", "نسخة احتياطية", backupNow, null],
+                    isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
+                    [dark ? "☀️" : "🌙", dark ? "الوضع النهاري" : "الوضع الليلي", () => setDark(!dark), null],
+                  ].filter(Boolean).map(([ic, lbl, fn, badge], ti) => (
+                    <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "#F1F3F7"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 9, padding: "9px 8px", borderRadius: 10,
+                        cursor: "pointer", fontSize: 12.5, fontWeight: 800, color: "#1B2440",
+                      }}>
+                      <span style={{ fontSize: 15 }}>{ic}</span>
+                      <span>{lbl}</span>
+                      {badge && <span style={{ marginRight: "auto", background: "#8B93A8", color: "#fff", borderRadius: 9, fontSize: 10, fontWeight: 800, padding: "1px 7px" }}>{badge}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </span>
             {ro ? (
               <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
               <button onClick={loginEditor} style={{
@@ -7532,12 +7557,6 @@ export default function FleetApp() {
                     padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                     boxShadow: "0 3px 10px rgba(31,111,184,0.45)",
                   }}>⬇ تحميل index</button>
-                )}
-                {isOwner && (
-                  <button onClick={() => { setGhVal(""); setGhErr(""); setGhOpen(true); }} title="ربط GitHub لتفعيل المزامنة — مرة واحدة" style={{
-                    background: "#141A28", color: "#fff", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 10,
-                    padding: "8px 12px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                  }}>🔑 ربط GitHub</button>
                 )}
               </span>
             )}
