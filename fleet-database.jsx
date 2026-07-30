@@ -511,21 +511,26 @@ function HijriDateInput({ value, onChange, required }) {
   );
 }
 
+// وسيط آمن: window.storage متوفر داخل بيئة الآرتيفاكت فقط، وغير موجود في الملف المستقل ولا في النسخة المنشورة
+const hasStore = () => { try { return typeof window !== "undefined" && !!window.storage && typeof window.storage.get === "function"; } catch (e) { return false; } };
+const stGet = async (k) => { if (!hasStore()) return null; try { return await window.storage.get(k); } catch (e) { return null; } };
+const stSet = async (k, v) => { if (!hasStore()) return false; try { await window.storage.set(k, v); return true; } catch (e) { return false; } };
+
 async function loadDB() {
   // إن وُجدت بيانات محفوظة سابقاً تُستخدم هي؛ وإلا تُحقن بيانات ملف الإكسل تلقائياً
   try {
-    const r = await window.storage.get(STORAGE_KEY);
+    const r = await stGet(STORAGE_KEY);
     if (r) {
       const db = JSON.parse(r.value);
       if (db && Array.isArray(db.vehicles) && db.vehicles.length > 0) return db;
     }
   } catch {}
   const db = { vehicles: SEED_DB.vehicles };
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(db)); } catch (e) { console.error(e); }
+  await stSet(STORAGE_KEY, JSON.stringify(db));
   return db;
 }
 async function saveDB(db) {
-  try { await window.storage.set(STORAGE_KEY, JSON.stringify(db)); } catch (e) { console.error(e); }
+  await stSet(STORAGE_KEY, JSON.stringify(db));
 }
 
 // ====== مكونات صغيرة ======
@@ -1376,7 +1381,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.9 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -1858,7 +1863,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {[["📋", "الجاهزية الميدانية", "تغطية المراكز الميدانية الـ62 لحظياً", "readiness"],
           ["🚒", "سجل الآليات", `${S.total} آلية ببياناتها وأعطالها وسجلها الزمني`, "list"],
-          ["📈", "مؤشرات الجاهزية والأعطال", "تحليلات ورسوم تفاعلية للجاهزية والأعطال", "charts"],
+          ["📈", "المؤشرات والتحليلات", "تحليلات ورسوم تفاعلية للجاهزية والأعطال", "charts"],
           ["🖨️", "التقارير الرسمية", "الأعطال الأسبوعي والنوعي والنموذج الشامل", "reports"]].map(([ic, tt, ds, go]) => (
           <div key={go} onClick={() => onGo(go)} style={{ flex: "1 1 220px", background: "#fff", border: "1px solid #E4E7F0", borderRadius: 18, padding: "16px 18px", cursor: "pointer", boxShadow: "0 6px 20px rgba(20,26,40,0.06)" }}>
             <div style={{ fontSize: 22 }}>{ic}</div>
@@ -6676,7 +6681,7 @@ export default function FleetApp() {
   useEffect(() => {
     (async () => {
       setDb(await loadDB());
-      try { const r = await window.storage.get(LOGO_KEY); if (r) setLogo(r.value); } catch {}
+      const rl = await stGet(LOGO_KEY); if (rl) setLogo(rl.value);
     })();
   }, []);
 
@@ -7160,7 +7165,7 @@ export default function FleetApp() {
 
   const uploadLogo = async (dataUrl) => {
     setLogo(dataUrl);
-    try { await window.storage.set(LOGO_KEY, dataUrl); } catch (e) { console.error(e); }
+    await stSet(LOGO_KEY, dataUrl);
   };
 
   const allTypes = useMemo(() => [...new Set(vehicles.map((v) => v.type).filter(Boolean))].sort(), [vehicles]);
@@ -7442,7 +7447,7 @@ export default function FleetApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
             <Logo logoSrc={logo} onUpload={uploadLogo} />
             <div style={{ flex: 1, minWidth: 210 }}>
-              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "مؤشرات الجاهزية والأعطال" : "جاهزية المراكز الميدانية"}</div>
+              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{view === "charts" ? "المؤشرات والتحليلات" : "جاهزية المراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -7702,8 +7707,8 @@ export default function FleetApp() {
         const q = cmdQ.trim();
         const nq = normPlate(q);
         const pages = [["overview", "🏠 نظرة عامة"], ["readiness", "📋 الجاهزية الميدانية"], ["list", "🚒 سجل الآليات"],
-          ["dashboard", "📊 لوحة المعلومات"], ["charts", "📈 مؤشرات الجاهزية والأعطال"], ["decision", "🎯 مركز القرار"],
-          ["ops", "📟 إحصائيات عملياتية"], ["reports", "🖨️ التقارير"]]
+          ["dashboard", "📊 لوحة المعلومات"], ["charts", "📈 المؤشرات والتحليلات"], ["decision", "🎯 مركز القرار"],
+          ["ops", "📟 إحصائيات عملياتية"], ["reports", "🖨️ التقارير والبيانات"]]
           .filter(([, l]) => !q || l.includes(q));
         const vres = !q ? [] : vehicles.filter((v) => normPlate(v.plate).includes(nq) || (v.type || "").includes(q) || (v.unit || "").includes(q)).slice(0, 8);
         const cres = !q ? [] : MANUAL_CENTERS.flatMap(({ branch, centers }) => centers.map((c) => ({ c, branch })))
