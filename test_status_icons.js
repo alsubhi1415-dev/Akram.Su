@@ -35,7 +35,10 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[الرئيسية] بطاقة «آليات الرجيع»", t2.includes("آليات الرجيع") || true);
   ok("[الرئيسية] بطاقة «نسبة الجاهزية»", html.includes("نسبة الجاهزية") || true);
   ok("لا ↩️ ولا ⚡ في بطاقات الحالة", !/آليات الرجيع[\s\S]{0,30}\u21A9/u.test(t2));
-  ok("الرموز الثمانية مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 8);
+  ok("الرموز العشرة مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 10);
+  ok("لا 📟 في الواجهة", !/\u{1F4DF}/u.test(txt()));
+  const dec = html.replace(/\\u\{([0-9a-fA-F]+)\}/g,(m,h)=>String.fromCodePoint(parseInt(h,16))).replace(/\\u([0-9a-fA-F]{4})/g,(m,h)=>String.fromCharCode(parseInt(h,16)));
+  ok("بطاقتا الجهات وحوادث اليوم مبنيّتان", dec.includes("حوادث اليوم المباشرة") && dec.includes("ما بين شعب ومراكز ميدانية"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
