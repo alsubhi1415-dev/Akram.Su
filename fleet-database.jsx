@@ -559,20 +559,45 @@ const hasStore = () => { try { return typeof window !== "undefined" && !!window.
 const stGet = async (k) => { if (!hasStore()) return null; try { return await window.storage.get(k); } catch (e) { return null; } };
 const stSet = async (k, v) => { if (!hasStore()) return false; try { await window.storage.set(k, v); return true; } catch (e) { return false; } };
 
+// ====== المرآة المحلية ======
+// تُحفظ آخر نسخة سحابية مُستلمة على الجهاز، فيرى المستخدم آخر موقف حقيقي
+// حتى لو انقطعت الشبكة تماماً — بدل بيانات الإكسل المحقونة وقت البناء.
+const MIRROR_KEY = "fd_mirror_v1";
+function mirrorRead() {
+  try {
+    const raw = localStorage.getItem(MIRROR_KEY);
+    if (!raw) return null;
+    const m = JSON.parse(raw);
+    if (m && m.db && Array.isArray(m.db.vehicles) && m.db.vehicles.length > 0) return m;
+  } catch (e) {}
+  return null;
+}
+function mirrorWrite(db, rev) {
+  try {
+    // إن لم يُمرّر مؤشر فيُحافظ على المؤشر المحفوظ بدل محوه
+    let keep = rev || "";
+    if (!keep) { const prev = mirrorRead(); keep = (prev && prev.rev) || ""; }
+    localStorage.setItem(MIRROR_KEY, JSON.stringify({ rev: keep, at: Date.now(), db }));
+    return true;
+  } catch (e) { return false; } // تجاوز سعة التخزين: يُتجاهل بلا إزعاج
+}
+
 async function loadDB() {
-  // إن وُجدت بيانات محفوظة سابقاً تُستخدم هي؛ وإلا تُحقن بيانات ملف الإكسل تلقائياً
+  // الأولوية للمرآة المحلية (آخر نسخة سحابية حقيقية)، ثم التخزين القديم،
+  // ولا يُلجأ لبيانات الإكسل إلا في أول زيارة على الإطلاق.
+  const m = mirrorRead();
+  if (m) return { db: m.db, rev: m.rev || "", from: "mirror" };
   try {
     const r = await stGet(STORAGE_KEY);
     if (r) {
       const db = JSON.parse(r.value);
-      if (db && Array.isArray(db.vehicles) && db.vehicles.length > 0) return db;
+      if (db && Array.isArray(db.vehicles) && db.vehicles.length > 0) return { db, rev: "", from: "legacy" };
     }
   } catch {}
-  const db = { vehicles: SEED_DB.vehicles };
-  await stSet(STORAGE_KEY, JSON.stringify(db));
-  return db;
+  return { db: { vehicles: SEED_DB.vehicles }, rev: "", from: "seed" };
 }
-async function saveDB(db) {
+async function saveDB(db, rev) {
+  mirrorWrite(db, rev);
   await stSet(STORAGE_KEY, JSON.stringify(db));
 }
 
@@ -1427,7 +1452,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 12.0 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6729,7 +6754,16 @@ export default function FleetApp() {
 
   useEffect(() => {
     (async () => {
-      setDb(await loadDB());
+      const boot = await loadDB();
+      setDb(boot.db);
+      dbRef.current = boot.db;
+      if (boot.from === "mirror") {
+        baseRef.current = JSON.parse(JSON.stringify(boot.db));
+        baseRevRef.current = boot.rev || "";
+        lastRevRef.current = boot.rev || null;
+        remoteSeenRef.current = !!boot.rev;   // لدينا أساس سحابي معروف
+        if (boot.rev) { SYNC.lastRev = boot.rev; SYNC.src = "المرآة المحلية"; setSaveLocked(false); setBootPhase("ready"); bootDoneRef.current = true; }
+      }
       const rl = await stGet(LOGO_KEY); if (rl) setLogo(rl.value);
     })();
   }, []);
@@ -6775,6 +6809,7 @@ export default function FleetApp() {
   const bootDoneRef = useRef(false);
   // حاجز حماية: لا يُرفع أي حفظ للسحابة قبل استلام حالتها الفعلية
   const remoteSeenRef = useRef(false);
+  const baseRevRef = useRef(""); // مؤشر النسخة السحابية التي بُنيت عليها بياناتنا
   const [saveLocked, setSaveLocked] = useState(true); // يُعرض بالرأس فيعرف المستخدم قبل أن يكتب
   useEffect(() => {
     const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 10000);
@@ -6826,7 +6861,8 @@ export default function FleetApp() {
         }
       } catch (e) {}
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
-      setDb(finalDb); saveDB(finalDb);
+      setDb(finalDb); saveDB(finalDb, parsed.rev || "");
+      baseRevRef.current = String(parsed.rev || "");
       bootDoneRef.current = true; remoteSeenRef.current = true; setBootPhase("ready");
       setSaveLocked(!!newVerRef.current);
       SYNC.lastRev = String(parsed.rev || ""); SYNC.lastAt = Date.now(); SYNC.token = !!tokenRef.current; SYNC.err = "";
@@ -6882,6 +6918,14 @@ export default function FleetApp() {
   const doPush = async (nextDb) => {
     const tok = tokenRef.current;
     if (!tok) { setCloud("notoken"); throw new Error("no-token"); }
+    // طوق أمان حاسم: إن تقدمت السحابة عن الأساس الذي بنينا عليه
+    // فلا نكتب فوقها بل نسلك مسار الدمج الثلاثي المجرّب
+    try {
+      const chk = await readVer(tok, {});
+      const cloudRev = chk && chk.ver && chk.ver.rev ? String(chk.ver.rev) : "";
+      const mine = String(baseRevRef.current || "");
+      if (cloudRev && mine && parseInt(cloudRev) > parseInt(mine)) throw new Error("gh-conflict");
+    } catch (e) { if (String(e && e.message) === "gh-conflict") throw e; }
     pushPendingRef.current = true;
     const rev = Date.now() + "-" + _cid;
     const payload = JSON.stringify({ cfg: cfgRef.current || {}, db: nextDb, rev, meta: { by: _cid, at: Date.now() } });
@@ -6890,6 +6934,8 @@ export default function FleetApp() {
     shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
     shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
     baseRef.current = JSON.parse(JSON.stringify(nextDb)); // ما دُفع صار الأساس المتفق عليه
+    baseRevRef.current = rev;
+    mirrorWrite(nextDb, rev);
     lastPushedRevRef.current = rev;
     lastRevRef.current = rev;
     pushPendingRef.current = false;
@@ -6900,7 +6946,7 @@ export default function FleetApp() {
 
   const queueCloud = (next) => {
     if (roRef.current) return;
-    if (!remoteSeenRef.current) return; // لم تُستلم السحابة بعد — منع الكتابة بنسخة قديمة
+    if (!remoteSeenRef.current && !baseRevRef.current) return; // لا أساس سحابياً إطلاقاً
     if (newVerRef.current) return; // نسخة برنامج قديمة لا تكتب في السجل المشترك
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
@@ -7032,7 +7078,7 @@ export default function FleetApp() {
       setTimeout(() => setImportMsg(""), 9000);
       return;
     }
-    if (!remoteSeenRef.current) {
+    if (!remoteSeenRef.current && !baseRevRef.current) {
       setImportMsg("⛔ لم تصل بيانات السحابة بعد — أُلغي الحفظ حمايةً للسجل من الكتابة بنسخة قديمة. راجع ‹‹⫷ أدوات ← 🩺 حالة المزامنة›› لمعرفة السبب، ثم أعد المحاولة بعد اكتمال المزامنة.");
       setTimeout(() => setImportMsg(""), 8000);
       return;
