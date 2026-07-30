@@ -607,6 +607,16 @@ const stSet = async (k, v) => { if (!hasStore()) return false; try { await windo
 // تُحفظ آخر نسخة سحابية مُستلمة على الجهاز، فيرى المستخدم آخر موقف حقيقي
 // حتى لو انقطعت الشبكة تماماً — بدل بيانات الإكسل المحقونة وقت البناء.
 const MIRROR_KEY = "fd_mirror_v1";
+// طابور الرفع: أي تعديل لم يصل السحابة يبقى محفوظاً على الجهاز حتى ينجح رفعه
+const PENDING_KEY = "fd_pending_v1";
+function pendingRead() {
+  try { const r = localStorage.getItem(PENDING_KEY); if (!r) return null;
+    const p = JSON.parse(r);
+    return (p && p.db && Array.isArray(p.db.vehicles) && p.db.vehicles.length > 0) ? p : null;
+  } catch (e) { return null; }
+}
+function pendingWrite(db) { try { localStorage.setItem(PENDING_KEY, JSON.stringify({ db, at: Date.now() })); return true; } catch (e) { return false; } }
+function pendingClear() { try { localStorage.removeItem(PENDING_KEY); } catch (e) {} }
 function mirrorRead() {
   try {
     const raw = localStorage.getItem(MIRROR_KEY);
@@ -1497,7 +1507,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 13.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.3 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6815,6 +6825,12 @@ export default function FleetApp() {
         }
         if (boot.rev) { SYNC.lastRev = boot.rev; SYNC.src = "المرآة المحلية"; setSaveLocked(false); setBootPhase("ready"); bootDoneRef.current = true; }
       }
+      // تعديلات لم تصل السحابة في جلسة سابقة: تُستعاد ويُعاد رفعها تلقائياً
+      const pend = pendingRead();
+      if (pend && pend.db) {
+        setDb(pend.db); dbRef.current = pend.db; setHasPending(true);
+        setTimeout(() => { try { queueCloud(pend.db); } catch (e) {} }, 3000);
+      }
       const rl = await stGet(LOGO_KEY); if (rl) setLogo(rl.value);
     })();
   }, []);
@@ -6860,7 +6876,10 @@ export default function FleetApp() {
   const bootDoneRef = useRef(false);
   // حاجز حماية: لا يُرفع أي حفظ للسحابة قبل استلام حالتها الفعلية
   const remoteSeenRef = useRef(false);
-  const baseRevRef = useRef(""); // مؤشر النسخة السحابية التي بُنيت عليها بياناتنا
+  const baseRevRef = useRef("");
+  const [hasPending, setHasPending] = useState(false); // تعديل ينتظر الرفع
+  const attemptRevRef = useRef("");   // مؤشر آخر محاولة رفع (للتحقق بعد فشل الشبكة)
+  const backoffRef = useRef(0);       // تصاعد مهلة إعادة المحاولة // مؤشر النسخة السحابية التي بُنيت عليها بياناتنا
   const [saveLocked, setSaveLocked] = useState(true); // يُعرض بالرأس فيعرف المستخدم قبل أن يكتب
   useEffect(() => {
     const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 10000);
@@ -6980,6 +6999,7 @@ export default function FleetApp() {
     } catch (e) { if (String(e && e.message) === "gh-conflict") throw e; }
     pushPendingRef.current = true;
     const rev = Date.now() + "-" + _cid;
+    attemptRevRef.current = rev;
     const payload = JSON.stringify({ cfg: cfgRef.current || {}, db: nextDb, rev, meta: { by: _cid, at: Date.now() } });
     if (shaDataRef.current === undefined) shaDataRef.current = await ghGetSha(tok, GH.path);
     if (shaVerRef.current === undefined) shaVerRef.current = await ghGetSha(tok, VER_PATH);
@@ -6992,6 +7012,7 @@ export default function FleetApp() {
     lastRevRef.current = rev;
     pushPendingRef.current = false;
     setCloud("on");
+    pendingClear(); setHasPending(false); backoffRef.current = 0; attemptRevRef.current = "";
     SYNC.push = "نجح " + new Date().toLocaleTimeString("ar-SA"); SYNC.err = "";
     stampNow("⬆ آخر بث");
   };
@@ -7000,6 +7021,7 @@ export default function FleetApp() {
     if (roRef.current) return;
     if (!remoteSeenRef.current && !baseRevRef.current) return; // لا أساس سحابياً إطلاقاً
     if (newVerRef.current) return; // نسخة برنامج قديمة لا تكتب في السجل المشترك
+    pendingWrite(next); setHasPending(true);
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
       try { await doPush(next); }
@@ -7042,10 +7064,29 @@ export default function FleetApp() {
           setImportMsg("🔑 لم يُربط GitHub بعد — يضيفه المشرف");
           setTimeout(() => setImportMsg(""), 7000);
         }
-        SYNC.push = "فشل: " + (m || "غير معروف"); SYNC.err = m;
+        // قد ينقطع الاتصال بعد أن يستلم الخادم الطلب فعلاً — نتحقق قبل إعلان الفشل
+        try {
+          const chk = await readVer(tokenRef.current, {});
+          const cv = chk && chk.ver ? chk.ver : null;
+          if (cv && cv.by === _cid && attemptRevRef.current && parseInt(cv.rev) >= parseInt(attemptRevRef.current)) {
+            baseRef.current = JSON.parse(JSON.stringify(next));
+            baseRevRef.current = String(cv.rev); lastRevRef.current = cv.rev;
+            mirrorWrite(next, String(cv.rev), cfgRef.current);
+            pendingClear(); setHasPending(false); backoffRef.current = 0;
+            SYNC.push = "نجح " + new Date().toLocaleTimeString("ar-SA"); SYNC.err = "";
+            setCloud("on"); stampNow("⬆ آخر بث");
+            return;
+          }
+        } catch (e2) {}
+        SYNC.push = "فشل: " + (m || "غير معروف") + " — سيُعاد الرفع تلقائياً"; SYNC.err = m;
         setCloud(m === "no-token" ? "notoken" : "off");
         clearTimeout(retryRef.current);
-        if (m !== "no-token" && m !== "gh-auth") retryRef.current = setTimeout(() => queueCloud(dbRef.current), 8000);
+        if (m !== "no-token" && m !== "gh-auth") {
+          const steps = [6000, 12000, 24000, 45000, 60000];
+          const wait = steps[Math.min(backoffRef.current, steps.length - 1)];
+          backoffRef.current = backoffRef.current + 1;
+          retryRef.current = setTimeout(() => queueCloud(dbRef.current), wait);
+        }
       }
     }, 1200);
   };
@@ -7644,6 +7685,7 @@ export default function FleetApp() {
               ["استُلمت السحابة", remoteSeenRef.current ? "نعم" : "لا"],
               ["نسخة أحدث منشورة", newVerRef.current || "لا توجد"],
               ["الحفظ متاح الآن", ro ? "لا (وضع استعراض)" : saveLocked ? "لا" : "نعم"],
+              ["تعديل بانتظار الرفع", hasPending ? "نعم — يُعاد تلقائياً" : "لا"],
               ["آخر رفع", SYNC.push || "لم يُرفع شيء في هذه الجلسة"],
               ["عدد الآليات المعروضة", String(vehicles.length)],
             ].map(([k, v]) => (
@@ -7658,7 +7700,7 @@ export default function FleetApp() {
               </div>
             )}
             <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length, seen: remoteSeenRef.current, lock: saveLocked, newVer: newVerRef.current || null, role: isOwner ? "owner" : ro ? "viewer" : "editor" })); } catch (e) {} }}
+              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length, seen: remoteSeenRef.current, lock: saveLocked, pending: hasPending, newVer: newVerRef.current || null, role: isOwner ? "owner" : ro ? "viewer" : "editor" })); } catch (e) {} }}
                 style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>نسخ التفاصيل</button>
               <button onClick={() => { try { if (window.caches && caches.keys) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))); } catch (e) {} window.location.reload(true); }}
                 style={{ background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تحديث كامل</button>
@@ -7822,6 +7864,13 @@ export default function FleetApp() {
                 border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 12px",
                 fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
               }}>⋯ أدوات</button>
+              {!ro && hasPending && (
+                <span onClick={() => setDiagOpen(true)} title="اضغط لمعرفة الحالة" style={{
+                  marginRight: 8, background: "rgba(184,124,20,0.92)", color: "#fff", borderRadius: 9,
+                  padding: "6px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                }}>⏳ بانتظار الرفع</span>
+              )}
               {!ro && saveLocked && (
                 <span onClick={() => setDiagOpen(true)} title="اضغط لمعرفة السبب" style={{
                   marginRight: 8, background: "rgba(179,18,28,0.9)", color: "#fff", borderRadius: 9,
