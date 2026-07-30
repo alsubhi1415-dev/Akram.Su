@@ -1546,7 +1546,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 13.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.9 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7594,8 +7594,9 @@ export default function FleetApp() {
           background: linear-gradient(178deg, #1B2440 0%, #232A47 34%, #3A1A2A 78%, #4A1218 100%);
           display: flex; flex-direction: column; gap: 6px; padding: 14px 10px;
           border-left: 1px solid rgba(212,175,55,0.22); box-shadow: -6px 0 24px rgba(10,14,26,0.35); overflow-y: auto; }
-        .side-rail .rail-title { color: #F2E9D8; font-size: 13.5px; font-weight: 800; padding: 4px 8px 10px;
-          border-bottom: 1px solid rgba(212,175,55,0.35); margin-bottom: 4px; letter-spacing: 0.2px; }
+        .side-rail .rail-title { color: #FCF7EE; font-size: 14px; font-weight: 800; padding: 4px 4px 10px;
+          border-bottom: 1px solid rgba(212,175,55,0.35); margin-bottom: 4px; letter-spacing: -0.2px;
+          white-space: nowrap; overflow: hidden; text-overflow: clip; }
         .side-rail button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: right;
           background: transparent; color: #D6D9E4; border: none; border-radius: 12px; padding: 11px 9px;
           font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s;
@@ -7878,7 +7879,7 @@ export default function FleetApp() {
       )}
 
       <aside className="side-rail no-print" aria-label="التنقل">
-        <div className="rail-title">جاهزية المراكز الميدانية</div>
+        <div className="rail-title">جاهزية الآليات والمراكز الميدانية</div>
         {[
           ["overview", NAV_ICON, "الصفحة الرئيسية"],
           ["list", VEH_ICON, "سجل الآليات"],
