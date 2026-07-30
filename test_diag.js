@@ -33,7 +33,7 @@ const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).fi
   if(row){row.click(); await wait(700);}
   const t=txt();
   ok("النافذة فُتحت", t.includes("حالة المزامنة"));
-  ok("تعرض نسخة البرنامج", t.includes("12.5"));
+  ok("تعرض نسخة البرنامج", t.includes("12.6"));
   ok("تعرض حالة الاتصال", t.includes("متصل"));
   ok("تعرض مصدر القراءة", t.includes("نفس أصل الصفحة") || t.includes("الواجهة الرسمية"));
   ok("تعرض مؤشر الاستلام", t.includes("rstr1101"));

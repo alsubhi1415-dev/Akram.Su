@@ -372,6 +372,15 @@ const T = {
   },
   sh: { sm: "0 2px 8px rgba(20,26,40,0.05)", md: "0 4px 14px rgba(20,26,40,0.08)", lg: "0 12px 34px rgba(20,26,40,0.10)" },
 };
+// ====== رمز الجاهزية للعمل (صح أخضر مفرّغ) ======
+const RDY_ICON = "data:image/png;base64,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";
+const RIcon = ({ s: sz }) => (
+  <img src={RDY_ICON} alt="" style={{
+    height: sz || "1em", width: "auto", objectFit: "contain",
+    display: "inline-block", verticalAlign: "-0.16em",
+  }} />
+);
+
 // قاموس الحالات الفنية: مجموعتها ولونها وأيقونتها وكيف تُعرض بالتقارير
 const ST = {
   "تعمل": { g: "working", c: "#0E7A5F", ic: "✅", rep: "تعمل" },
@@ -383,7 +392,7 @@ const ST = {
   "صدر قرار الرجيع": { g: "rejee", c: "#7A0E14", ic: "↩️", rep: "صدر قرار الرجيع" },
 };
 const ST_GROUPS = [
-  { key: "working", label: "آليات تعمل حالياً", ic: "✅", c: "#0E7A5F", sts: ["تعمل", "تم الإصلاح", "تعمل بوجود ملاحظات"], sub: "تعمل · تم الإصلاح · بملاحظات" },
+  { key: "working", label: "آليات تعمل حالياً", ic: <RIcon />, c: "#0E7A5F", sts: ["تعمل", "تم الإصلاح", "تعمل بوجود ملاحظات"], sub: "تعمل · تم الإصلاح · بملاحظات" },
   { key: "down", label: "آليات عطلانة", ic: "⚠️", c: "#C4353C", sts: ["عطلانة", "تحت التجهيز والتسليم"], sub: "عطلانة · تحت التجهيز والتسليم" },
   { key: "rejee", label: "آليات الرجيع", ic: "↩️", c: "#4E3D80", sts: ["تحت إجراءات الرجيع", "صدر قرار الرجيع"], sub: "تحت الإجراءات · صدر القرار" },
 ];
@@ -1121,7 +1130,7 @@ function StatusGrid({ items, min = 128 }) {
           background: it.ok ? "#EAF7F0" : "#FCEEEF", border: "1.5px solid " + (it.ok ? "#A9DCC0" : "#F2C3C6"),
           borderRadius: 12, padding: "9px 10px", display: "flex", alignItems: "center", gap: 8,
         }}>
-          <span style={{ fontSize: 14, flexShrink: 0 }}>{it.ok ? "✅" : "⭕"}</span>
+          <span style={{ fontSize: 14, flexShrink: 0 }}>{it.ok ? <RIcon /> : "⭕"}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11.5, fontWeight: 800, color: it.ok ? "#14603F" : "#8E1A22", lineHeight: 1.35, wordBreak: "break-word" }}>{it.name}</div>
             {it.sub && <div style={{ fontSize: 9.5, fontWeight: 700, color: "#8B93A3", marginTop: 2 }}>{it.sub}</div>}
@@ -1463,7 +1472,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 12.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 12.6 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -1934,7 +1943,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon={<VIcon />} go="list" />
-        <C n={S.ready} label="الآليات الجاهزة للعمل" pctOf={S.base} color="#00875A" icon="✅" go="list" />
+        <C n={S.ready} label="الآليات الجاهزة للعمل" pctOf={S.base} color="#00875A" icon={<RIcon />} go="list" />
         <C n={S.notes} label="آليات تعمل بوجود ملاحظات" pctOf={S.base} color="#B45309" icon="📋" go="list" />
         <C n={S.broken} label="الآليات المتعطلة حالياً" pctOf={S.base} color="#B3121C" icon="⚠️" go="list" />
         <C n={S.rejee} label="آليات الرجيع" pctOf={S.total} pctNote="من الملاك" sub="ما بين تحت الإجراءات وصدر القرار" color="#4E3D80" icon="↩️" go="list" />
@@ -2429,7 +2438,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
 
   const kpis = [
     { label: "إجمالي الآليات", value: counts.total, grad: "linear-gradient(135deg,#1F4E8C,#00A8E8)", icon: <VIcon /> },
-    { label: "آليات تعمل بدون ملاحظات", value: (counts["تعمل"] || 0) + (counts["تم الإصلاح"] || 0), grad: "linear-gradient(135deg,#00875A,#00C48C)", icon: "✅" },
+    { label: "آليات تعمل بدون ملاحظات", value: (counts["تعمل"] || 0) + (counts["تم الإصلاح"] || 0), grad: "linear-gradient(135deg,#00875A,#00C48C)", icon: <RIcon /> },
     { label: "الآليات العطلانة", value: counts["عطلانة"], grad: "linear-gradient(135deg,#C4353C,#FF5D73)", icon: "⚠️" },
     { label: "آليات تعمل بوجود ملاحظات", value: counts["تعمل بوجود ملاحظات"], grad: "linear-gradient(135deg,#B45309,#FFB800)", icon: "📋" },
     { label: "آليات تحت التجهيز والتسليم", value: counts["تحت التجهيز والتسليم"], grad: "linear-gradient(135deg,#0B5A52,#12B8A6)", icon: "📦" },
@@ -2540,7 +2549,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
             <GaugeArc pct={readyPct} color={readinessColor(readyPct)} label="من الأسطول العامل"
               sub={`المحتسب: الملاك ناقص الرجيع`} />
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(104px,1fr))", gap: 8, marginTop: 16 }}>
-              {[["✅", "جاهزة", counts["تعمل"] + counts["تم الإصلاح"], "#00875A"],
+              {[[<RIcon key="r" />, "جاهزة", counts["تعمل"] + counts["تم الإصلاح"], "#00875A"],
                 ["📋", "بملاحظات", counts["تعمل بوجود ملاحظات"], "#B45309"],
                 ["⚠️", "متعطلة", counts["عطلانة"] + counts["تحت التجهيز والتسليم"], "#C4353C"],
                 ["↩️", "رجيع", counts["تحت إجراءات الرجيع"] + counts["صدر قرار الرجيع"], "#4E3D80"]].map(([ic, nm, n, c]) => (
@@ -3796,7 +3805,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                   <span style={{ fontSize: 14, fontWeight: 800, color: "#7A5209" }}>🔔 مراجعة تغييرات بعد آخر تحديث للسجل ({changes.length})</span>
                   {clearRows.length > 0 && (
                     <button onClick={applyClear} style={{ marginRight: "auto", background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 15px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                      ✅ اعتماد الحركات الواضحة ({clearRows.length})
+                      <RIcon /> اعتماد الحركات الواضحة ({clearRows.length})
                     </button>
                   )}
                 </div>
@@ -3827,11 +3836,11 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                         <>
                           {c.kind !== "fixed" && (
                             <button onClick={() => setSt(c.k, "fixed", { warranty: false, newFault: false, partial: false })}
-                              style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ لبيان ما تم إصلاحه</button>
+                              style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}><RIcon /> لبيان ما تم إصلاحه</button>
                           )}
                           {c.kind === "fixed" && (
                             <button onClick={() => setSt(c.k, "fixed", { warranty: false, newFault: false, partial: false })}
-                              style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ نقلها لبيان ما تم إصلاحه</button>
+                              style={{ background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}><RIcon /> نقلها لبيان ما تم إصلاحه</button>
                           )}
                           <button onClick={() => setSt(c.k, "broken", { warranty: false, newFault: false, partial: false })}
                             style={{ background: "#B3121C", color: "#fff", border: "none", borderRadius: 9, padding: "7px 13px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>⚠️ لبيان المتعطلة</button>
@@ -3851,12 +3860,12 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
             )}
             {lastAct && (
               <div style={{ background: "#E7F4ED", border: "1.5px solid #A9DCC0", color: "#14603F", borderRadius: 12, padding: "9px 13px", marginBottom: 10, fontSize: 12.5, fontWeight: 800 }}>
-                ✅ حُفظ القرار: {lastAct}
+                <RIcon /> حُفظ القرار: {lastAct}
               </div>
             )}
             {canEdit && changes.length === 0 && (
               <div style={{ background: "#EAF7F0", border: "1.5px solid #A9DCC0", borderRadius: 12, padding: "10px 14px", marginBottom: 12, fontSize: 12.5, fontWeight: 800, color: "#14603F" }}>
-                ✅ البيان مطابق لسجل الآليات — لا تغييرات تنتظر مراجعتك
+                <RIcon /> البيان مطابق لسجل الآليات — لا تغييرات تنتظر مراجعتك
               </div>
             )}
           </div>
@@ -6096,7 +6105,7 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
       {tab === "int" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           <div style={{ fontSize: 12, color: "#5A6172", fontWeight: 700, background: intTotal ? "#FCF3E2" : "#E7F4ED", border: "1px solid " + (intTotal ? "#EBD5A8" : "#A9DCC0"), borderRadius: 10, padding: "8px 13px" }}>
-            {intTotal ? `رُصد ${intTotal} سجلاً يحتاج مراجعة قبل اعتماد أي تقرير رسمي — الضغط على أي سجل يفتح ملف الآلية.` : "لا تناقضات — بيانات السجل متسقة بالكامل ✅"}
+            {intTotal ? `رُصد ${intTotal} سجلاً يحتاج مراجعة قبل اعتماد أي تقرير رسمي — الضغط على أي سجل يفتح ملف الآلية.` : <>لا تناقضات — بيانات السجل متسقة بالكامل <RIcon /></>}
           </div>
           {INT.filter((g) => g.n > 0).map((g) => (
             <div key={g.k} style={{ ...card, borderRight: "5px solid " + (g.w === "high" ? "#B3121C" : g.w === "mid" ? "#C77F1A" : "#1F6FB8") }}>
@@ -6392,7 +6401,7 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 8, marginBottom: 10 }}>
                 {[["all", "📊", "المطبق عليها", critData.ok + critData.miss, "#1B2440"],
-                  ["ok", "✅", "متوفر", critData.ok, "#0E7A5F"],
+                  ["ok", <RIcon key="r" />, "متوفر", critData.ok, "#0E7A5F"],
                   ["miss", "⚠️", "عجز", critData.miss, "#C4353C"],
                   ["na", "—", "غير مطلوب", critData.na, "#8B93A3"]].map(([id, ic, lbl, n, clr]) => (
                   <FilterCard key={id} ic={ic} label={lbl} n={n} color={clr} min={140}
@@ -7751,7 +7760,7 @@ export default function FleetApp() {
                   padding: "14px 16px", textAlign: "right",
                 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: "#1B2440", marginBottom: 8 }}>🔔 التنبيهات الذكية ({alerts.total})</div>
-                  {alerts.total === 0 && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8B93A8" }}>لا تنبيهات حالياً — الوضع مستقر ✅</div>}
+                  {alerts.total === 0 && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8B93A8" }}>لا تنبيهات حالياً — الوضع مستقر <RIcon /></div>}
                   {alerts.long.length > 0 && (<div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 800, color: "#B3121C" }}>⏳ توقف تجاوز 90 يوماً ({alerts.long.length})</div>
                     {alerts.long.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 11.5, fontWeight: 700, color: "#3A4560", padding: "3px 0" }}>{x.v.type} — {x.v.plate} <b style={{ color: "#B3121C" }}>({x.d} يوماً)</b></div>)}
@@ -7908,7 +7917,7 @@ export default function FleetApp() {
         <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 850, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setQuick(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "22px 24px", width: 380, maxWidth: "92%", boxShadow: "0 24px 70px rgba(0,0,0,0.4)" }}>
             <div className="modal-card" style={{ fontSize: 15.5, fontWeight: 800, color: quick.mode === "fault" ? "#B3121C" : "#0E7A5F", marginBottom: 4 }}>
-              {quick.mode === "fault" ? "🔧 تسجيل عطل فوري" : "✅ تسجيل إصلاح فوري"}
+              {quick.mode === "fault" ? "🔧 تسجيل عطل فوري" : <><RIcon /> تسجيل إصلاح فوري</>}
             </div>
             <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5B6478", marginBottom: 14 }}>{quick.v.type} — {quick.v.plate} · {quick.v.unit}</div>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#3A4560", marginBottom: 4 }}>{quick.mode === "fault" ? "تاريخ العطل الهجري:" : "تاريخ الإصلاح الهجري:"}</div>
@@ -8435,7 +8444,7 @@ export default function FleetApp() {
                               <button title="تسجيل عطل فوري" onClick={() => setQuick({ v, mode: "fault", date: "", desc: "", ftype: "ميكانيكي" })}
                                 style={{ background: "#FBE9EB", color: "#B3121C", border: "1px solid #F2C3C6", borderRadius: 9, padding: "5px 8px", fontSize: 13, cursor: "pointer", marginLeft: 5 }}>🔧</button>
                               <button title="تسجيل إصلاح فوري" onClick={() => setQuick({ v, mode: "fix", date: "", desc: "" })}
-                                style={{ background: "#E5F5EE", color: "#0E7A5F", border: "1px solid #A9DCC0", borderRadius: 9, padding: "5px 8px", fontSize: 13, cursor: "pointer" }}>✅</button>
+                                style={{ background: "#E5F5EE", color: "#0E7A5F", border: "1px solid #A9DCC0", borderRadius: 9, padding: "5px 8px", fontSize: 13, cursor: "pointer" }}><RIcon /></button>
                             </td>
                           )}
                         </tr>
@@ -8503,7 +8512,7 @@ export default function FleetApp() {
                         <button onClick={() => setQuick({ v, mode: "fault", date: "", desc: "", ftype: "\u0645\u064a\u0643\u0627\u0646\u064a\u0643\u064a" })}
                           style={{ flex: 1, background: "#FBE9EB", color: "#B3121C", border: "1px solid #F2C3C6", borderRadius: 9, padding: "7px 0", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🔧 عطل</button>
                         <button onClick={() => setQuick({ v, mode: "fix", date: "", desc: "" })}
-                          style={{ flex: 1, background: "#E5F5EE", color: "#0E7A5F", border: "1px solid #A9DCC0", borderRadius: 9, padding: "7px 0", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ إصلاح</button>
+                          style={{ flex: 1, background: "#E5F5EE", color: "#0E7A5F", border: "1px solid #A9DCC0", borderRadius: 9, padding: "7px 0", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}><RIcon /> إصلاح</button>
                       </div>
                     )}
                   </div>
