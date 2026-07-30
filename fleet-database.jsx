@@ -1381,7 +1381,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.0 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6722,6 +6722,12 @@ export default function FleetApp() {
 
   // ====== المزامنة عبر GitHub: استطلاع خفيف كل 5 ثوانٍ + دفع مباشر ======
   const [cloud, setCloud] = useState("init"); // init | on | off | nodata | notoken
+  const [bootPhase, setBootPhase] = useState("loading"); // loading | ready | fallback
+  const bootDoneRef = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(() => { if (!bootDoneRef.current) setBootPhase("fallback"); }, 7000);
+    return () => clearTimeout(t);
+  }, []);
   const [syncStamp, setSyncStamp] = useState("");
   const stampNow = (label) => {
     const t = new Date();
@@ -6769,6 +6775,7 @@ export default function FleetApp() {
       } catch (e) {}
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
       setDb(finalDb); saveDB(finalDb);
+      bootDoneRef.current = true; setBootPhase("ready");
       // إن نتج عن الدمج فارق عن السحابة نُعيد دفعه ليستقر الطرفان
       if (finalDb !== remoteDb) { try { queueCloud(finalDb); } catch (e) {} }
       stampNow(note);
@@ -7328,6 +7335,8 @@ export default function FleetApp() {
         .fleet-tbl tbody tr:hover { background: #EEF4FB !important; box-shadow: inset 0 0 0 1px #CFE0F1; }
         .fleet-tbl tbody td { vertical-align: middle; }
         .veh-card { transition: box-shadow .14s ease, transform .14s ease; }
+        @keyframes bootspin { to { transform: rotate(360deg); } }
+        .boot-ring { animation: bootspin 0.85s linear infinite; }
         .veh-card:active { transform: scale(0.995); box-shadow: 0 2px 8px rgba(20,26,40,0.13); }
         .fleet-tbl thead th:first-child { border-top-right-radius: 12px; }
         .fleet-tbl thead th:last-child { border-top-left-radius: 12px; }
@@ -7409,6 +7418,38 @@ export default function FleetApp() {
           .draft-wm div { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
+
+      {bootPhase === "loading" && (
+        <div className="no-print" style={{
+          position: "fixed", inset: 0, zIndex: 990,
+          background: "linear-gradient(140deg,#141A28 0%,#1B2440 55%,#2A1114 100%)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          gap: 16, color: "#fff", padding: 24, textAlign: "center",
+        }}>
+          <div className="boot-ring" style={{
+            width: 46, height: 46, borderRadius: "50%",
+            border: "3px solid rgba(232,168,61,0.22)", borderTopColor: "#E8A33D",
+          }} />
+          <div style={{ fontSize: 15.5, fontWeight: 800, letterSpacing: 0.2 }}>جارٍ تحميل بيانات السجل من السحابة…</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "rgba(255,255,255,0.62)", lineHeight: 1.9, maxWidth: 340 }}>
+            لضمان عرض آخر موقف معتمد للآليات
+          </div>
+          <button onClick={() => setBootPhase("fallback")} style={{
+            marginTop: 4, background: "rgba(255,255,255,0.10)", color: "#E8EBF2",
+            border: "1px solid rgba(255,255,255,0.22)", borderRadius: 10,
+            padding: "8px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+          }}>متابعة بالنسخة المحلية</button>
+        </div>
+      )}
+
+      {bootPhase === "fallback" && (
+        <div className="no-print" style={{
+          background: "#FBF1DC", borderBottom: "1px solid #E6D3A8", color: "#7A5A12",
+          padding: "8px 14px", fontSize: 12.5, fontWeight: 800, textAlign: "center", lineHeight: 1.8,
+        }}>
+          ⚠️ لم تصل بيانات السحابة بعد — المعروض نسخة محلية قد لا تكون محدّثة
+        </div>
+      )}
 
       <aside className="side-rail no-print" aria-label="التنقل">
         <div className="rail-title">جاهزية المراكز الميدانية</div>

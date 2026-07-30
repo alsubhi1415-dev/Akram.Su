@@ -17,12 +17,13 @@ const click = async (label, ms) => {
 
 (async () => {
   await wait(6000); // انتظار موثّق 6 ثوانٍ
+  await wait(3500); // تجاوز شاشة الإقلاع (مهلة 7 ثوانٍ)
   const checks = [];
   const ok = (n, c) => checks.push([n, !!c]);
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 10.9", D.getElementById("root").textContent.includes("10.9"));
+  ok("ختم الإصدار 11.0", D.getElementById("root").textContent.includes("11.0"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
