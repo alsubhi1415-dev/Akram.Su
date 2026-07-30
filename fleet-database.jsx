@@ -177,16 +177,26 @@ const SELF_BASE = (() => {
   } catch (e) { return ""; }
 })();
 
+// سجل تشخيص المزامنة: يُعرض للمستخدم بدل التخمين عند أي عطل
+const SYNC = { src: "", tries: [], lastRev: "", lastAt: 0, token: false, push: "", err: "" };
+const srcName = (u) => u.indexOf("api.github.com") === 0 || u.indexOf("https://api.github.com") === 0
+  ? "الواجهة الرسمية" : (u.indexOf("raw.githubusercontent") >= 0 ? "المسار الاحتياطي" : "نفس أصل الصفحة");
+
 async function fetchFirst(urls) {
   let sawMissing = false;
   for (const u of urls) {
     try {
       const r = await fetch(u, { cache: "no-store" });
-      if (r.status === 404) { sawMissing = true; continue; }
-      if (!r.ok) continue;
+      if (r.status === 404) { sawMissing = true; SYNC.tries.push(srcName(u) + ": \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f"); continue; }
+      if (!r.ok) { SYNC.tries.push(srcName(u) + ": \u062e\u0637\u0623 " + r.status); continue; }
+      SYNC.src = srcName(u);
+      SYNC.tries = SYNC.tries.slice(-4);
       return { text: await r.text() };
-    } catch (e) {}
+    } catch (e) {
+      SYNC.tries.push(srcName(u) + ": \u062a\u0639\u0630\u0631 \u0627\u0644\u0648\u0635\u0648\u0644");
+    }
   }
+  SYNC.tries = SYNC.tries.slice(-4);
   if (sawMissing) return { missing: true };
   return null;
 }
@@ -201,7 +211,7 @@ async function readVer(token, st) {
       const r = await fetch(API_BASE + VER_PATH + "?ref=" + GH.branch, { headers: h, cache: "no-store" });
       if (r.status === 304) return { unchanged: true };
       if (r.status === 404) return { missing: true };
-      if (r.ok) { st.etagV = r.headers.get("ETag"); return { fresh: true, ver: JSON.parse(await r.text()) }; }
+      if (r.ok) { st.etagV = r.headers.get("ETag"); SYNC.src = "الواجهة الرسمية"; return { fresh: true, ver: JSON.parse(await r.text()) }; }
     } catch (e) {}
   }
   const nc = "?nc=" + Date.now();
@@ -1415,7 +1425,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.6 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6615,6 +6625,7 @@ export default function FleetApp() {
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef(null);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
   const toolsRef = useRef(null);
   const [narrowHdr, setNarrowHdr] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
   useEffect(() => {
@@ -6814,6 +6825,7 @@ export default function FleetApp() {
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
       setDb(finalDb); saveDB(finalDb);
       bootDoneRef.current = true; remoteSeenRef.current = true; setBootPhase("ready");
+      SYNC.lastRev = String(parsed.rev || ""); SYNC.lastAt = Date.now(); SYNC.token = !!tokenRef.current; SYNC.err = "";
       // إن نتج عن الدمج فارق عن السحابة نُعيد دفعه ليستقر الطرفان
       if (finalDb !== remoteDb) { try { queueCloud(finalDb); } catch (e) {} }
       stampNow(note);
@@ -6878,6 +6890,7 @@ export default function FleetApp() {
     lastRevRef.current = rev;
     pushPendingRef.current = false;
     setCloud("on");
+    SYNC.push = "نجح " + new Date().toLocaleTimeString("ar-SA"); SYNC.err = "";
     stampNow("⬆ آخر بث");
   };
 
@@ -6927,6 +6940,7 @@ export default function FleetApp() {
           setImportMsg("🔑 لم يُربط GitHub بعد — يضيفه المشرف");
           setTimeout(() => setImportMsg(""), 7000);
         }
+        SYNC.push = "فشل: " + (m || "غير معروف"); SYNC.err = m;
         setCloud(m === "no-token" ? "notoken" : "off");
         clearTimeout(retryRef.current);
         if (m !== "no-token" && m !== "gh-auth") retryRef.current = setTimeout(() => queueCloud(dbRef.current), 8000);
@@ -7482,6 +7496,46 @@ export default function FleetApp() {
         }
       `}</style>
 
+      {diagOpen && (
+        <div className="modal-overlay no-print" onClick={() => setDiagOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 870, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: "min(460px,100%)", maxHeight: "84vh", overflowY: "auto" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#141A28", marginBottom: 4 }}>🩺 حالة المزامنة</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginBottom: 12, lineHeight: 1.8 }}>
+              هذه الشاشة تبيّن من أين وصلت البيانات ومتى، وتُغني عن التخمين عند أي تأخر في التحديث.
+            </div>
+            {[
+              ["نسخة البرنامج", APP_BUILD],
+              ["حالة الاتصال", cloud === "on" ? "متصل" : cloud === "off" ? "منقطع" : cloud === "notoken" ? "بلا رمز كتابة" : cloud === "nodata" ? "لا يوجد ملف بيانات" : "قيد البدء"],
+              ["مصدر آخر قراءة", SYNC.src || "لم تنجح قراءة بعد"],
+              ["مؤشر آخر استلام", SYNC.lastRev || "—"],
+              ["وقت آخر استلام", SYNC.lastAt ? new Date(SYNC.lastAt).toLocaleTimeString("ar-SA") : "—"],
+              ["رمز الكتابة", SYNC.token ? "مفكوك وجاهز" : "غير متاح"],
+              ["آخر رفع", SYNC.push || "لم يُرفع شيء في هذه الجلسة"],
+              ["عدد الآليات المعروضة", String(vehicles.length)],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: "flex", gap: 10, justifyContent: "space-between", padding: "7px 2px", borderBottom: "1px solid #F0F2F7", fontSize: 12.5, fontWeight: 800 }}>
+                <span style={{ color: "#5B6478" }}>{k}</span>
+                <span style={{ color: "#141A28", textAlign: "left", minWidth: 0, wordBreak: "break-word" }}>{v}</span>
+              </div>
+            ))}
+            {SYNC.tries.length > 0 && (
+              <div style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: "#8B93A8", lineHeight: 1.9 }}>
+                محاولات لم تنجح: {SYNC.tries.join(" · ")}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length })); } catch (e) {} }}
+                style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>نسخ التفاصيل</button>
+              <button onClick={() => { try { if (window.caches && caches.keys) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))); } catch (e) {} window.location.reload(true); }}
+                style={{ background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تحديث كامل</button>
+              <button onClick={() => setDiagOpen(false)}
+                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {bootPhase === "loading" && (
         <div className="no-print" style={{
           position: "fixed", inset: 0, zIndex: 990,
@@ -7652,6 +7706,7 @@ export default function FleetApp() {
                     isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
                     isOwner && ["💾", "نسخة احتياطية", backupNow, null],
                     isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
+                    ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],
                     [dark ? "☀️" : "🌙", dark ? "الوضع النهاري" : "الوضع الليلي", () => setDark(!dark), null],
                   ].filter(Boolean).map(([ic, lbl, fn, badge], ti) => (
                     <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
