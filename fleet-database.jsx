@@ -1384,7 +1384,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.4 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -6425,6 +6425,7 @@ export default function FleetApp() {
   const [logo, setLogo] = useState(null);
   const [view, setView] = useState("overview");
   const [newVer, setNewVer] = useState(null); // نسخة أحدث منشورة على الخادم
+  const newVerRef = useRef(null); // يُقرأ داخل بوابة الحفظ
   useEffect(() => {
     let stop = false;
     // نسخة محفوظة محلياً (ملف على الجهاز): لا معنى لتنبيه التحديث فيها
@@ -6441,8 +6442,8 @@ export default function FleetApp() {
         if (stop || !j || !j.build) return;
         const remote = verNum(j.build), local = verNum(APP_BUILD);
         // التنبيه فقط إن كانت النسخة المنشورة أحدث فعلاً
-        if (remote > 0 && local > 0 && remote > local) setNewVer(j.build);
-        else setNewVer(null);
+        if (remote > 0 && local > 0 && remote > local) { newVerRef.current = j.build; setNewVer(j.build); }
+        else { newVerRef.current = null; setNewVer(null); }
       } catch (e) {}
     };
     check();
@@ -6851,6 +6852,7 @@ export default function FleetApp() {
   const queueCloud = (next) => {
     if (roRef.current) return;
     if (!remoteSeenRef.current) return; // لم تُستلم السحابة بعد — منع الكتابة بنسخة قديمة
+    if (newVerRef.current) return; // نسخة برنامج قديمة لا تكتب في السجل المشترك
     clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
       try { await doPush(next); }
@@ -6974,6 +6976,12 @@ export default function FleetApp() {
     }
     // حاجز حماية السجل: منع أي حفظ قبل استلام بيانات السحابة،
     // كي لا تُكتب نسخة قديمة أو احتياطية فوق أحدث نسخة معتمدة
+    // نسخة البرنامج قديمة ومنشورة أحدث منها: منع الكتابة حتى يُحدّث
+    if (newVerRef.current) {
+      setImportMsg("⛔ نسختك من البرنامج قديمة (المنشور: " + newVerRef.current + ") — أُلغي الحفظ حمايةً للسجل. اضغط زر التحديث أعلى الصفحة ثم أعد المحاولة.");
+      setTimeout(() => setImportMsg(""), 9000);
+      return;
+    }
     if (!remoteSeenRef.current) {
       setImportMsg("⛔ لم تصل بيانات السحابة بعد — أُلغي الحفظ حمايةً للسجل من الكتابة بنسخة قديمة. انتظر اكتمال المزامنة ثم أعد المحاولة.");
       setTimeout(() => setImportMsg(""), 8000);

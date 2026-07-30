@@ -37,7 +37,7 @@ const helpers = (w) => {
   await wait(3500); // تجاوز شاشة الإقلاع (مهلة 7 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 11.3", V.txt().includes("الإصدار 11.3"));
+  ok("[زائر] ختم الإصدار 11.4", V.txt().includes("الإصدار 11.4"));
   ok("[زائر] مقصد مركز القيادة", V.txt().includes("مركز القيادة"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
@@ -60,6 +60,11 @@ const helpers = (w) => {
   for (const lbl of ["سجل الآليات", "المؤشرات والتحليلات", "الجاهزية الميدانية", "إحصائيات عملياتية", "التقارير والبيانات"]) {
     const f = await V.click(lbl, 600);
     ok("[زائر] مقصد: " + lbl, f && V.txt().length > 200);
+  }
+  {
+    const fs2 = require("fs"), json = JSON.parse(fs2.readFileSync(__dirname + "/app-ver.json", "utf8"));
+    const m = html.match(/\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \\d+\\.\\d+/) || [];
+    ok("ختم الإصدار المنشور مطابق للنسخة", json.build && V.txt().includes(json.build.split(" \u00b7 ")[0]));
   }
   ok("[زائر] الوضع الليلي يقلب إضاءة المحتوى فعلاً", html.includes("invert(0.94) hue-rotate(180deg)"));
   ok("[زائر] الطباعة محميّة من مرشح الوضع الليلي", html.includes("body.dark main { filter: none !important; }"));

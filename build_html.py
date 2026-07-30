@@ -41,6 +41,17 @@ def main():
     with open(OUT_AR, "w", encoding="utf-8") as f:
         f.write(html)
     shutil.copyfile(OUT_AR, OUT_IDX)
+
+    # ختم الإصدار المنشور: يُولَّد آلياً من APP_BUILD فلا يتخلّف عن النسخة أبداً
+    import re, json, time
+    src = open(os.path.join(HERE, "fleet-database.jsx"), encoding="utf-8").read()
+    m = re.search(r'const APP_BUILD = "([^"]+)"', src)
+    if not m:
+        sys.stderr.write("تحذير: تعذر استخراج APP_BUILD\n")
+    else:
+        with open(os.path.join(HERE, "app-ver.json"), "w", encoding="utf-8") as f:
+            json.dump({"build": m.group(1), "at": int(time.time())}, f, ensure_ascii=False)
+        print("app-ver.json =", m.group(1))
     print("OK  bundle=%d  html=%d" % (len(js), len(html)))
 
 
