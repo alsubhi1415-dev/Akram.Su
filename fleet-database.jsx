@@ -1376,7 +1376,8 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.5 · 1448/02/09هـ";
+const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
 
@@ -7370,7 +7371,7 @@ export default function FleetApp() {
       <aside className="side-rail no-print" aria-label="التنقل">
         <div className="rail-title">جاهزية المراكز الميدانية</div>
         {[
-          { g: "القيادة", items: [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]] },
+          { g: "القيادة", items: [["overview", "🎛️", "مركز القيادة"]] },
           { g: "الآليات", items: [["list", "🚒", "سجل الآليات"], ["charts", "📈", "المؤشرات والتحليلات"]] },
           { g: "الجاهزية", items: [["readiness", "📋", "الجاهزية الميدانية"]] },
           { g: "العمليات", items: [["ops", "📟", "إحصائيات عملياتية"]] },
@@ -7382,7 +7383,7 @@ export default function FleetApp() {
               padding: "7px 12px 3px", textAlign: "right",
             }}>{g}</div>
             {items.map(([id, ic, lbl]) => (
-              <button key={id} className={view === id ? "act" : ""}
+              <button key={id} className={(id === "overview" ? CMD_TABS.some(([t]) => t === view) : view === id) ? "act" : ""}
                 onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); }}>
                 <span className="ric">{ic}</span><span className="rlb">{lbl}</span>
               </button>
@@ -7787,6 +7788,24 @@ export default function FleetApp() {
       })()}
 
       <main className="app-main" style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 40px", width: "100%", boxSizing: "border-box", flex: 1 }}>
+        {CMD_TABS.some(([t]) => t === view) && (
+          <div className="no-print" style={{
+            display: "flex", gap: 6, flexWrap: "wrap", alignItems: "flex-end",
+            borderBottom: "1px solid #DFE3EA", marginBottom: 20,
+          }}>
+            {CMD_TABS.map(([id, ic, lbl]) => (
+              <button key={id} onClick={() => setView(id)} style={{
+                background: view === id ? "#1B2440" : "transparent",
+                color: view === id ? "#FFFFFF" : "#5A6272",
+                border: "1px solid " + (view === id ? "#1B2440" : "transparent"),
+                borderBottom: view === id ? "3px solid #D4AF37" : "3px solid transparent",
+                borderRadius: "9px 9px 0 0", padding: "9px 15px", marginBottom: -1,
+                fontSize: 13, fontWeight: 800, fontFamily: "inherit", cursor: "pointer",
+                transition: "background .15s, color .15s", whiteSpace: "nowrap",
+              }}>{ic} {lbl}</button>
+            ))}
+          </div>
+        )}
         {view === "dashboard" && (
           <div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 22 }}>
