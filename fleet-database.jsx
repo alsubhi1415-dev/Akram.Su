@@ -1488,7 +1488,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 12.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 13.0 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7511,6 +7511,9 @@ export default function FleetApp() {
         .fleet-tbl tbody tr { transition: background .12s ease, box-shadow .12s ease; }
         .fleet-tbl tbody tr:hover { background: #EEF4FB !important; box-shadow: inset 0 0 0 1px #CFE0F1; }
         .fleet-tbl tbody td { vertical-align: middle; }
+        /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
+        header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
+        header .hdr-sub { color: #E2E8F4 !important; }
         .veh-card { transition: box-shadow .14s ease, transform .14s ease; }
         @keyframes bootspin { to { transform: rotate(360deg); } }
         .boot-ring { animation: bootspin 0.85s linear infinite; }
@@ -7706,7 +7709,11 @@ export default function FleetApp() {
         )}
       </aside>
 
-      <header className="no-print" style={{ background: `linear-gradient(270deg, #121826 0%, rgba(18,24,38,0.93) 28%, rgba(22,30,52,0.72) 46%, rgba(22,30,52,0.34) 64%, rgba(40,16,24,0.14) 82%, rgba(40,16,24,0.04) 100%), url(${HEADER_BG}) ${narrowHdr ? "center / cover" : "left center / auto 100%"} no-repeat, linear-gradient(120deg, #121826, #3A1420)`, padding: histLen > 0 ? "12px 22px 0 86px" : "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.48)", boxShadow: "0 8px 26px rgba(8,12,22,0.45)" }}>
+      <header className="no-print" style={{ background: `${narrowHdr
+            ? "linear-gradient(270deg, rgba(14,19,32,0.97) 0%, rgba(14,19,32,0.93) 38%, rgba(18,24,42,0.86) 62%, rgba(30,14,20,0.78) 100%)"
+            : "linear-gradient(270deg, #121826 0%, rgba(18,24,38,0.95) 26%, rgba(20,27,46,0.80) 40%, rgba(20,27,46,0.42) 58%, rgba(38,15,23,0.16) 80%, rgba(38,15,23,0.05) 100%)"
+          }, url(${HEADER_BG}) ${narrowHdr ? "center / cover" : "left center / 46% auto"} no-repeat, linear-gradient(120deg, #121826, #3A1420)`,
+          minHeight: narrowHdr ? undefined : 158, padding: histLen > 0 ? "12px 22px 0 86px" : "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.48)", boxShadow: "0 8px 26px rgba(8,12,22,0.45)" }}>
         {/* زر خفي: تنزيل index.html بأحدث بياناتك الحية لرفعه على GitHub */}
         
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
