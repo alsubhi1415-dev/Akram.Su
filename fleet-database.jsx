@@ -218,6 +218,7 @@ async function readVer(token, st) {
   const urls = [];
   if (SELF_BASE) urls.push(SELF_BASE + VER_PATH + nc);
   urls.push(RAW + VER_PATH + nc);
+  if (!SELF_BASE) urls.push(API_BASE + VER_PATH + "?ref=" + GH.branch);
   const res = await fetchFirst(urls);
   if (!res) throw new Error("ver-unreachable");
   if (res.missing) return { missing: true };
@@ -237,6 +238,7 @@ async function readData(token, wantRev) {
   const urls = [];
   if (SELF_BASE) urls.push(SELF_BASE + GH.path + nc);
   urls.push(RAW + GH.path + nc);
+  if (!SELF_BASE) urls.push(API_BASE + GH.path + "?ref=" + GH.branch);
   const res = await fetchFirst(urls);
   if (!res || res.missing) throw new Error("data-unreachable");
   return res.text;
@@ -1425,7 +1427,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 11.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 11.8 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -7029,7 +7031,7 @@ export default function FleetApp() {
       return;
     }
     if (!remoteSeenRef.current) {
-      setImportMsg("⛔ لم تصل بيانات السحابة بعد — أُلغي الحفظ حمايةً للسجل من الكتابة بنسخة قديمة. انتظر اكتمال المزامنة ثم أعد المحاولة.");
+      setImportMsg("⛔ لم تصل بيانات السحابة بعد — أُلغي الحفظ حمايةً للسجل من الكتابة بنسخة قديمة. راجع ‹‹⫷ أدوات ← 🩺 حالة المزامنة›› لمعرفة السبب، ثم أعد المحاولة بعد اكتمال المزامنة.");
       setTimeout(() => setImportMsg(""), 8000);
       return;
     }
