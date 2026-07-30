@@ -36,7 +36,7 @@ const helpers = (w) => {
   await wait(6000); // انتظار موثّق 6 ثوانٍ
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 10.7", V.txt().includes("الإصدار 10.7"));
+  ok("[زائر] ختم الإصدار 10.8", V.txt().includes("الإصدار 10.8"));
   ok("[زائر] مقصد مركز القيادة", V.txt().includes("مركز القيادة"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));

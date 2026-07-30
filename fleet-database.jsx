@@ -1376,7 +1376,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 10.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 10.8 · 1448/02/09هـ";
 const CMD_TABS = [["overview", "🏠", "نظرة عامة"], ["dashboard", "📊", "لوحة المعلومات"], ["decision", "🎯", "مركز القرار"]];
 const OPS_TYPES = ["حادث إطفاء", "حادث إنقاذ", "أعمال إسعاف", "حادث مروري", "انقطاع تيار كهربائي", "مواد خطرة", "أخرى"];
 const OPS_COLORS = { "حادث إطفاء": "#D92632", "حادث إنقاذ": "#1F6FB8", "أعمال إسعاف": "#00875A", "حادث مروري": "#B45309", "انقطاع تيار كهربائي": "#6D28D9", "مواد خطرة": "#0E7490", "أخرى": "#5A6172" };
@@ -1574,6 +1574,12 @@ function ShamelReport({ incidents, ro, logo, vehiclesCount, opsMeta, onSaveMeta,
 
 function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, opsMeta, onSaveMeta }) {
   const [shamel, setShamel] = useState(false);
+  const [nrw, setNrw] = useState(typeof window !== "undefined" ? window.innerWidth <= 700 : false);
+  useEffect(() => {
+    const h = () => setNrw(window.innerWidth <= 700);
+    window.addEventListener("resize", h); h();
+    return () => window.removeEventListener("resize", h);
+  }, []);
   const t = todayHijri();
   const dayNum = (s) => {
     const m = String(s || "").match(/(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})/);
@@ -1740,7 +1746,28 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, ops
       <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E4E7F0", padding: 16 }}>
         <div style={{ fontSize: 13.5, fontWeight: 800, color: "#1E2952", marginBottom: 10 }}>📜 أحدث الحوادث المسجلة</div>
         {sorted.length === 0 ? <div style={{ color: "#8B93A8", fontWeight: 700, fontSize: 12.5 }}>ابدأ بتسجيل أول حادث من النموذج أعلاه.</div> :
-          sorted.map((inc) => (
+          sorted.map((inc) => (nrw ? (
+            <div key={inc.id} className="inc-card" style={{
+              border: "1px solid #E6E9F2", borderRadius: 11, background: "#FBFCFE",
+              padding: "9px 11px", marginBottom: 8,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ background: OPS_COLORS[inc.type] || "#5A6172", color: "#fff", borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 800 }}>{inc.type}</span>
+                <span style={{ color: "#5B6478", fontSize: 12, fontWeight: 800 }}>{inc.date}</span>
+                {!ro && <button onClick={() => { if (confirm("\u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u062d\u0627\u062f\u062b\u061f")) onDelete(inc.id); }}
+                  style={{ marginRight: "auto", background: "transparent", border: "none", color: "#C0121C", cursor: "pointer", fontSize: 15, fontWeight: 800, fontFamily: "inherit", padding: "0 2px" }}>✕</button>}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800, color: "#1E2952", lineHeight: 1.7 }}>
+                {inc.unit}{inc.hood ? " \u00b7 " + inc.hood : ""}
+              </div>
+              {inc.note ? (
+                <div style={{ marginTop: 3, fontSize: 12, fontWeight: 700, color: "#5B6478", lineHeight: 1.75 }}>{inc.note}</div>
+              ) : null}
+              {(inc.inj > 0 || inc.dth > 0) && (
+                <div style={{ marginTop: 6, color: "#B3121C", fontSize: 12, fontWeight: 800 }}>🩹 {inc.inj || 0} · ⚫ {inc.dth || 0}</div>
+              )}
+            </div>
+          ) : (
             <div key={inc.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 4px", borderBottom: "1px solid #F0F2F7", fontSize: 12.5, fontWeight: 700 }}>
               <span style={{ background: OPS_COLORS[inc.type] || "#5A6172", color: "#fff", borderRadius: 8, padding: "3px 10px", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{inc.type}</span>
               <span style={{ color: "#5B6478", flexShrink: 0 }}>{inc.date}</span>
@@ -1748,7 +1775,7 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, ops
               {(inc.inj > 0 || inc.dth > 0) && <span style={{ color: "#B3121C", flexShrink: 0 }}>🩹 {inc.inj || 0} · ⚫ {inc.dth || 0}</span>}
               {!ro && <button onClick={() => { if (confirm("حذف هذا الحادث؟")) onDelete(inc.id); }} style={{ background: "transparent", border: "none", color: "#C0121C", cursor: "pointer", fontSize: 14, fontWeight: 800, fontFamily: "inherit" }}>✕</button>}
             </div>
-          ))}
+          )))}
       </div>
     </div>
   );

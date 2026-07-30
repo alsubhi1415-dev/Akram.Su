@@ -22,7 +22,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 10.7", D.getElementById("root").textContent.includes("10.7"));
+  ok("ختم الإصدار 10.8", D.getElementById("root").textContent.includes("10.8"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -60,6 +60,17 @@ const click = async (label, ms) => {
     const f = await click(lbl, 700);
     ok("[جوال] مقصد: " + lbl, f && D.getElementById("root").textContent.length > 200);
   }
+
+  // --- صفحة العمليات في الجوال ---
+  // ملاحظة: لا تُنشأ حوادث تجريبية إطلاقاً حمايةً لقاعدة البيانات الحية،
+  // لذا يُتحقق من فرع البطاقة بنيوياً ومن سلامة الصفحة في العرض الضيق.
+  setW(390); await wait(400);
+  await click("إحصائيات عملياتية", 900);
+  ok("[جوال] صفحة العمليات تفتح", D.getElementById("root").textContent.includes("أحدث الحوادث المسجلة"));
+  ok("[جوال] فرع بطاقة الحادث مبنيّ في النسخة", html.includes("inc-card"));
+  ok("[جوال] لا بطاقات حوادث (السجل فارغ فعلاً)", D.querySelectorAll(".inc-card").length === 0);
+  setW(1280); await wait(800);
+  ok("[مكتب] صفحة العمليات سليمة بعد التوسيع", D.getElementById("root").textContent.includes("أحدث الحوادث المسجلة"));
 
   ok("لا أخطاء تشغيل", errs.length === 0);
 
