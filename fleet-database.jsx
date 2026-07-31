@@ -1608,7 +1608,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 14.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 14.8 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -1916,12 +1916,13 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, ops
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+      <div className="btn-grid g5 navy">
         {PERIODS.map(([id, lbl]) => (
-          <button key={id} onClick={() => setPeriod(id)} style={{ background: period === id ? "#1E2952" : "#EEF1F8", color: period === id ? "#fff" : "#3A4560", border: "none", borderRadius: 11, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{lbl}</button>
+          <button key={id} onClick={() => setPeriod(id)}
+            className={"grid-btn" + (period === id ? " act" : "")}>{lbl}</button>
         ))}
-        <span style={{ alignSelf: "center", fontSize: 12, fontWeight: 800, color: "#5B6478" }}>حوادث الفترة: {S.sel.length}</span>
       </div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#5B6478", marginBottom: 14, textAlign: "center" }}>حوادث الفترة: {S.sel.length}</div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <KPI label="إصابات حوادث الدفاع المدني" value={S.cdInj} color="#B45309" sub="غير المرورية" />
@@ -4365,13 +4366,10 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     <div>
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", <span key="c"><StIcon /> تقرير مركز</span>], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["tour", "📝 كشف الجولة الميدانية"], ["cwa", "📱 رسالة شعبة"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", <span key="n"><VIcon /> تكميل الآليات النوعي الأسبوعي</span>], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
-            <button key={id} onClick={() => setRepMode(id)} style={{
-              background: repMode === id ? "#9E1B22" : "#F4F5F7", color: repMode === id ? "#fff" : "#3A4152",
-              border: repMode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
-              fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-            }}>{lbl}</button>
+        <div className="btn-grid g5">
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", <span key="c"><StIcon /> تقرير مركز</span>], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["cwa", "📱 رسالة شعبة"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", <span key="n"><VIcon /> تكميل الآليات النوعي الأسبوعي</span>], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+            <button key={id} onClick={() => setRepMode(id)}
+              className={"grid-btn" + (repMode === id ? " act" : "")}>{lbl}</button>
           ))}
         </div>
         <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800 }}>
@@ -6180,13 +6178,10 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
           ترتيب ما يستحق الإصلاح أولاً، ورصد المراكز التي فقدت تغطيتها، والآليات متكررة الأعطال — من بيانات السجل لحظياً
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+      <div className="btn-grid g5">
         {Tabs.map(([id, lbl, n]) => (
-          <button key={id} onClick={() => setTab(id)} style={{
-            background: tab === id ? "#9E1B22" : "#F4F5F7", color: tab === id ? "#fff" : "#3A4152",
-            border: tab === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 12, padding: "9px 18px",
-            fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>{lbl} ({n})</button>
+          <button key={id} onClick={() => setTab(id)}
+            className={"grid-btn" + (tab === id ? " act" : "")}>{lbl} <span className="gb-n">({n})</span></button>
         ))}
       </div>
 
@@ -7723,6 +7718,33 @@ export default function FleetApp() {
         /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
         header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
         header .hdr-sub { color: #E2E8F4 !important; }
+        /* مجموعات الأزرار الموحّدة: شبكة متساوية بلا فراغات */
+        .btn-grid { display: grid; gap: 8px; margin-bottom: 14px; }
+        .btn-grid.g5 { grid-template-columns: repeat(5, minmax(0,1fr)); }
+        .btn-grid.g4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+        .grid-btn {
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          min-height: 46px; padding: 8px 10px; border-radius: 12px;
+          font-size: 12.5px; font-weight: 800; font-family: inherit; cursor: pointer;
+          text-align: center; line-height: 1.35; white-space: normal; overflow-wrap: anywhere;
+          background: #FFFFFF; color: #3A4152; border: 1.5px solid #D3D8E2;
+          transition: background .16s ease, color .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+        @media (hover: hover) { .grid-btn:hover { border-color: #9E1B22; color: #9E1B22; background: #FDF6F6; } }
+        .grid-btn.act { background: linear-gradient(135deg,#9E1B22,#B7323A); color: #fff; border-color: transparent;
+          box-shadow: 0 4px 12px rgba(158,27,34,0.30); }
+        .grid-btn.act:hover { color: #fff; background: linear-gradient(135deg,#9E1B22,#B7323A); }
+        .grid-btn .gb-n { font-size: 11px; opacity: 0.85; font-weight: 800; }
+        .grid-btn img { height: 17px; width: auto; flex-shrink: 0; }
+        .btn-grid.navy .grid-btn.act { background: linear-gradient(135deg,#1E2952,#33427A); box-shadow: 0 4px 12px rgba(30,41,82,0.30); }
+        @media (hover: hover) { .btn-grid.navy .grid-btn:hover { border-color: #1E2952; color: #1E2952; background: #F3F6FD; } }
+        .btn-grid.navy .grid-btn.act:hover { color: #fff; background: linear-gradient(135deg,#1E2952,#33427A); }
+        @media (max-width: 980px) { .btn-grid.g5 { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+        @media (max-width: 640px) {
+          .btn-grid { gap: 6px; }
+          .btn-grid.g5, .btn-grid.g4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+          .grid-btn { font-size: 11.5px; min-height: 44px; padding: 7px 6px; border-radius: 11px; }
+        }
         /* شريط تبويبات مساحة القيادة: مقسّم أنيق يتكيّف مع الجوال */
         .cmd-tabs {
           display: flex; gap: 6px; margin-bottom: 20px; padding: 6px;
