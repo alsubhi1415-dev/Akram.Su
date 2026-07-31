@@ -372,6 +372,31 @@ const T = {
   },
   sh: { sm: "0 2px 8px rgba(20,26,40,0.05)", md: "0 4px 14px rgba(20,26,40,0.08)", lg: "0 12px 34px rgba(20,26,40,0.10)" },
 };
+// ====== وصف الجهاز: نوعه ومتصفحه من بصمة المتصفح ======
+function deviceInfo() {
+  try {
+    const ua = (navigator.userAgent || "");
+    const mob = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
+    const tab = /iPad|Tablet/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua));
+    const kind = tab ? "لوحي" : (mob ? "جوال" : "حاسب");
+    let os = "";
+    if (/Android/i.test(ua)) os = "Android";
+    else if (/iPhone|iPad|iPod/i.test(ua)) os = "iOS";
+    else if (/Windows/i.test(ua)) os = "Windows";
+    else if (/Mac OS X/i.test(ua)) os = "macOS";
+    else if (/Linux/i.test(ua)) os = "Linux";
+    let br = "";
+    if (/Edg\//i.test(ua)) br = "Edge";
+    else if (/SamsungBrowser/i.test(ua)) br = "Samsung";
+    else if (/OPR\/|Opera/i.test(ua)) br = "Opera";
+    else if (/Firefox\//i.test(ua)) br = "Firefox";
+    else if (/Chrome\//i.test(ua)) br = "Chrome";
+    else if (/Safari\//i.test(ua)) br = "Safari";
+    const w = (typeof window !== "undefined" && window.screen) ? window.screen.width : 0;
+    return { kind, os, br, w };
+  } catch (e) { return { kind: "غير معروف", os: "", br: "", w: 0 }; }
+}
+
 // ====== رمز التجهيز والتسليم ورمز صدور قرار الرجيع ======
 const HOUR_ICON = "data:image/png;base64,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";
 const HrIcon = ({ s: sz }) => (
@@ -1608,7 +1633,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 14.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 15.0 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6809,6 +6834,7 @@ export default function FleetApp() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
   const [syncBusy, setSyncBusy] = useState(false);
   const toolsRef = useRef(null);
@@ -6951,6 +6977,23 @@ export default function FleetApp() {
   const [pwVal, setPwVal] = useState("");
   const [pwErr, setPwErr] = useState("");
   const loginEditor = () => { setPwVal(""); setPwErr(""); setPwOpen(true); };
+  // قيد دخول واحد عند تسجيل الدخول فقط — لا يُكتب عند تصفح الصفحات
+  const logLogin = (roleNow) => {
+    setTimeout(() => {
+      try {
+        const t = todayHijri(); const c = new Date(); const d = deviceInfo();
+        const entry = {
+          t: t.d + "/" + t.m + "/" + t.y + "هـ " + String(c.getHours()).padStart(2, "0") + ":" + String(c.getMinutes()).padStart(2, "0"),
+          r: roleNow === "owner" ? "المشرف" : "المحرر",
+          k: d.kind, o: d.os, b: d.br, w: d.w,
+        };
+        const cur = dbRef.current || {};
+        const next = { ...cur, loginLog: [...((cur.loginLog) || []), entry].slice(-60) };
+        setDb(next); dbRef.current = next; saveDB(next); queueCloud(next);
+      } catch (e) {}
+    }, 1200);
+  };
+
   const submitPw = () => {
     const p = pwVal;
     const h = pwHash(p);
@@ -6958,11 +7001,13 @@ export default function FleetApp() {
       try { window.localStorage.setItem(ROLE_KEY, OWNER_HASH); } catch {}
       setRole("owner"); setPwOpen(false);
       setImportMsg("👑 تم الدخول كمشرف");
+      logLogin("owner");
       setTimeout(() => setImportMsg(""), 4500);
     } else if (h === PW_HASH) {
       try { window.localStorage.setItem(ROLE_KEY, PW_HASH); } catch {}
       setRole("editor"); setPwOpen(false);
       setImportMsg("✏️ تم الدخول كمحرر جاهزية");
+      logLogin("editor");
       setTimeout(() => setImportMsg(""), 4500);
     } else {
       setPwErr("كلمة السر غير صحيحة — حاول مجدداً");
@@ -7872,6 +7917,42 @@ export default function FleetApp() {
         }
       `}</style>
 
+      {loginOpen && (
+        <div className="modal-overlay no-print" onClick={() => setLoginOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 874, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 18, padding: "20px 22px", width: "min(560px,100%)", maxHeight: "84vh", overflowY: "auto" }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, color: "#141A28", marginBottom: 4 }}>سجل دخول الفريق</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", marginBottom: 14, lineHeight: 1.9 }}>
+              يُسجَّل قيد واحد عند كل تسجيل دخول بكلمة سر — للمشرفين والمحررين فقط.
+              أما من يفتح الرابط بلا تسجيل دخول فلا يُرصد، لأن جهازه لا يملك صلاحية الكتابة أصلاً.
+            </div>
+            {(db.loginLog || []).length === 0 ? (
+              <div style={{ padding: "26px 10px", textAlign: "center", color: "#8B93A8", fontWeight: 700, fontSize: 12.5, lineHeight: 1.9 }}>
+                لم يُسجَّل دخول بعد — يظهر أول قيد هنا بعد أول تسجيل دخول بكلمة السر.
+              </div>
+            ) : [...(db.loginLog || [])].reverse().slice(0, 25).map((e, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 4px", borderBottom: "1px solid #F0F2F7" }}>
+                <span style={{
+                  background: e.r === "المشرف" ? "#F3E9F7" : "#EAF2FB", color: e.r === "المشرف" ? "#6D28D9" : "#1F4E8C",
+                  border: "1px solid " + (e.r === "المشرف" ? "#DCC7EC" : "#C7DDF2"), borderRadius: 8,
+                  padding: "3px 10px", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0,
+                }}>{e.r}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2440" }}>{e.t}</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5B6478", marginTop: 2 }}>
+                    {e.k}{e.o ? " · " + e.o : ""}{e.b ? " · " + e.b : ""}{e.w ? " · عرض الشاشة " + e.w : ""}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end" }}>
+              <button onClick={() => setLoginOpen(false)}
+                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {syncOpen && (
         <div className="modal-overlay no-print" onClick={() => setSyncOpen(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 872, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
@@ -8147,6 +8228,7 @@ export default function FleetApp() {
                     !ro && ["⚙️", "عتبة تنبيه الجاهزية", () => setAlertOpen(true), null],
                     isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), (db.trash || []).length || null],
                     isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
+                    isOwner && ["👤", "سجل دخول الفريق", () => setLoginOpen(true), ((db.loginLog || []).length || null)],
                     ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), ((db.syncLog || []).length || null)],
                     isOwner && ["💾", "نسخة احتياطية", backupNow, null],
                     isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
