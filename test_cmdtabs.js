@@ -34,8 +34,11 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("محتوى لوحة المعلومات ظهر", txt().includes("إجمالي الآليات"));
   tabs2[2].click(); await wait(900);
   ok("تبويب مركز القرار يعمل", Array.from(D.querySelectorAll(".cmd-tab"))[2].className.includes("act"));
-  ok("تنسيق الجوال: أيقونة فوق النص", html.includes("flex-direction: column; gap: 4px; padding: 8px 3px;"));
-  ok("تنسيق النشط بتدرّج وخط ذهبي", html.includes("inset 0 -3px 0 #D4AF37"));
+  ok("تنسيق الجوال: أيقونة فوق النص", html.includes("flex-direction: column; gap: 5px; padding: 10px 4px;"));
+  ok("تنسيق النشط بتدرّج وخط ذهبي", html.includes("inset 0 -4px 0 #D4AF37"));
+  ok("الأزرار الثلاثة منفصلة بشبكة", html.includes("grid-template-columns: repeat(3, minmax(0,1fr));") && html.includes("gap: 12px"));
+  ok("لكل زر إطار وظل مستقل", html.includes("border: 1.5px solid #D2D8E4; border-radius: 14px;") && html.includes("box-shadow: 0 3px 10px rgba(30,41,82,0.10)"));
+  ok("لا حاوية مشتركة تجمعها", !html.includes("background: linear-gradient(180deg,#F2F5FA,#E9EDF5)"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
