@@ -35,7 +35,12 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[الرئيسية] بطاقة «آليات الرجيع»", t2.includes("آليات الرجيع") || true);
   ok("[الرئيسية] بطاقة «نسبة الجاهزية»", html.includes("نسبة الجاهزية") || true);
   ok("لا ↩️ ولا ⚡ في بطاقات الحالة", !/آليات الرجيع[\s\S]{0,30}\u21A9/u.test(t2));
-  ok("الرموز الأحد عشر مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 11);
+  ok("الرموز الستة عشر مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 16);
+  ok("لا 🔐 في الواجهة", !/\u{1F510}/u.test(txt()));
+  {
+    const hb=Array.from(D.querySelector("header").querySelectorAll("button"));
+    ok("زر البحث السريع برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("بحث سريع")));
+  }
   ok("لا 🔔 في الواجهة", !/\u{1F514}/u.test(txt()));
   ok("زر التنبيهات برمز مصوّر", !!Array.from(D.querySelector("header").querySelectorAll("button")).find(b=>b.querySelector("img")));
   ok("لا 📟 في الواجهة", !/\u{1F4DF}/u.test(txt()));
