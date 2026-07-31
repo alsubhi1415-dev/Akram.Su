@@ -31,7 +31,8 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   // الجاهزية
   await click("الجاهزية الميدانية",1600);
   const p2=Array.from(D.querySelectorAll("button.print-btn"));
-  ok("[الجاهزية] زر تقرير الجاهزية فاتح", p2.some(b=>(b.textContent||"").includes("تقرير الجاهزية")));
+  const pd=Array.from(D.querySelectorAll("button.print-dark"));
+  ok("[الجاهزية] زر تقرير الجاهزية بالصنف الداكن", pd.some(b=>(b.textContent||"").includes("تقرير الجاهزية")));
   // العمليات
   await click("إحصائيات عملياتية",1600);
   const p3=Array.from(D.querySelectorAll("button.print-btn"));

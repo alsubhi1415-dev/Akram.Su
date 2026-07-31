@@ -49,7 +49,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[العمليات] عدّاد الفترة نُقل خارج الشبكة", txt().includes("حوادث الفترة"));
   // صفحة الجاهزية الميدانية
   await click("الجاهزية الميدانية",1600);
-  const rg=Array.from(D.querySelectorAll(".btn-grid.g4")).pop();
+  const rg=Array.from(D.querySelectorAll(".btn-grid.g4")).find(g=>g.querySelectorAll(".grid-btn").length===4);
   const rbt=rg?Array.from(rg.querySelectorAll(".grid-btn")):[];
   ok("[الجاهزية] أربعة أزرار بشبكة رباعية", rbt.length===4);
   ok("[الجاهزية] الأزرار الأربعة كلها برموز مصوّرة", rg && rg.querySelectorAll("img").length===4);
@@ -57,7 +57,8 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[الجاهزية] زر تقرير الجاهزية خارج الشبكة", txt().includes("تقرير الجاهزية"));
   ok("[الجاهزية] زر واحد نشط", rbt.filter(b=>b.className.includes("act")).length===1);
   rbt[1].click(); await wait(1000);
-  ok("[الجاهزية] النقر ينقل النشاط", Array.from(D.querySelectorAll(".btn-grid.g4 .grid-btn"))[1].className.includes("act"));
+  const rg2=Array.from(D.querySelectorAll(".btn-grid.g4")).find(g=>g.querySelectorAll(".grid-btn").length===4);
+  ok("[الجاهزية] النقر ينقل النشاط", Array.from(rg2.querySelectorAll(".grid-btn"))[1].className.includes("act"));
   ok("قواعد الشبكة مبنيّة", html.includes(".btn-grid.g5 { grid-template-columns: repeat(5") && html.includes("grid-template-columns: repeat(2"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}

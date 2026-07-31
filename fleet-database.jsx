@@ -834,15 +834,15 @@ const inputStyle = {
   outline: "none", width: "100%", boxSizing: "border-box",
 };
 
-function KPI({ label, value, color, sub }) {
+function KPI({ label, value, color, sub, tone }) {
   return (
     <div style={{
-      background: "#F4F5F7", borderRadius: 14, padding: "16px 18px", flex: "1 1 140px",
-      border: "1px solid #D9DCE2", borderTop: `4px solid ${color}`, minWidth: 130,
+      background: tone ? tone.bg : "#F4F5F7", borderRadius: 14, padding: "16px 18px", flex: "1 1 140px",
+      border: "1px solid " + (tone ? tone.bd : "#D9DCE2"), borderTop: `4px solid ${color}`, minWidth: 130,
     }}>
-      <div style={{ fontSize: 30, fontWeight: 800, color: "#141A28", lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#5A6172", marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11.5, color: "#8B93A3", marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 30, fontWeight: 800, color: tone ? color : "#141A28", lineHeight: 1.1 }}>{value}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: tone ? tone.tx : "#5A6172", marginTop: 4, lineHeight: 1.6 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11.5, fontWeight: 800, color: tone ? color : "#8B93A3", marginTop: 2, opacity: 0.92 }}>{sub}</div>}
     </div>
   );
 }
@@ -1653,7 +1653,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 15.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 15.4 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6458,8 +6458,8 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
         <TabBtn id="priority" label={<><CvIcon /> التغطية الميدانية</>} />
       </div>
       {onOpenReport && (
-        <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
-          <button onClick={onOpenReport} className="print-btn" style={{ minWidth: 200 }}><PrIcon /> تقرير الجاهزية</button>
+        <div className="btn-grid g4" style={{ marginBottom: 16 }}>
+          <button onClick={onOpenReport} className="grid-btn print-dark"><PrIcon /> تقرير الجاهزية</button>
         </div>
       )}
 
@@ -6521,9 +6521,14 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
         <>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
             <KPI label="إجمالي المراكز" value={levelCounts.total} color="#141A28" />
-            <KPI label="جاهزية مكتملة (أخضر)" value={levelCounts.green} color="#2E9E63" />
-            <KPI label="نقص متطلبات المركز (أصفر)" value={levelCounts.yellow} color="#C77F1A" />
-            <KPI label="عجز كامل" value={levelCounts.red} color="#C4353C"
+            <KPI label="المراكز مكتملة الجاهزية" value={levelCounts.green} color="#0E7A5F"
+              tone={{ bg: "#F1FAF5", bd: "#BFE3D0", tx: "#14664A" }}
+              sub={levelCounts.total ? Math.round((levelCounts.green / levelCounts.total) * 100) + "% من المراكز" : ""} />
+            <KPI label="مراكز يوجد بها نقص بسيط بالجاهزية" value={levelCounts.yellow} color="#C77F1A"
+              tone={{ bg: "#FEF9EE", bd: "#EEDCB3", tx: "#8A5D0B" }}
+              sub={levelCounts.total ? Math.round((levelCounts.yellow / levelCounts.total) * 100) + "% من المراكز" : ""} />
+            <KPI label="مراكز يوجد بها عجز مؤثر" value={levelCounts.red} color="#C4353C"
+              tone={{ bg: "#FDF2F3", bd: "#F2C8CB", tx: "#8F1C22" }}
               sub={levelCounts.total ? Math.round((levelCounts.red / levelCounts.total) * 100) + "% من المراكز" : ""} />
             <KPI label="شعب مغطاة بقص الخواتم" value={coverage.ring + " / " + MANUAL_CENTERS.length}
               color={coverage.ring === MANUAL_CENTERS.length ? "#2E9E63" : "#C77F1A"} />
@@ -6534,9 +6539,9 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
           {/* شريط الفلاتر الذكي */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 9, marginBottom: 12 }}>
             {[["all", "📋", "كل المراكز", "المراكز الميدانية كافة", levelCounts.total, "#1B2440"],
-              ["green", "🟢", "مكتملة الجاهزية", "لا عجز بأي بند مطلوب", levelCounts.green, "#0E7A5F"],
-              ["yellow", "🟡", "عجز جزئي", "ينقصها بند أو أكثر", levelCounts.yellow, "#C77F1A"],
-              ["red", "🔴", "عجز كلي", "بلا وايت أو بلا إنقاذ", levelCounts.red, "#C4353C"]].map(([id, ic, lbl, sub, n, clr]) => (
+              ["green", "🟢", "المراكز مكتملة الجاهزية", "لا عجز بأي بند مطلوب", levelCounts.green, "#0E7A5F"],
+              ["yellow", "🟡", "مراكز يوجد بها نقص بسيط بالجاهزية", "ينقصها بند أو أكثر", levelCounts.yellow, "#C77F1A"],
+              ["red", "🔴", "مراكز يوجد بها عجز مؤثر", "بلا وايت أو بلا إنقاذ", levelCounts.red, "#C4353C"]].map(([id, ic, lbl, sub, n, clr]) => (
               <FilterCard key={id} ic={ic} label={lbl} sub={sub} n={n} color={clr}
                 active={lvFilter === id} onClick={() => setLvFilter(id)} />
             ))}
@@ -7788,6 +7793,9 @@ export default function FleetApp() {
         }
         @media (hover: hover) { .print-btn:hover { background: #F5F7FB; border-color: #9E1B22; color: #9E1B22; box-shadow: 0 3px 12px rgba(158,27,34,0.22); } }
         .print-btn img { height: 18px; width: auto; object-fit: contain; }
+        /* زر طباعة داكن قليلاً داخل الشبكة — يميّزه دون أن يبتلع رمز الطابعة */
+        .grid-btn.print-dark { background: #E5E9F1; border-color: #A9B2C4; color: #1B2440; }
+        @media (hover: hover) { .grid-btn.print-dark:hover { background: #D9DFEA; border-color: #1B2440; color: #1B2440; } }
         /* مجموعات الأزرار الموحّدة: شبكة متساوية بلا فراغات */
         .btn-grid { display: grid; gap: 8px; margin-bottom: 14px; }
         .btn-grid.g5 { grid-template-columns: repeat(5, minmax(0,1fr)); }
