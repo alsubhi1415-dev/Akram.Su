@@ -37,7 +37,7 @@ const helpers = (w) => {
   await wait(5500); // تجاوز شاشة الإقلاع (مهلة 10 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 14.8", V.txt().includes("الإصدار 14.8"));
+  ok("[زائر] ختم الإصدار 14.9", V.txt().includes("الإصدار 14.9"));
   ok("[زائر] مقصد الصفحة الرئيسية بالشريط", V.txt().includes("الصفحة الرئيسية"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
@@ -66,6 +66,7 @@ const helpers = (w) => {
     const m = html.match(/\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \\d+\\.\\d+/) || [];
     ok("ختم الإصدار المنشور مطابق للنسخة", json.build && V.txt().includes(json.build.split(" \u00b7 ")[0]));
   }
+  ok("[زائر] مرشّح «المركز» بلا كلمة تفصيلي", !V.txt().includes("المركز التفصيلي"));
   ok("[زائر] عنوان الشريط الجديد", V.txt().includes("جاهزية الآليات والمراكز الميدانية"));
   ok("[زائر] عنوان الشريط بسطر واحد", html.includes(".side-rail .rail-title { color: #FCF7EE; font-size: 14px") && html.includes("white-space: nowrap; overflow: hidden; text-overflow: clip;"));
   ok("[زائر] عنوان الشريط مخفي بالجوال", html.includes(".side-rail .rail-title { display: none; }"));

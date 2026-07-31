@@ -1608,7 +1608,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 14.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 14.9 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -4400,7 +4400,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <input style={{ ...inputStyle, flex: "2 1 220px" }} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان التقرير" readOnly={ro} />
           <MultiSelect label="الشعبة / الجهة" options={branches} values={rBranch} onChange={setRBranch} />
-          <MultiSelect label="المركز التفصيلي" options={unitsList} values={rUnit} onChange={setRUnit} />
+          <MultiSelect label="المركز" options={unitsList} values={rUnit} onChange={setRUnit} />
           <MultiSelect label="الحالة الفنية" options={[...STATUSES, READY_GROUP]} values={rStatus} onChange={setRStatus} flex="1 1 150px" />
           <MultiSelect label="نوع العطل" options={FAULT_TYPES} values={rFType} onChange={setRFType} flex="1 1 130px" />
           <MultiSelect label="نوع الآلية" options={typesList} values={rVType} onChange={setRVType} flex="1 1 170px" />
@@ -8679,7 +8679,7 @@ export default function FleetApp() {
               <MultiSelect label="النوع" options={allTypes} values={fType} onChange={setFType} flex="1 1 130px" />
               <MultiSelect label="الموديل" options={allModels} values={fModel} onChange={setFModel} flex="1 1 120px" />
               <MultiSelect label="الشعبة / الجهة" options={allBranches} values={fBranch} onChange={setFBranch} flex="1 1 150px" />
-              <MultiSelect label="المركز التفصيلي" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
+              <MultiSelect label="المركز" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
               <button onClick={() => printList(sortRows(filtered))} title={ro ? "طباعة نسخة استعراض بعلامة مائية" : "طباعة البيان الحالي بمرشحاته بصيغة رسمية"}
                 style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}><PrIcon /> طباعة البيان</button>
               {isOwner && <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
