@@ -35,7 +35,8 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[الرئيسية] بطاقة «آليات الرجيع»", t2.includes("آليات الرجيع") || true);
   ok("[الرئيسية] بطاقة «نسبة الجاهزية»", html.includes("نسبة الجاهزية") || true);
   ok("لا ↩️ ولا ⚡ في بطاقات الحالة", !/آليات الرجيع[\s\S]{0,30}\u21A9/u.test(t2));
-  ok("الرموز الستة عشر مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 16);
+  ok("الرموز الثمانية عشر مضمّنة", (html.match(/data:image\/png;base64,/g)||[]).length >= 18);
+  ok("لا 📦 ولا 🗄 بالبطاقات", !/\u{1F4E6}/u.test(txt()) && !/\u{1F5C4}/u.test(txt()));
   ok("لا 🔐 في الواجهة", !/\u{1F510}/u.test(txt()));
   {
     const hb=Array.from(D.querySelector("header").querySelectorAll("button"));
