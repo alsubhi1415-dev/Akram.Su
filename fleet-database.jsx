@@ -1653,7 +1653,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 15.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 15.5 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6404,6 +6404,7 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
     return {
       ring: MANUAL_CENTERS.filter(({ centers }) => centers.some((c) => ring[c])).length,
       elev: MANUAL_CENTERS.filter(({ centers }) => centers.some((c) => elev[c])).length,
+      elevE: MANUAL_CENTERS.filter(({ centers }) => centers.some((c) => elevE[c])).length,
     };
   }, [equip]);
 
@@ -6522,25 +6523,32 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
             <KPI label="إجمالي المراكز" value={levelCounts.total} color="#141A28" />
             <KPI label="المراكز مكتملة الجاهزية" value={levelCounts.green} color="#0E7A5F"
-              tone={{ bg: "#F1FAF5", bd: "#BFE3D0", tx: "#14664A" }}
+              tone={{ bg: "#DFF3E8", bd: "#A9D8BF", tx: "#0E5C42" }}
               sub={levelCounts.total ? Math.round((levelCounts.green / levelCounts.total) * 100) + "% من المراكز" : ""} />
-            <KPI label="مراكز يوجد بها نقص بسيط بالجاهزية" value={levelCounts.yellow} color="#C77F1A"
-              tone={{ bg: "#FEF9EE", bd: "#EEDCB3", tx: "#8A5D0B" }}
+            <KPI label="مراكز يوجد بها نقص جزئي بالجاهزية" value={levelCounts.yellow} color="#B87207"
+              tone={{ bg: "#FCF0D9", bd: "#E6CB92", tx: "#7A5108" }}
               sub={levelCounts.total ? Math.round((levelCounts.yellow / levelCounts.total) * 100) + "% من المراكز" : ""} />
-            <KPI label="مراكز يوجد بها عجز مؤثر" value={levelCounts.red} color="#C4353C"
-              tone={{ bg: "#FDF2F3", bd: "#F2C8CB", tx: "#8F1C22" }}
+            <KPI label="مراكز يوجد بها عجز مؤثر" value={levelCounts.red} color="#B3121C"
+              tone={{ bg: "#FBE3E5", bd: "#EDB3B8", tx: "#7E181D" }}
               sub={levelCounts.total ? Math.round((levelCounts.red / levelCounts.total) * 100) + "% من المراكز" : ""} />
-            <KPI label="شعب مغطاة بقص الخواتم" value={coverage.ring + " / " + MANUAL_CENTERS.length}
-              color={coverage.ring === MANUAL_CENTERS.length ? "#2E9E63" : "#C77F1A"} />
-            <KPI label="شعب مغطاة بالمفتاح العادي" value={coverage.elev + " / " + MANUAL_CENTERS.length}
-              color={coverage.elev === MANUAL_CENTERS.length ? "#2E9E63" : "#C77F1A"} />
+            <KPI label="شعب يوجد بها جهاز قص الخواتم" value={coverage.ring + " / " + MANUAL_CENTERS.length}
+              color={coverage.ring === MANUAL_CENTERS.length ? "#0E7A5F" : "#B87207"}
+              tone={coverage.ring === MANUAL_CENTERS.length ? { bg: "#DFF3E8", bd: "#A9D8BF", tx: "#0E5C42" } : { bg: "#FCF0D9", bd: "#E6CB92", tx: "#7A5108" }}
+              sub={MANUAL_CENTERS.length ? Math.round((coverage.ring / MANUAL_CENTERS.length) * 100) + "% من الشعب" : ""} />
+            <KPI label="شعب مغطاة بمفتاح المصاعد العادي"
+              value={coverage.elev + " / " + MANUAL_CENTERS.length}
+              color={coverage.elev === MANUAL_CENTERS.length ? "#0E7A5F" : "#B87207"}
+              tone={coverage.elev === MANUAL_CENTERS.length ? { bg: "#DFF3E8", bd: "#A9D8BF", tx: "#0E5C42" } : { bg: "#FCF0D9", bd: "#E6CB92", tx: "#7A5108" }}
+              sub={(MANUAL_CENTERS.length ? Math.round((coverage.elev / MANUAL_CENTERS.length) * 100) + "% من الشعب" : "")
+                + " · الإلكتروني " + coverage.elevE + " / " + MANUAL_CENTERS.length
+                + (MANUAL_CENTERS.length ? " (" + Math.round((coverage.elevE / MANUAL_CENTERS.length) * 100) + "%)" : "")} />
           </div>
 
           {/* شريط الفلاتر الذكي */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(168px,1fr))", gap: 9, marginBottom: 12 }}>
             {[["all", "📋", "كل المراكز", "المراكز الميدانية كافة", levelCounts.total, "#1B2440"],
               ["green", "🟢", "المراكز مكتملة الجاهزية", "لا عجز بأي بند مطلوب", levelCounts.green, "#0E7A5F"],
-              ["yellow", "🟡", "مراكز يوجد بها نقص بسيط بالجاهزية", "ينقصها بند أو أكثر", levelCounts.yellow, "#C77F1A"],
+              ["yellow", "🟡", "مراكز يوجد بها نقص جزئي بالجاهزية", "ينقصها بند أو أكثر", levelCounts.yellow, "#C77F1A"],
               ["red", "🔴", "مراكز يوجد بها عجز مؤثر", "بلا وايت أو بلا إنقاذ", levelCounts.red, "#C4353C"]].map(([id, ic, lbl, sub, n, clr]) => (
               <FilterCard key={id} ic={ic} label={lbl} sub={sub} n={n} color={clr}
                 active={lvFilter === id} onClick={() => setLvFilter(id)} />
