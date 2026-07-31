@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 16.2", D.getElementById("root").textContent.includes("16.2"));
+  ok("ختم الإصدار 16.3", D.getElementById("root").textContent.includes("16.3"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -104,7 +104,9 @@ const click = async (label, ms) => {
   ok("[شريط] مسافة بين العبارة والأيقونة", html.includes("gap: 6px; padding: 8px 1px 7px"));
   ok("[شريط] مقاس الصورة كمقاس الإيموجي", html.includes(".side-rail .ric-img img { height: 19px") && html.includes(".side-rail .ric-img img { height: 15px; }"));
   ok("[شريط] لون العبارة فاتح واضح", html.includes(".side-rail .rlb { color: #F6EEDA;"));
-  ok("[شريط] النصوص موسّطة", html.includes("justify-content: center; gap: 8px; width: 100%; text-align: center;"));
+  ok("[شريط] النصوص موسّطة", html.includes("text-align: center; overflow: hidden; text-overflow: ellipsis;"));
+  ok("[شريط] الأيقونات بعمود ثابت", html.includes("width: 30px; min-width: 30px;"));
+  ok("[شريط] العبارات بخانة واحدة", html.includes("flex: 1 1 auto; min-width: 0;"));
   ok("[شريط] المقصد المفتوح بالأبيض", html.includes(".side-rail button.act .rlb { color: #FFFFFF; }"));
 
   ok("لا أخطاء تشغيل", errs.length === 0);

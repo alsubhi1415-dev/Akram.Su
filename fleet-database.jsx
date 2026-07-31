@@ -1664,7 +1664,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 16.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 16.3 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7744,19 +7744,21 @@ export default function FleetApp() {
         .side-rail .rail-title { color: #FCF7EE; font-size: 14px; font-weight: 800; padding: 4px 4px 10px; text-align: center;
           border-bottom: 1px solid rgba(212,175,55,0.35); margin-bottom: 4px; letter-spacing: -0.2px;
           white-space: nowrap; overflow: hidden; text-overflow: clip; }
-        .side-rail button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center;
-          background: transparent; color: #D6D9E4; border: none; border-radius: 12px; padding: 11px 9px;
+        .side-rail button { display: flex; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; text-align: center;
+          background: transparent; color: #D6D9E4; border: none; border-radius: 12px; padding: 11px 8px;
           font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: background 0.18s, transform 0.12s;
-          white-space: nowrap; overflow: hidden; }
+          white-space: nowrap; overflow: hidden; min-height: 48px; }
         .side-rail button > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         /* العبارة الرئيسية لكل مقصد باللون الذهبي، والمقصد المفتوح بالأبيض للتباين */
-        .side-rail .rlb { color: #F6EEDA; letter-spacing: -0.1px; }
+        .side-rail .rlb { color: #F6EEDA; letter-spacing: -0.1px; flex: 1 1 auto; min-width: 0;
+          text-align: center; overflow: hidden; text-overflow: ellipsis; }
         .side-rail button.act .rlb { color: #FFFFFF; }
         .side-rail button:hover .rlb { color: #FFFFFF; }
         .side-rail button:hover { background: rgba(255,255,255,0.09); color: #fff; transform: translateX(-2px); }
         .side-rail button.act { background: linear-gradient(120deg, #B3121C, #7E1A2F); color: #fff;
           box-shadow: 0 4px 16px rgba(158,27,34,0.5), inset 0 1px 0 rgba(255,255,255,0.18); }
-        .side-rail .ric { font-size: 20px; line-height: 1; width: 24px; text-align: center; flex-shrink: 0; }
+        .side-rail .ric { font-size: 20px; line-height: 1; width: 30px; min-width: 30px; text-align: center; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center; }
         /* رمز مصوّر بدل الإيموجي: بارتفاع الإيموجي نفسه وعرض متناسب */
         .side-rail .ric-img { width: auto; display: inline-flex; align-items: center; justify-content: center; }
         .side-rail .ric-img img { height: 19px; width: auto; display: block; object-fit: contain; }
