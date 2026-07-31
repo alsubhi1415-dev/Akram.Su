@@ -1653,7 +1653,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 15.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 15.6 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6539,9 +6539,12 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
               value={coverage.elev + " / " + MANUAL_CENTERS.length}
               color={coverage.elev === MANUAL_CENTERS.length ? "#0E7A5F" : "#B87207"}
               tone={coverage.elev === MANUAL_CENTERS.length ? { bg: "#DFF3E8", bd: "#A9D8BF", tx: "#0E5C42" } : { bg: "#FCF0D9", bd: "#E6CB92", tx: "#7A5108" }}
-              sub={(MANUAL_CENTERS.length ? Math.round((coverage.elev / MANUAL_CENTERS.length) * 100) + "% من الشعب" : "")
-                + " · الإلكتروني " + coverage.elevE + " / " + MANUAL_CENTERS.length
-                + (MANUAL_CENTERS.length ? " (" + Math.round((coverage.elevE / MANUAL_CENTERS.length) * 100) + "%)" : "")} />
+              sub={MANUAL_CENTERS.length ? Math.round((coverage.elev / MANUAL_CENTERS.length) * 100) + "% من الشعب" : ""} />
+            <KPI label="شعب مغطاة بمفتاح المصاعد الإلكتروني"
+              value={coverage.elevE + " / " + MANUAL_CENTERS.length}
+              color={coverage.elevE === MANUAL_CENTERS.length ? "#0E7A5F" : "#B87207"}
+              tone={coverage.elevE === MANUAL_CENTERS.length ? { bg: "#DFF3E8", bd: "#A9D8BF", tx: "#0E5C42" } : { bg: "#FCF0D9", bd: "#E6CB92", tx: "#7A5108" }}
+              sub={MANUAL_CENTERS.length ? Math.round((coverage.elevE / MANUAL_CENTERS.length) * 100) + "% من الشعب" : ""} />
           </div>
 
           {/* شريط الفلاتر الذكي */}
