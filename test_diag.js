@@ -24,7 +24,7 @@ const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;
 const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
-const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||500);}return !!b;};
+const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.getAttribute("title")||"")===t)||Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||500);}return !!b;};
 (async()=>{
   await wait(6000); await wait(3000);
   ok("فتح درج الأدوات", await clickTxt("أدوات",600));
@@ -33,7 +33,7 @@ const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).fi
   if(row){row.click(); await wait(700);}
   const t=txt();
   ok("النافذة فُتحت", t.includes("حالة المزامنة"));
-  ok("تعرض نسخة البرنامج", t.includes("16.3"));
+  ok("تعرض نسخة البرنامج", t.includes("16.4"));
   ok("تعرض حالة الاتصال", t.includes("متصل"));
   ok("تعرض مصدر القراءة", t.includes("نفس أصل الصفحة") || t.includes("الواجهة الرسمية"));
   ok("تعرض مؤشر الاستلام", t.includes("rstr1101"));

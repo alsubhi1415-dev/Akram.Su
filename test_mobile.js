@@ -10,7 +10,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const setW = (px) => { Object.defineProperty(w, "innerWidth", { value: px, configurable: true, writable: true }); w.dispatchEvent(new w.Event("resize")); };
 const btns = () => Array.from(w.document.querySelectorAll("button"));
 const click = async (label, ms) => {
-  const b = btns().find((x) => (x.textContent || "").trim().includes(label));
+  const b = btns().find((x) => (x.getAttribute("title") || "") === label) || btns().find((x) => (x.textContent || "").trim().includes(label));
   if (b) { b.click(); await wait(ms || 500); }
   return !!b;
 };
@@ -23,7 +23,7 @@ const click = async (label, ms) => {
   const D = w.document;
 
   ok("تمّ الإقلاع", D.getElementById("root").childNodes.length > 0);
-  ok("ختم الإصدار 16.3", D.getElementById("root").textContent.includes("16.3"));
+  ok("ختم الإصدار 16.4", D.getElementById("root").textContent.includes("16.4"));
 
   // --- سطح المكتب: الجدول هو الأصل ---
   setW(1280); await wait(400);
@@ -79,7 +79,7 @@ const click = async (label, ms) => {
   ok("[شريط] الشريط موجود", !!rail);
   if (rail) {
     const btns2 = Array.from(rail.querySelectorAll("button"));
-    const labels = btns2.map(b => { const e = b.querySelector(".rlb"); return e ? e.textContent.trim() : ""; }).filter(Boolean);
+    const labels = btns2.map(b => (b.getAttribute("title") || "").trim()).filter(Boolean);
     ok("[شريط] كل مقصد يحمل نصه", labels.length >= 6);
     ok("[شريط] النصوص كاملة بلا اختصار", labels.includes("المؤشرات والتحليلات") && labels.includes("الجاهزية الميدانية") && labels.includes("التقارير والبيانات"));
     const b0 = btns2.find(b => b.querySelector(".rlb"));
@@ -90,7 +90,7 @@ const click = async (label, ms) => {
     const vimg = rail.querySelectorAll(".ric-img img");
     ok("[شريط] المقاصد الستة كلها برموز مصوّرة", vimg.length === 6 && Array.from(vimg).every(i => String(i.getAttribute("src")).indexOf("data:image/png") === 0));
     const named = Array.from(rail.querySelectorAll("button")).filter(b => b.querySelector(".ric-img img"))
-      .map(b => (b.querySelector(".rlb")||{}).textContent.trim());
+      .map(b => (b.getAttribute("title") || "").trim());
     ok("[شريط] الصور موزّعة على المقاصد الستة", ["الصفحة الرئيسية","سجل الآليات","المؤشرات والتحليلات","الجاهزية الميدانية","إحصائيات عملياتية","التقارير والبيانات"].every(x => named.includes(x)));
     const icons = Array.from(rail.querySelectorAll("button .ric")).map(e => e.querySelector("img") ? "IMG" : e.textContent.trim());
     ok("[شريط] لا إيموجي في المقاصد", icons.filter(x => x === "IMG").length === 6);

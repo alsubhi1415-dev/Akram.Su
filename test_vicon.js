@@ -18,7 +18,7 @@ const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;
 const imgs=()=>Array.from(D.querySelectorAll("img")).filter(i=>String(i.getAttribute("src")).indexOf("data:image/png")===0);
-const click=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||800);}return !!b;};
+const click=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.getAttribute("title")||"")===t)||Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||800);}return !!b;};
 const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 (async()=>{
   await wait(6000); await wait(3000);

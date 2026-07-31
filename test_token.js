@@ -48,7 +48,7 @@ const txt=w=>w.document.getElementById("root").textContent;
   if(close){close.click(); await wait(500);}
 
   // محاولة حفظ فعلية
-  const nav=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
+  const nav=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if(nav){nav.click(); await wait(1000);}
   const f=Array.from(w2.document.querySelectorAll("button")).find(b=>b.getAttribute("title")==="تسجيل عطل فوري");
   if(f){f.click(); await wait(700);}

@@ -34,7 +34,7 @@ w.addEventListener("error", (e) => errs.push(e.message));
 const txt = () => D.getElementById("root").textContent;
 const ptxt = () => { const e = D.getElementById("print-area"); return e ? e.textContent : ""; };
 const clickTxt = async (t, ms) => {
-  const b = Array.from(D.querySelectorAll("button")).find((x) => (x.textContent || "").trim().includes(t));
+  const b = Array.from(D.querySelectorAll("button")).find((x) => (x.getAttribute("title") || "") === t) || Array.from(D.querySelectorAll("button")).find((x) => (x.textContent || "").trim().includes(t));
   if (b) { b.click(); await wait(ms || 800); }
   return !!b;
 };

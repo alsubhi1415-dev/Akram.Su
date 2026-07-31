@@ -42,7 +42,7 @@ const ok = (n, c) => checks.push([n, !!c]);
   ok("الشريط يذكر إيقاف الحفظ", txt().includes("الحفظ موقوف مؤقتاً"));
 
   // فتح سجل الآليات ثم محاولة تسجيل عطل فوري
-  const nav = Array.from(D.querySelectorAll("button")).find((b) => (b.textContent || "").includes("سجل الآليات"));
+  const nav = Array.from(D.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if (nav) { nav.click(); await wait(900); }
 
   const before = (txt().match(/عدد النتائج/) || []).length;

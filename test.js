@@ -25,7 +25,7 @@ const ok = (n, c) => { checks.push([n, !!c]); };
 const helpers = (w) => {
   const root = () => w.document.getElementById("root");
   const txt = () => (root() ? root().textContent : "");
-  const findBtn = (label) => Array.from(w.document.querySelectorAll("button")).find((b) => (b.textContent || "").trim().includes(label));
+  const findBtn = (label) => Array.from(w.document.querySelectorAll("button")).find((b) => (b.getAttribute("title") || "") === label || (b.textContent || "").trim().includes(label));
   const click = async (label, ms) => { const b = findBtn(label); if (b) { b.click(); await wait(ms || 450); } return !!b; };
   return { root, txt, findBtn, click };
 };
@@ -37,8 +37,8 @@ const helpers = (w) => {
   await wait(5500); // تجاوز شاشة الإقلاع (مهلة 10 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 16.3", V.txt().includes("الإصدار 16.3"));
-  ok("[زائر] مقصد الصفحة الرئيسية بالشريط", V.txt().includes("الصفحة الرئيسية"));
+  ok("[زائر] ختم الإصدار 16.4", V.txt().includes("الإصدار 16.4"));
+  ok("[زائر] مقصد الصفحة الرئيسية بالشريط", !!V.findBtn("الصفحة الرئيسية"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
 

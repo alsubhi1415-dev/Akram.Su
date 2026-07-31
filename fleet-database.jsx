@@ -1664,7 +1664,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 16.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 16.4 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -8139,18 +8139,18 @@ export default function FleetApp() {
       <aside className="side-rail no-print" aria-label="التنقل">
         <div className="rail-title">جاهزية الآليات والمراكز الميدانية</div>
         {[
-          ["overview", NAV_ICON, "الصفحة الرئيسية"],
-          ["list", VEH_ICON, "سجل الآليات"],
-          ["charts", CHART_ICON, "المؤشرات والتحليلات"],
-          ["readiness", SHIELD_ICON, "الجاهزية الميدانية"],
-          ["ops", SIREN_ICON, "إحصائيات عملياتية"],
-          ["reports", PRINT_ICON, "التقارير والبيانات"],
-        ].map(([id, ic, lbl]) => (
-          <button key={id} className={(id === "overview" ? CMD_TABS.some(([t]) => t === view) : view === id) ? "act" : ""}
+          ["overview", NAV_ICON, "الصفحة الرئيسية", "الـصفـحـة الرئـيـسيـة"],
+          ["readiness", SHIELD_ICON, "الجاهزية الميدانية", "الـجاهزية الميدانيـة"],
+          ["list", VEH_ICON, "سجل الآليات", "ســــجـــــل الآلــــيات"],
+          ["charts", CHART_ICON, "المؤشرات والتحليلات", "المؤشرات والتحليلات"],
+          ["ops", SIREN_ICON, "إحصائيات عملياتية", "إحـصائيات عمـلياتيـة"],
+          ["reports", PRINT_ICON, "التقارير والبيانات", "الـتقارير والبـيانات"],
+        ].map(([id, ic, lbl, disp]) => (
+          <button key={id} title={lbl} className={(id === "overview" ? CMD_TABS.some(([t]) => t === view) : view === id) ? "act" : ""}
             onClick={() => { if (id === "reports") setReportsInit("vehicles"); setView(id); }}>
             <span className={"ric" + (typeof ic === "string" && ic.indexOf("data:") === 0 ? " ric-img" : "")}>
               {typeof ic === "string" && ic.indexOf("data:") === 0 ? <img src={ic} alt="" /> : ic}
-            </span><span className="rlb">{lbl}</span>
+            </span><span className="rlb">{disp}</span>
           </button>
         ))}
         {(isOwner || ro) && typeof window !== "undefined" && window.__STANDALONE__ && (
@@ -8325,7 +8325,7 @@ export default function FleetApp() {
               </span>
             )}
             <span title="نسخة التطبيق الحالية" style={{
-              alignSelf: "center", marginLeft: "auto", background: "linear-gradient(135deg,#FFD75E,#E8A81C)", color: "#3B2A00",
+              alignSelf: "center", marginLeft: "auto", marginInlineEnd: -12, background: "linear-gradient(135deg,#FFD75E,#E8A81C)", color: "#3B2A00",
               border: "1.5px solid #FFE9A3", borderRadius: 999, padding: "4px 12px",
               fontSize: 10, fontWeight: 800, letterSpacing: 0.2, whiteSpace: "nowrap",
               boxShadow: "0 2px 10px rgba(232,168,28,0.4), 0 0 0 3px rgba(255,215,94,0.13)",

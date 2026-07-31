@@ -18,7 +18,7 @@ const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;
 const allImgs=()=>Array.from(D.querySelectorAll("img")).map(i=>String(i.getAttribute("src")));
-const click=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||900);}return !!b;};
+const click=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.getAttribute("title")||"")===t)||Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||900);}return !!b;};
 const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 // بصمة الرمزين للتفريق بينهما
 const RDY = html.match(/RDY[^"]*"(data:image\/png;base64,[A-Za-z0-9+/=]{40})/);

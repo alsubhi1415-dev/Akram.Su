@@ -48,7 +48,7 @@ const checks=[]; const ok=(n,c)=>checks.push([n,!!c]);
   ok("قراءة من نفس الأصل نجحت", log.self > 0);
   ok("شاشة الإقلاع اختفت", !txt().includes("جارٍ تحميل بيانات السجل"));
   ok("لا شريط «لم تصل بيانات السحابة»", !txt().includes("لم تصل بيانات السحابة بعد"));
-  const nav=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
+  const nav=Array.from(D.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if(nav){nav.click(); await wait(1000);}
   ok("البيانات الحقيقية ظهرت (638 آلية)", /من أصل\s*638/.test(txt()));
   const f=byTitle("تسجيل عطل فوري"); if(f){f.click(); await wait(600);}
