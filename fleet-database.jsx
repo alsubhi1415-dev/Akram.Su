@@ -1087,7 +1087,7 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
         <div style={{ fontSize: 12, fontWeight: 700, color: "#8B93A8", marginTop: 3 }}>مسح الرمز بالجوال يفتح صفحة هذه الآلية مباشرة</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
           <button onClick={() => setQrUrl(null)} style={{ background: "#EEF1F8", color: "#5B6478", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
-          <button onClick={printQr} style={{ background: "#141A28", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}><PrIcon /> طباعة البطاقة اللاصقة</button>
+          <button onClick={printQr} className="print-btn"><PrIcon /> طباعة البطاقة اللاصقة</button>
         </div>
       </div>
     </div>
@@ -1653,7 +1653,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 15.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 15.3 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -1713,7 +1713,7 @@ function ShamelReport({ incidents, ro, logo, vehiclesCount, opsMeta, onSaveMeta,
         </select>
         <HijriDateInput value={day} onChange={setDay} />
         <button onClick={addViol} style={{ background: "#B45309", color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>+ سطر مخالفة مجازفة</button>
-        <button onClick={() => { if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض"); return; } saveMeta(); window.print(); }} style={{ background: "#1E2952", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}><PrIcon /> طباعة النموذج الشامل</button>
+        <button onClick={() => { if (ro) { alert("🔒 الطباعة غير متاحة بوضع الاستعراض"); return; } saveMeta(); window.print(); }} className="print-btn"><PrIcon /> طباعة النموذج الشامل</button>
         <span style={{ fontSize: 11, fontWeight: 700, color: "#5B6478" }}>الأقسام العلوية تُحتسب تلقائياً من سجل الحوادث لليوم المختار — والمطرية والمجازفون والإمكانيات حقول حرة تُطبع كما تكتبها</span>
       </div>
 
@@ -1930,7 +1930,7 @@ function OpsStatsPage({ incidents, onAdd, onDelete, ro, logo, vehiclesCount, ops
       <div style={{ background: "linear-gradient(120deg, #1E2952, #3D5AA9 70%, #00A3A3)", borderRadius: 22, padding: "22px 26px", color: "#fff", marginBottom: 18, position: "relative", boxShadow: "0 14px 40px rgba(30,41,82,0.35)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: 21, fontWeight: 800 }}><FlIcon /> إحصائيات ومؤشرات عملياتية</div>
-          <button onClick={() => setShamel(true)} style={{ background: "rgba(255,255,255,0.16)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 11, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}><PrIcon /> النموذج الشامل</button>
+          <button onClick={() => setShamel(true)} className="print-btn"><PrIcon /> النموذج الشامل</button>
         </div>
         <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.85, marginTop: 4 }}>الحوادث المباشرة من الإدارة العامة للدفاع المدني بمحافظة جدة — تسجيل حي ومؤشرات لحظية · اليوم {t.d} / {HIJRI_MONTHS[t.m - 1]} / {t.y} هـ</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
@@ -6459,10 +6459,7 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
       </div>
       {onOpenReport && (
         <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
-          <button onClick={onOpenReport} className="grid-btn" style={{
-            background: "#141A28", color: "#fff", border: "none", minWidth: 200, flex: "0 0 auto",
-            boxShadow: "0 3px 10px rgba(20,26,40,0.35)",
-          }}><PrIcon /> تقرير الجاهزية</button>
+          <button onClick={onOpenReport} className="print-btn" style={{ minWidth: 200 }}><PrIcon /> تقرير الجاهزية</button>
         </div>
       )}
 
@@ -7780,6 +7777,17 @@ export default function FleetApp() {
         /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
         header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
         header .hdr-sub { color: #E2E8F4 !important; }
+        /* أزرار الطباعة: خلفية فاتحة كي يظهر رمز الطابعة الداكن بوضوح */
+        .print-btn {
+          display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+          background: #FFFFFF; color: #1B2440; border: 1.5px solid #C6CCD8; border-radius: 11px;
+          padding: 9px 18px; font-size: 12.5px; font-weight: 800; font-family: inherit;
+          cursor: pointer; white-space: nowrap; flex-shrink: 0;
+          box-shadow: 0 2px 9px rgba(20,26,40,0.16);
+          transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+        }
+        @media (hover: hover) { .print-btn:hover { background: #F5F7FB; border-color: #9E1B22; color: #9E1B22; box-shadow: 0 3px 12px rgba(158,27,34,0.22); } }
+        .print-btn img { height: 18px; width: auto; object-fit: contain; }
         /* مجموعات الأزرار الموحّدة: شبكة متساوية بلا فراغات */
         .btn-grid { display: grid; gap: 8px; margin-bottom: 14px; }
         .btn-grid.g5 { grid-template-columns: repeat(5, minmax(0,1fr)); }
@@ -8780,7 +8788,7 @@ export default function FleetApp() {
               <MultiSelect label="الشعبة / الجهة" options={allBranches} values={fBranch} onChange={setFBranch} flex="1 1 150px" />
               <MultiSelect label="المركز" options={allUnits} values={fUnit} onChange={setFUnit} flex="1 1 150px" />
               <button onClick={() => printList(sortRows(filtered))} title={ro ? "طباعة نسخة استعراض بعلامة مائية" : "طباعة البيان الحالي بمرشحاته بصيغة رسمية"}
-                style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}><PrIcon /> طباعة البيان</button>
+                className="print-btn"><PrIcon /> طباعة البيان</button>
               {isOwner && <button onClick={() => exportCsv(sortRows(filtered))} title="تصدير النتائج الحالية بمرشحاتها ملف CSV يفتح بـ Excel"
                 style={{ background: "#1D6F42", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flex: "0 0 auto" }}>📊 تصدير Excel (CSV)</button>}
             </div>
