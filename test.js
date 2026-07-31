@@ -37,7 +37,7 @@ const helpers = (w) => {
   await wait(5500); // تجاوز شاشة الإقلاع (مهلة 10 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 15.9", V.txt().includes("الإصدار 15.9"));
+  ok("[زائر] ختم الإصدار 16.0", V.txt().includes("الإصدار 16.0"));
   ok("[زائر] مقصد الصفحة الرئيسية بالشريط", V.txt().includes("الصفحة الرئيسية"));
   ok("[زائر] زر الأدوات بالرأس", V.txt().includes("أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
@@ -66,6 +66,7 @@ const helpers = (w) => {
     const m = html.match(/\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \\d+\\.\\d+/) || [];
     ok("ختم الإصدار المنشور مطابق للنسخة", json.build && V.txt().includes(json.build.split(" \u00b7 ")[0]));
   }
+  ok("[زائر] خلفية مصمّمة للشريط الجانبي", (html.split("data:image/jpeg;base64,").length - 1) >= 2);
   ok("[زائر] شارة الإصدار إلى أقصى اليسار", html.includes('marginLeft: "auto"') || html.includes("margin-left:auto") || html.includes("marginLeft:\"auto\""));
   ok("[زائر] مرشّح «المركز» بلا كلمة تفصيلي", !V.txt().includes("المركز التفصيلي"));
   ok("[زائر] عنوان الشريط الجديد", V.txt().includes("جاهزية الآليات والمراكز الميدانية"));
