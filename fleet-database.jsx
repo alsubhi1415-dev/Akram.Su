@@ -372,6 +372,16 @@ const T = {
   },
   sh: { sm: "0 2px 8px rgba(20,26,40,0.05)", md: "0 4px 14px rgba(20,26,40,0.08)", lg: "0 12px 34px rgba(20,26,40,0.10)" },
 };
+// ====== رمز التكميل اليومي ورمز جاهزية الشعب ======
+const DAILY_ICON = "data:image/png;base64,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";
+const DlIcon = ({ s: sz }) => (
+  <img src={DAILY_ICON} alt="" style={{ height: sz || "1em", width: "auto", objectFit: "contain", display: "inline-block", verticalAlign: "-0.16em" }} />
+);
+const BRANCH_ICON = "data:image/png;base64,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";
+const BrIcon = ({ s: sz }) => (
+  <img src={BRANCH_ICON} alt="" style={{ height: sz || "1em", width: "auto", objectFit: "contain", display: "inline-block", verticalAlign: "-0.16em" }} />
+);
+
 // ====== وصف الجهاز: نوعه ومتصفحه من بصمة المتصفح ======
 function deviceInfo() {
   try {
@@ -1633,7 +1643,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 15.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 15.1 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6426,28 +6436,25 @@ function ReadinessPage({ vehicles, centerReadiness, onToggle, onBoats, onSetSlot
   );
 
   const TabBtn = ({ id, label }) => (
-    <button onClick={() => setMode(id)} style={{
-      background: mode === id ? "#9E1B22" : "#F4F5F7", color: mode === id ? "#fff" : "#3A4152",
-      border: mode === id ? "none" : "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 20px",
-      fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-    }}>{label}</button>
+    <button onClick={() => setMode(id)} className={"grid-btn" + (mode === id ? " act" : "")}>{label}</button>
   );
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <TabBtn id="centers" label="📋 التكميل اليومي" />
-        <TabBtn id="branches" label="🗺️ جاهزية الشعب" />
+      <div className="btn-grid g4">
+        <TabBtn id="centers" label={<><DlIcon /> التكميل اليومي</>} />
+        <TabBtn id="branches" label={<><BrIcon /> جاهزية الشعب</>} />
         <TabBtn id="support" label="🛠️ الدعم والإسناد" />
         <TabBtn id="priority" label="🎯 التغطية الميدانية" />
-        {onOpenReport && (
-          <button onClick={onOpenReport} style={{
-            marginRight: "auto", background: "#141A28", color: "#fff", border: "none", borderRadius: 10,
-            padding: "9px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+      </div>
+      {onOpenReport && (
+        <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+          <button onClick={onOpenReport} className="grid-btn" style={{
+            background: "#141A28", color: "#fff", border: "none", minWidth: 200, flex: "0 0 auto",
             boxShadow: "0 3px 10px rgba(20,26,40,0.35)",
           }}><PrIcon /> تقرير الجاهزية</button>
-        )}
-      </div>
+        </div>
+      )}
 
       {mode === "branches" && (
         <>
