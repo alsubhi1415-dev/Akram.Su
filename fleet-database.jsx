@@ -1670,7 +1670,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 16.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 16.6 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -8219,6 +8219,23 @@ export default function FleetApp() {
               background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.28)",
               borderRadius: 10, padding: "7px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
             }}><SeIcon /> بحث سريع</button>
+            {ro ? (
+              <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+              <button onClick={loginEditor} style={{
+                background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
+                borderRadius: 10, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+              }}><LkIcon /> دخول المحررين</button>
+              </span>
+            ) : (
+              <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                <span style={{ color: "#B9E8C9", fontSize: 12.5, fontWeight: 800, background: "rgba(46,158,99,0.25)", borderRadius: 10, padding: "8px 14px" }}>{isOwner ? <><CrIcon /> المشرف</> : <><EdIcon /> محرر جاهزية</>}</span>
+                <button onClick={logoutEditor} title="الخروج لوضع الاستعراض" style={{
+                  background: "transparent", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: 10, padding: "8px 10px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                }}>خروج</button>
+                
+              </span>
+            )}
             <span ref={bellRef} style={{ position: "relative", display: "inline-flex" }}>
               <button onClick={() => setBellOpen(!bellOpen)} title="التنبيهات الذكية" style={{
                 background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
@@ -8308,23 +8325,6 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
-            {ro ? (
-              <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-              <button onClick={loginEditor} style={{
-                background: "rgba(255,255,255,0.12)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
-                borderRadius: 10, padding: "8px 14px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-              }}><LkIcon /> دخول المحررين</button>
-              </span>
-            ) : (
-              <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                <span style={{ color: "#B9E8C9", fontSize: 12.5, fontWeight: 800, background: "rgba(46,158,99,0.25)", borderRadius: 10, padding: "8px 14px" }}>{isOwner ? <><CrIcon /> المشرف</> : <><EdIcon /> محرر جاهزية</>}</span>
-                <button onClick={logoutEditor} title="الخروج لوضع الاستعراض" style={{
-                  background: "transparent", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.25)",
-                  borderRadius: 10, padding: "8px 10px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                }}>خروج</button>
-                
-              </span>
-            )}
             <span title="نسخة التطبيق الحالية" style={{
               alignSelf: "center", marginLeft: "auto", marginInlineEnd: -12, background: "linear-gradient(135deg,#FFD75E,#E8A81C)", color: "#3B2A00",
               border: "1.5px solid #FFE9A3", borderRadius: 999, padding: "4px 12px",

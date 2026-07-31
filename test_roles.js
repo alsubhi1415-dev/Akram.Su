@@ -36,6 +36,18 @@ const txt=w=>w.document.getElementById("root").textContent;
   ok("[مشرف] لا 👑 نصية", !/\u{1F451}/u.test(txt(wo)));
   ok("الرموز الثلاثة مضمّنة", html.includes("EDITOR_ICON") || (html.split("data:image/png;base64,").length-1) >= 28);
   wo.close();
+  // ترتيب الشريط العلوي
+  const order=(w)=>Array.from(w.document.querySelector("nav.app-nav").children)
+    .map(el=>(el.textContent||"").trim().replace(/\s+/g," ").slice(0,20));
+  const wv2=boot(null); await wait(6000); await wait(2500);
+  const ov=order(wv2);
+  ok("[زائر] الدخول يلي البحث السريع مباشرة", ov[1].includes("بحث سريع") && ov[2].includes("دخول المحررين"));
+  wv2.close();
+  const wo2=boot(OW); await wait(6000); await wait(2500);
+  const oo=order(wo2);
+  ok("[مشرف] الصفة والخروج يليان البحث السريع", oo[1].includes("بحث سريع") && oo[2].includes("المشرف") && oo[2].includes("خروج"));
+  ok("[مشرف] الجرس والأدوات بعدهما", oo[3] && oo[4] && oo[4].includes("أدوات"));
+  wo2.close();
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   console.log("النتيجة: "+p+"/"+checks.length);
   process.exit(p===checks.length?0:2);
