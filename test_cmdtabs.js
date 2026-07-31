@@ -37,6 +37,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("تنسيق الجوال: أيقونة فوق النص", html.includes("flex-direction: column; gap: 5px; padding: 10px 4px;"));
   ok("تنسيق النشط بتدرّج وخط ذهبي", html.includes("inset 0 -4px 0 #D4AF37"));
   ok("الأزرار الثلاثة منفصلة بشبكة", html.includes("grid-template-columns: repeat(3, minmax(0,1fr));") && html.includes("gap: 12px"));
+  ok("عرض الشريط مطابق للبطاقة أسفله", html.includes("max-width: 1080px"));
   ok("لكل زر إطار وظل مستقل", html.includes("border: 1.5px solid #D2D8E4; border-radius: 14px;") && html.includes("box-shadow: 0 3px 10px rgba(30,41,82,0.10)"));
   ok("لا حاوية مشتركة تجمعها", !html.includes("background: linear-gradient(180deg,#F2F5FA,#E9EDF5)"));
   ok("لا أخطاء تشغيل", errs.length===0);
