@@ -37,7 +37,7 @@ const txt=w=>w.document.getElementById("root").textContent;
   dc={n:0}; const w2=boot(dc); await wait(6000); await wait(3000);
   ok("[2] لا شارة قفل حفظ", !txt(w2).includes("الحفظ موقوف"));
   // فتح شاشة التشخيص للتأكد من الرمز
-  const tb=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("⋯ أدوات"));
+  const tb=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb){tb.click(); await wait(600);}
   const item=Array.from(w2.document.querySelectorAll("div")).find(d=>(d.textContent||"").trim()==="🩺حالة المزامنة");
   if(item){item.click(); await wait(700);}

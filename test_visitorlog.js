@@ -33,7 +33,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 (async()=>{
   await wait(6000); await wait(3000);
   ok("الصلاحية مستعرض", txt().includes("المستعرض") || !txt().includes("المشرف"));
-  const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("⋯ أدوات"));
+  const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb){tb.click(); await wait(700);}
   const item=Array.from(D.querySelectorAll("div")).find(d=>(d.textContent||"").trim().startsWith("✅آخر التغييرات المعتمدة"));
   ok("العنصر متاح للمستعرض", !!item);
@@ -46,6 +46,11 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   if(rb){rb.click(); await wait(2500);}
   ok("التحديث الفوري جلب النسخة الأحدث", txt().includes("تسجيل 1 عطل"));
   ok("رسالة تأكيد ظهرت", txt().includes("وصلت نسخة أحدث") || txt().includes("أنت على أحدث نسخة"));
+  {
+    const hb=Array.from(D.querySelector("header").querySelectorAll("button"));
+    ok("[مستعرض] زر دخول المحررين برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("دخول المحررين")));
+    ok("[مستعرض] زر البحث السريع برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("بحث سريع")));
+  }
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));

@@ -37,9 +37,9 @@ const helpers = (w) => {
   await wait(5500); // تجاوز شاشة الإقلاع (مهلة 10 ثوانٍ)
   const V = helpers(wv);
   ok("[زائر] الإقلاع تمّ", V.root() && V.root().childNodes.length > 0);
-  ok("[زائر] ختم الإصدار 15.7", V.txt().includes("الإصدار 15.7"));
+  ok("[زائر] ختم الإصدار 15.8", V.txt().includes("الإصدار 15.8"));
   ok("[زائر] مقصد الصفحة الرئيسية بالشريط", V.txt().includes("الصفحة الرئيسية"));
-  ok("[زائر] زر الأدوات بالرأس", V.txt().includes("⋯ أدوات"));
+  ok("[زائر] زر الأدوات بالرأس", V.txt().includes("أدوات"));
   ok("[زائر] أزرار الأدوات لم تعد ظاهرة بالرأس", !V.txt().includes("ربط GitHub"));
 
   await V.click("الصفحة الرئيسية");
@@ -49,7 +49,7 @@ const helpers = (w) => {
   ok("[زائر] تبويب مركز القرار", await V.click("مركز القرار"));
   ok("[زائر] الشريط باقٍ", V.txt().includes("لوحة المعلومات"));
 
-  await V.click("⋯ أدوات");
+  await V.click("أدوات");
   ok("[زائر] الدرج يفتح", V.txt().includes("أدوات إضافية"));
   ok("[زائر] الوضع الليلي متاح", V.txt().includes("الوضع الليلي"));
   ok("[زائر] لا أدوات مشرف بالدرج", !V.txt().includes("سجل التدقيق") && !V.txt().includes("سلة المحذوفات"));
@@ -66,6 +66,7 @@ const helpers = (w) => {
     const m = html.match(/\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \\d+\\.\\d+/) || [];
     ok("ختم الإصدار المنشور مطابق للنسخة", json.build && V.txt().includes(json.build.split(" \u00b7 ")[0]));
   }
+  ok("[زائر] شارة الإصدار إلى أقصى اليسار", html.includes('marginLeft: "auto"') || html.includes("margin-left:auto") || html.includes("marginLeft:\"auto\""));
   ok("[زائر] مرشّح «المركز» بلا كلمة تفصيلي", !V.txt().includes("المركز التفصيلي"));
   ok("[زائر] عنوان الشريط الجديد", V.txt().includes("جاهزية الآليات والمراكز الميدانية"));
   ok("[زائر] عنوان الشريط بسطر واحد", html.includes(".side-rail .rail-title { color: #FCF7EE; font-size: 14px") && html.includes("white-space: nowrap; overflow: hidden; text-overflow: clip;"));
@@ -91,8 +92,8 @@ const helpers = (w) => {
   const O = helpers(wo);
   ok("[مشرف] الإقلاع تمّ", O.root() && O.root().childNodes.length > 0);
   ok("[مشرف] الصلاحية مفعّلة", O.txt().includes("المشرف"));
-  ok("[مشرف] زر الأدوات بالرأس", O.txt().includes("⋯ أدوات"));
-  await O.click("⋯ أدوات");
+  ok("[مشرف] زر الأدوات بالرأس", O.txt().includes("أدوات"));
+  await O.click("أدوات");
   const t = O.txt();
   ok("[مشرف] عتبة تنبيه الجاهزية بالدرج", t.includes("عتبة تنبيه الجاهزية"));
   ok("[مشرف] سلة المحذوفات بالدرج", t.includes("سلة المحذوفات"));

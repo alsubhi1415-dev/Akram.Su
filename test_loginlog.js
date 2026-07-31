@@ -48,7 +48,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("القيد يحمل التاريخ والوقت", last && /هـ \d\d:\d\d/.test(last.t));
   console.log("   القيد:", JSON.stringify(last));
   // العرض بالدرج
-  const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("⋯ أدوات"));
+  const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb){tb.click(); await wait(700);}
   const item=Array.from(D.querySelectorAll("div")).find(d=>(d.textContent||"").trim().startsWith("👤سجل دخول الفريق"));
   ok("عنصر سجل الدخول بالدرج (مشرف)", !!item);

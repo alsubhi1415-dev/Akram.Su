@@ -27,13 +27,13 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).find(x=>(x.textContent||"").includes(t));if(b){b.click();await wait(ms||500);}return !!b;};
 (async()=>{
   await wait(6000); await wait(3000);
-  ok("فتح درج الأدوات", await clickTxt("⋯ أدوات",600));
+  ok("فتح درج الأدوات", await clickTxt("أدوات",600));
   const row=Array.from(D.querySelectorAll("div")).find(d=>(d.textContent||"").trim()==="🩺حالة المزامنة"||(d.textContent||"").trim()==="حالة المزامنة");
   ok("عنصر حالة المزامنة بالدرج", !!row);
   if(row){row.click(); await wait(700);}
   const t=txt();
   ok("النافذة فُتحت", t.includes("حالة المزامنة"));
-  ok("تعرض نسخة البرنامج", t.includes("15.7"));
+  ok("تعرض نسخة البرنامج", t.includes("15.8"));
   ok("تعرض حالة الاتصال", t.includes("متصل"));
   ok("تعرض مصدر القراءة", t.includes("نفس أصل الصفحة") || t.includes("الواجهة الرسمية"));
   ok("تعرض مؤشر الاستلام", t.includes("rstr1101"));

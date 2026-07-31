@@ -26,7 +26,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[منقطع] شارة الحفظ موقوف ظاهرة", t1.includes("الحفظ موقوف"));
   const row1=Array.from(w1.document.querySelectorAll("div")).find(d=>(d.textContent||"").trim().includes("حالة المزامنة")&&d.parentElement);
   // فتح التشخيص عبر الدرج
-  const tb1=Array.from(w1.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("⋯ أدوات"));
+  const tb1=Array.from(w1.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb1){tb1.click(); await wait(500);}
   const item1=Array.from(w1.document.querySelectorAll("div")).find(d=>(d.textContent||"").trim()==="🩺حالة المزامنة");
   if(item1){item1.click(); await wait(600);}
@@ -39,7 +39,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   const w2=mkDom(true); await wait(6000); await wait(2500);
   const t2=w2.document.getElementById("root").textContent;
   ok("[متصل] لا شارة قفل", !t2.includes("الحفظ موقوف"));
-  const tb2=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("⋯ أدوات"));
+  const tb2=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb2){tb2.click(); await wait(500);}
   const item2=Array.from(w2.document.querySelectorAll("div")).find(d=>(d.textContent||"").trim()==="🩺حالة المزامنة");
   if(item2){item2.click(); await wait(600);}

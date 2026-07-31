@@ -45,7 +45,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("القيد يحمل مؤشر النسخة", last && !!last.rev);
   console.log("   القيد:", JSON.stringify(last));
   // عرضه بالدرج
-  const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("⋯ أدوات"));
+  const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb){tb.click(); await wait(600);}
   const item=Array.from(D.querySelectorAll("div")).find(d=>(d.textContent||"").trim().startsWith("✅آخر التغييرات المعتمدة"));
   ok("عنصر «آخر التغييرات المعتمدة» بالدرج", !!item);
