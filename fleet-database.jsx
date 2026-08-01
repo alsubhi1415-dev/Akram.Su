@@ -1708,7 +1708,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.5 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7164,6 +7164,7 @@ export default function FleetApp() {
   const cfgRef = useRef(null);
   const pushTimer = useRef(null);
   const baseFromCloudRef = useRef(false); // الأساس مؤكَّد من السحابة لا من المرآة المحلية
+  const pushStartRef = useRef(0);         // بدء آخر محاولة رفع — لكشف المحاولة المعلّقة
   const retryRef = useRef(null);
 
   const tryDecryptToken = (cfg, roleNow) => {
@@ -7296,7 +7297,7 @@ export default function FleetApp() {
       const mine = String(baseRevRef.current || "");
       if (cloudRev && mine && parseInt(cloudRev) > parseInt(mine)) throw new Error("gh-conflict");
     } catch (e) { if (String(e && e.message) === "gh-conflict") throw e; }
-    pushPendingRef.current = true;
+    pushPendingRef.current = true; pushStartRef.current = Date.now();
     const rev = Date.now() + "-" + _cid;
     attemptRevRef.current = rev;
     // قيد يوثّق ما تغيّر — يُكتب داخل الملف نفسه فيراه كل من يفتح الرابط
@@ -7436,21 +7437,28 @@ export default function FleetApp() {
   // تحرس من بقاء الشارة عالقة إذا سقطت محاولة رفع بصمت (رمز مفقود، أو أساس لم يصل بعد).
   useEffect(() => {
     if (!hasPending) return;
-    const settle = () => {
+    const settle = async () => {
       try {
         if (!pendingRead()) { setHasPending(false); return; }
+        // ١ · لا أساس مؤكَّد من السحابة؟ نجلبه صراحةً
+        if (!baseFromCloudRef.current) {
+          try { const t = await readData(tokenRef.current, null); if (t) applyRemote(t); } catch (e) {}
+          if (!baseFromCloudRef.current) return;
+        }
+        // ٢ · لا فرق عن السحابة؟ تُمحى الراية مهما كانت حال المحاولة
         const a = dbRef.current, b = baseRef.current;
-        if (a && b && baseFromCloudRef.current && JSON.stringify(a) === JSON.stringify(b)) {
+        if (a && b && JSON.stringify(a) === JSON.stringify(b)) {
           pendingClear(); setHasPending(false); backoffRef.current = 0;
+          pushPendingRef.current = false;
           SYNC.push = "مستقر — لا فرق عن السحابة"; SYNC.err = "";
           return;
         }
-        // فرق حقيقي وما من محاولة جارية: نعيد المحاولة بدل الانتظار الأبدي
-        if (pushPendingRef.current || roRef.current || newVerRef.current) return;
-        if (!baseFromCloudRef.current) {
-          readData(tokenRef.current, null).then((t) => { if (t) applyRemote(t); }).catch(() => {});
-          return;
+        // ٣ · فرق حقيقي: محاولة معلّقة أكثر من 45 ثانية تُحرَّر ثم يُعاد الرفع
+        if (pushPendingRef.current) {
+          if (Date.now() - (pushStartRef.current || 0) > 45000) pushPendingRef.current = false;
+          else return;
         }
+        if (roRef.current || newVerRef.current) return;
         try { queueCloud(a); } catch (e) {}
       } catch (e) {}
     };
@@ -8229,10 +8237,29 @@ export default function FleetApp() {
               </div>
             )}
             <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
-              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length, seen: remoteSeenRef.current, lock: saveLocked, pending: hasPending, newVer: newVerRef.current || null, role: isOwner ? "owner" : ro ? "viewer" : "editor" })); } catch (e) {} }}
+              <button onClick={() => { try { navigator.clipboard.writeText(JSON.stringify({ build: APP_BUILD, cloud, ...SYNC, veh: vehicles.length, seen: remoteSeenRef.current, lock: saveLocked, pending: hasPending,
+                diff: (() => { try { const a = dbRef.current, b = baseRef.current; if (!a || !b) return "?"; return JSON.stringify(a) === JSON.stringify(b) ? "no" : "yes"; } catch (e) { return "?"; } })(),
+                cloudBase: baseFromCloudRef.current, busy: pushPendingRef.current, newVer: newVerRef.current || null, role: isOwner ? "owner" : ro ? "viewer" : "editor" })); } catch (e) {} }}
                 style={{ background: "#F4F5F7", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>نسخ التفاصيل</button>
               <button onClick={() => { try { if (window.caches && caches.keys) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))); } catch (e) {} window.location.reload(true); }}
                 style={{ background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>تحديث كامل</button>
+              <button onClick={() => {
+                try {
+                  if (!pendingRead()) { setHasPending(false); setImportMsg("✅ لا شيء ينتظر الرفع"); }
+                  else {
+                    const a = dbRef.current, b = baseRef.current;
+                    if (a && b && baseFromCloudRef.current && JSON.stringify(a) === JSON.stringify(b)) {
+                      pendingClear(); setHasPending(false); pushPendingRef.current = false;
+                      setImportMsg("✅ لا فرق عن السحابة — أُلغي الانتظار");
+                    } else {
+                      pushPendingRef.current = false;
+                      readData(tokenRef.current, null).then((t) => { if (t) applyRemote(t); }).catch(() => {});
+                      setImportMsg("🔄 جارٍ المصالحة مع السحابة…");
+                    }
+                  }
+                } catch (e) {}
+                setTimeout(() => setImportMsg(""), 6000);
+              }} style={{ background: "#1F6FB8", color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>🔄 مصالحة الآن</button>
               <button onClick={() => setDiagOpen(false)}
                 style={{ background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>إغلاق</button>
             </div>

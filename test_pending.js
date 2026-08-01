@@ -45,6 +45,10 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("ويقول لا يوجد فرق", t.includes("فرقفعليعنالسحابةلايوجد"));
   ok("مصالحة واحدة لا حلقة رفع متكررة", puts.length <= 2);
   ok("لم يتكرر الرفع بعد المصالحة", (await (async()=>{const n=puts.length; await wait(6000); return puts.length===n;})()));
+  // سيناريو المحاولة العالقة: راية + فرق حقيقي + محاولة لا تنتهي
+  ok("نص التشخيص يعرض الحقول الجديدة", txt().includes("فرق فعلي عن السحابة"));
+  const copyBtn=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("نسخ التفاصيل"));
+  ok("زر «مصالحة الآن» موجود", Array.from(D.querySelectorAll("button")).some(b=>(b.textContent||"").includes("مصالحة الآن")));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
