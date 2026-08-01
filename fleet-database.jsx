@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.9 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -8107,6 +8107,9 @@ export default function FleetApp() {
         }
         /* الأزرار العائمة تختفي أثناء فتح أي نافذة فلا تتداخل مع أزرارها */
         body:has(.modal-overlay) .fd-float-back { display: none !important; }
+        @media screen and (max-width: 700px) {
+          .fd-float-back { top: 6px !important; left: 6px !important; padding: 5px 11px !important; font-size: 11.5px !important; }
+        }
         body.modal-open .fd-float-back { display: none !important; }
         .modal-card {
           max-width: calc(var(--vvw, 100vw) - 22px) !important;
@@ -8376,7 +8379,9 @@ export default function FleetApp() {
             ? "linear-gradient(270deg, rgba(13,18,30,0.94) 0%, rgba(13,18,30,0.87) 36%, rgba(16,22,38,0.70) 62%, rgba(16,22,38,0.48) 100%)"
             : "linear-gradient(270deg, rgba(15,20,33,0.97) 0%, rgba(15,20,33,0.90) 28%, rgba(18,25,42,0.68) 44%, rgba(18,25,42,0.34) 62%, rgba(18,25,42,0.12) 82%, rgba(18,25,42,0.03) 100%)"
           }, url(${HEADER_BG}) left center / cover no-repeat, linear-gradient(120deg, #121826, #3A1420)`,
-          minHeight: narrowHdr ? undefined : 158, padding: histLen > 0 ? "12px 22px 0 86px" : "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.48)", boxShadow: "0 8px 26px rgba(8,12,22,0.45)" }}>
+          minHeight: narrowHdr ? 150 : 158,
+          // الحشو ثابت بالجوال مهما تنقّلت: زر الرجوع يطفو فوق الترويسة ولا يقتطع من عرضها
+          padding: narrowHdr ? "12px 14px 0" : (histLen > 0 ? "12px 22px 0 86px" : "12px 22px 0"), color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.48)", boxShadow: "0 8px 26px rgba(8,12,22,0.45)" }}>
         {/* زر خفي: تنزيل index.html بأحدث بياناتك الحية لرفعه على GitHub */}
         
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
