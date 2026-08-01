@@ -344,7 +344,12 @@ async function ghPutFile(token, path, text, sha, msg) {
     body: JSON.stringify(body),
   });
   if (r.status === 401 || r.status === 403) throw new Error("gh-auth");
-  if (r.status === 409 || r.status === 422) throw new Error("gh-conflict");
+  if (r.status === 409 || r.status === 422) {
+    // بصمة الملف تغيّرت منذ آخر قراءة — تُعالَج بتحديث البصمة لا بالدمج
+    let why = "";
+    try { why = (await r.json()).message || ""; } catch (e) {}
+    const err = new Error("gh-sha"); err.why = why; throw err;
+  }
   if (!r.ok) throw new Error("gh-write " + r.status);
   const j = await r.json();
   return j.content && j.content.sha;
@@ -1708,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.8 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7314,8 +7319,9 @@ export default function FleetApp() {
     };
     const pushed = { ...nextDb, syncLog: [...((nextDb.syncLog) || []), entry].slice(-30) };
     const payload = JSON.stringify({ cfg: cfgRef.current || {}, db: pushed, rev, meta: { by: _cid, at: Date.now() } });
-    if (shaDataRef.current === undefined) shaDataRef.current = await ghGetSha(tok, GH.path);
-    if (shaVerRef.current === undefined) shaVerRef.current = await ghGetSha(tok, VER_PATH);
+    // تُقرأ البصمتان لحظة الكتابة دائماً: البصمة البائتة كانت سبب رفض الرفع المتكرر
+    shaDataRef.current = await ghGetSha(tok, GH.path);
+    shaVerRef.current = await ghGetSha(tok, VER_PATH);
     try {
       shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
       shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
@@ -7345,6 +7351,23 @@ export default function FleetApp() {
       catch (e) {
         pushPendingRef.current = false;
         const m = String(e && e.message || "");
+        if (m === "gh-sha") {
+          // بصمة بائتة: نحدّثها ونعيد المحاولة فوراً — لا حاجة لدمج
+          try {
+            shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
+            shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
+            await doPush(dbRef.current || next);
+            return;
+          } catch (e2) {
+            const m2 = String(e2 && e2.message || "");
+            if (m2 !== "gh-conflict") {
+              SYNC.push = "فشل: بصمة الملف — " + ((e && e.why) || m2 || "") + " — سيُعاد الرفع"; SYNC.err = m2 || "gh-sha";
+              clearTimeout(retryRef.current);
+              retryRef.current = setTimeout(() => queueCloud(dbRef.current), 8000);
+              return;
+            }
+          }
+        }
         if (m === "gh-conflict") {
           conflictRef.current = (conflictRef.current || 0) + 1;
           // نسخة سبقتنا من جهاز آخر: ندمج التعديلات دمجاً ثلاثياً فلا يضيع عمل أحد

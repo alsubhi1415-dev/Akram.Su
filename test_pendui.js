@@ -26,7 +26,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 (async()=>{
   await wait(6000); await wait(3000);
   ok("لا شارة مستقلة بالرأس", !txt().includes("⏳ بانتظار الرفع"));
-  ok("نقطة المزامنة ظاهرة", /\u{1F7E2}|\u26AA|\u{1F7E1}|\u{1F511}/u.test(D.querySelector("header").textContent));
+  ok("نقطة المزامنة ظاهرة", !!Array.from(D.querySelectorAll("header span")).find(x=>(x.getAttribute("title")||"").includes("حالة المزامنة")));
   // تسجيل عطل والرفع يعلّق
   await click("سجل الآليات",1300);
   const f=Array.from(D.querySelectorAll("button")).find(b=>b.getAttribute("title")==="تسجيل عطل فوري");
