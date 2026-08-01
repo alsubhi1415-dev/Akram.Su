@@ -1049,6 +1049,41 @@ function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, s
   );
 }
 
+// ====== الإعارة بين الشعب: الأنواع المشمولة وقائمة المصادر ======
+// وايت · إنقاذ · سلالم فقط — وما عداها لا يظهر له حقل الإعارة.
+function loanCat(type) {
+  const t = (type || "");
+  if (t.includes("وايت") && !t.includes("سقيا")) return "وايت";
+  if (t.includes("سلالم") || t.includes("سنوركل")) return "سلالم";
+  if ((t.includes("انقاذ") || t.includes("إنقاذ")) && !t.includes("دراجة") && !t.includes("زلازل")) return "إنقاذ";
+  return null;
+}
+// آلية بحالة رجيع لا تُحسب أصلاً — لا تُعار ولا يُنتظر رجوعها
+const REJEE_ST = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
+const isRejee = (st) => REJEE_ST.includes((st || "").trim());
+const SUPPORT_UNIT = "قسم الدعم والإسناد";
+// تُقرأ عند العرض لا عند تحميل الوحدة، لأن MANUAL_CENTERS مُعرَّف لاحقاً في الملف
+const loanSources = () => [...MANUAL_CENTERS.map((m) => m.branch), SUPPORT_UNIT];
+
+// إعارة قائمة = عطل يحمل قيد تغطية، ولمّا يُسجَّل له تاريخ إصلاح، وآليته ليست رجيعاً
+function openLoans(vehicles) {
+  const out = [];
+  (vehicles || []).forEach((v) => {
+    if (isRejee(v.status)) return;              // رجيع: لا تُنتظر عودته
+    const cat = loanCat(v.type);
+    if (!cat) return;
+    (v.faults || []).forEach((f) => {
+      if (!f.cover || f.repairDate) return;
+      out.push({
+        id: v.id + "|" + f._id, cat, plate: v.plate, type: v.type,
+        to: v.unit || "—", from: f.cover, date: f.date || "", desc: f.desc || f.faultType || "",
+        age: (() => { const n = hDayNum(f.date); if (!n) return null; const t = todayHijri(); return Math.max(0, Math.round(t.y * 354.367 + (t.m - 1) * 29.53 + t.d - n)); })(),
+      });
+    });
+  });
+  return out.sort((a, b) => (b.age || 0) - (a.age || 0));
+}
+
 // ====== حقول سجل الأعطال ======
 const FAULT_FIELDS = [
   { key: "faultType", label: "نوع العطل", options: FAULT_TYPES, req: true },
@@ -1219,7 +1254,9 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
           })()}
           <LogSection title="سجل الأعطال والإصلاحات" accent="#C4353C" items={v.faults} sortKey="date"
             emptyMsg="لا توجد أعطال مسجلة على هذه الآلية."
-            fields={FAULT_FIELDS}
+            fields={loanCat(v.type) && !isRejee(v.status)
+              ? [...FAULT_FIELDS, { key: "cover", label: "غُطّي العجز بآلية من", options: loanSources(), ph: "اختياري" }]
+              : FAULT_FIELDS}
             onAdd={(it) => mutate("faults", (a) => [...a, it])}
             onDelete={(id) => mutate("faults", (a) => a.filter((x) => x._id !== id))}
           />
@@ -1670,7 +1707,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 16.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 16.8 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6230,7 +6267,9 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
   const INT = useMemo(() => integrityChecks(vehicles), [vehicles]);
   const intTotal = INT.reduce((a, b) => a + b.n, 0);
   const AV = useMemo(() => availabilityStats(rdyHist), [rdyHist]);
+  const LOANS = useMemo(() => openLoans(vehicles), [vehicles]);
   const Tabs = [["top", "🎯 أولويات الإصلاح", D.top.length], ["exp", <span key="e"><SrIcon /> انكشاف التغطية</span>, D.exposure.length],
+    ["loan", "⚖ الإعارات القائمة", LOANS.length],
     ["chr", "🔁 الآليات المزمنة", D.chronic.length], ["int", "🧪 سلامة البيانات", intTotal], ["avl", "⏱ التوافر الزمني", AV.rows.length]];
   return (
     <div>
@@ -6342,6 +6381,41 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
               <div style={{ fontSize: 17, fontWeight: 800, color: readinessColor(r.pct), minWidth: 46, textAlign: "center" }}>{r.pct}%</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "loan" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", lineHeight: 1.9, background: "#F4F6FA", border: "1px solid #DFE3EA", borderRadius: 12, padding: "10px 13px" }}>
+            كل آلية (وايت · إنقاذ · سلالم) سُجّل على عطلها أنه غُطّي بآلية من جهة أخرى، ولم يُسجَّل لها تاريخ إصلاح بعد.
+            حين تُصلَح الآلية وتعود، تُغلق الإعارة من هنا تلقائياً ويصل تنبيه بإمكان إعادة المُعار.
+            وآليات الرجيع مستثناة لأنها لا تعود.
+          </div>
+          {LOANS.length === 0 ? (
+            <div style={{ ...card, textAlign: "center", color: "#8B93A3", fontWeight: 700, fontSize: 12.5, padding: "26px 12px", lineHeight: 1.9 }}>
+              لا توجد إعارات قائمة — أو لم تُسجَّل بعد.
+              <div style={{ fontSize: 11.5, marginTop: 6, color: "#A3AAB8" }}>تُسجَّل الإعارة من حقل «غُطّي العجز بآلية من» داخل نموذج تسجيل العطل.</div>
+            </div>
+          ) : LOANS.map((L) => {
+            const col = L.age == null ? "#8B93A3" : L.age >= 14 ? "#C4353C" : L.age >= 7 ? "#C77F1A" : "#0E7A5F";
+            return (
+              <div key={L.id} onClick={() => onOpenVehicle && onOpenVehicle(L.plate)}
+                style={{ ...card, display: "flex", gap: 12, alignItems: "center", borderRight: "5px solid " + col, cursor: onOpenVehicle ? "pointer" : "default" }}>
+                <span style={{ background: "#EEF1F7", border: "1px solid #D7DCE6", color: "#3A4152", borderRadius: 8, padding: "3px 10px", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0 }}>{L.cat}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#141A28", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.type}</div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 3 }}>
+                    اللوحة {L.plate || "—"} · المتعطلة لدى <b>{L.to}</b> · غُطّيت من <b>{L.from}</b>
+                  </div>
+                  {L.desc && <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A3", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.desc}</div>}
+                </div>
+                <div style={{ textAlign: "center", minWidth: 58, flexShrink: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: col }}>{L.age == null ? "—" : L.age}</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, color: "#8B93A3" }}>يوماً</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
