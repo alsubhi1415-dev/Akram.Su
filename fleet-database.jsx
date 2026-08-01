@@ -1106,6 +1106,45 @@ function openLoans(vehicles) {
   return out.sort((a, b) => (b.age || 0) - (a.age || 0));
 }
 
+// إعارة قابلة للإعادة: عادت الآلية للعمل (سُجّل تاريخ إصلاح) ولم يُؤشَّر بإتمام الإعادة
+function returnableLoans(vehicles) {
+  const t = todayHijri();
+  const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
+  const out = [];
+  (vehicles || []).forEach((v) => {
+    if (isRejee(v.status)) return;
+    const cat = loanCat(v);
+    if (!cat) return;
+    (v.faults || []).forEach((f) => {
+      if (!f.cover || !f.repairDate || f.coverDone) return;
+      const n = hDayNum(f.repairDate);
+      out.push({
+        id: v.id + "|" + f._id, vid: v.id, fid: f._id, cat, plate: v.plate, type: v.type,
+        to: v.unit || "—", from: f.cover, repairDate: f.repairDate,
+        since: n ? Math.max(0, Math.round(now - n)) : null,
+      });
+    });
+  });
+  return out.sort((a, b) => (a.since || 0) - (b.since || 0));
+}
+
+// ====== الشريط المتحرك بالصفحة الرئيسية ======
+function Ticker({ items }) {
+  if (!items || !items.length) return null;
+  const line = (k) => items.map((it, i) => (
+    <span key={k + "-" + i} className="tk-item" onClick={it.go} style={{ cursor: it.go ? "pointer" : "default" }}>
+      <span className="tk-ic">{it.ic}</span>
+      <span style={{ color: it.tone || "#E8EBF2" }}>{it.txt}</span>
+      <span className="tk-sep">•</span>
+    </span>
+  ));
+  return (
+    <div className="tk-wrap no-print" title="مرّر المؤشر لإيقاف الحركة">
+      <div className="tk-track">{line("a")}{line("b")}</div>
+    </div>
+  );
+}
+
 // ====== حقول سجل الأعطال ======
 const FAULT_FIELDS = [
   { key: "faultType", label: "نوع العطل", options: FAULT_TYPES, req: true },
@@ -1729,7 +1768,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.2 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6288,7 +6327,7 @@ function availabilityStats(hist) {
   return { rows, days: days.length, from: days[0] || "", to: days[days.length - 1] || "" };
 }
 
-function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip }) {
+function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip, onMarkReturned, isOwner }) {
   const D = useMemo(() => decisionData(vehicles), [vehicles]);
   const [tab, setTab] = useState("top");
   const card = { background: "#fff", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: "13px 15px", boxShadow: "0 3px 12px rgba(20,26,40,0.05)" };
@@ -6296,8 +6335,9 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
   const intTotal = INT.reduce((a, b) => a + b.n, 0);
   const AV = useMemo(() => availabilityStats(rdyHist), [rdyHist]);
   const LOANS = useMemo(() => openLoans(vehicles), [vehicles]);
+  const RET = useMemo(() => returnableLoans(vehicles), [vehicles]);
   const Tabs = [["top", "🎯 أولويات الإصلاح", D.top.length], ["exp", <span key="e"><SrIcon /> انكشاف التغطية</span>, D.exposure.length],
-    ["loan", "⚖ الإعارات القائمة", LOANS.length],
+    ["loan", "⚖ الإعارات", LOANS.length + RET.length],
     ["chr", "🔁 الآليات المزمنة", D.chronic.length], ["int", "🧪 سلامة البيانات", intTotal], ["avl", "⏱ التوافر الزمني", AV.rows.length]];
   return (
     <div>
@@ -6419,11 +6459,37 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
             حين تُصلَح الآلية وتعود، تُغلق الإعارة من هنا تلقائياً ويصل تنبيه بإمكان إعادة المُعار.
             وآليات الرجيع مستثناة لأنها لا تعود.
           </div>
+          {RET.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#8A5D0B", background: "#FCF0D9", border: "1px solid #E6CB92", borderRadius: 12, padding: "9px 13px" }}>
+                ⚖ قابلة للإعادة الآن ({RET.length}) — عادت الآلية المتعطلة للعمل
+              </div>
+              {RET.map((L) => (
+                <div key={L.id} style={{ ...card, display: "flex", gap: 12, alignItems: "center", borderRight: "5px solid #C77F1A", background: "#FFFDF8" }}>
+                  <span style={{ background: "#FCF0D9", border: "1px solid #E6CB92", color: "#8A5D0B", borderRadius: 8, padding: "3px 10px", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0 }}>{L.cat}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#141A28", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.type}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 3 }}>
+                      اللوحة {L.plate || "—"} · عادت لدى <b>{L.to}</b> · تُعاد المُعارة إلى <b>{L.from}</b>
+                      {L.since != null ? " · منذ " + L.since + " يوماً" : ""}
+                    </div>
+                  </div>
+                  {isOwner && onMarkReturned && (
+                    <button onClick={() => onMarkReturned(L.vid, L.fid)} style={{
+                      background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 14px",
+                      fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+                    }}>تمت الإعادة</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           {LOANS.length === 0 ? (
+            RET.length > 0 ? null : (
             <div style={{ ...card, textAlign: "center", color: "#8B93A3", fontWeight: 700, fontSize: 12.5, padding: "26px 12px", lineHeight: 1.9 }}>
               لا توجد إعارات قائمة — أو لم تُسجَّل بعد.
               <div style={{ fontSize: 11.5, marginTop: 6, color: "#A3AAB8" }}>تُسجَّل الإعارة من حقل «غُطّي العجز بآلية من» داخل نموذج تسجيل العطل.</div>
-            </div>
+            </div>)
           ) : LOANS.map((L) => {
             const col = L.age == null ? "#8B93A3" : L.age >= 14 ? "#C4353C" : L.age >= 7 ? "#C77F1A" : "#0E7A5F";
             return (
@@ -7630,6 +7696,31 @@ export default function FleetApp() {
     const rej = vehicles.filter((v) => (v.status || "").trim() === "تحت إجراءات الرجيع");
     return { long, warr, rej, total: long.length + warr.length + rej.length };
   }, [vehicles]);
+  const tickerItems = useMemo(() => {
+    const arr = [];
+    const RET = returnableLoans(vehicles);
+    RET.slice(0, 6).forEach((L) => arr.push({
+      ic: "⚖", tone: "#FFD166",
+      txt: `عادت ${L.cat} ${L.to} للعمل — يمكن إعادة المُعارة من ${L.from}` + (L.since != null ? ` (منذ ${L.since} يوماً)` : ""),
+      go: () => { setView("overview"); setTimeout(() => setView("decision"), 0); },
+    }));
+    const S = (() => {
+      const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+      const base = vehicles.filter((v) => !(v.status || "").includes("الرجيع")).length;
+      return base ? Math.round((ready / base) * 100) : 0;
+    })();
+    arr.push({ ic: <MdIcon />, tone: "#9FE3C4", txt: `نسبة الجاهزية الحالية ${S}%` });
+    if (alerts.long.length) arr.push({ ic: "⏳", tone: "#FFB4A2",
+      txt: `${alerts.long.length} آلية متوقفة أكثر من 90 يوماً — أقدمها ${alerts.long[0].d} يوماً` });
+    if (alerts.warr.length) arr.push({ ic: "🔁", tone: "#FFD166",
+      txt: `${alerts.warr.length} آلية عاودها العطل خلال 30 يوماً من الإصلاح` });
+    if (alerts.rej.length) arr.push({ ic: <RjIcon />, tone: "#C7D2FE",
+      txt: `${alerts.rej.length} آلية تحت إجراءات الرجيع` });
+    const OL = openLoans(vehicles);
+    if (OL.length) arr.push({ ic: "⚖", tone: "#E8EBF2", txt: `${OL.length} إعارة قائمة بين الشعب` });
+    if (hasPending) arr.push({ ic: "⏳", tone: "#FFD166", txt: "تعديل بانتظار الرفع — سيُرسل تلقائياً" });
+    return arr;
+  }, [vehicles, alerts, hasPending]);
   const SORT_KEYS = { "نوع الآلية": "type", "رقم اللوحة": "plate", "الجهة": "unit", "الموديل": "model", "الموقع الحالي": "location", "الحالة الفنية": "status", "التاريخ": "__d" };
   const sortRows = (arr) => {
     if (!sortK) return arr;
@@ -7914,6 +8005,24 @@ export default function FleetApp() {
         /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
         header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
         header .hdr-sub { color: #E2E8F4 !important; }
+        /* الشريط المتحرك: أخبار تشغيلية تمرّ أعلى الصفحة الرئيسية */
+        .tk-wrap {
+          direction: ltr; overflow: hidden; width: 100%; margin: 0 auto 14px; max-width: 1080px;
+          background: linear-gradient(90deg,#141A28,#1E2952 55%,#3A1420);
+          border: 1px solid rgba(212,175,55,0.35); border-radius: 12px;
+          box-shadow: 0 4px 14px rgba(20,26,40,0.22);
+        }
+        .tk-track { display: inline-flex; white-space: nowrap; padding: 9px 0; will-change: transform;
+          animation: tkroll 46s linear infinite; }
+        .tk-wrap:hover .tk-track { animation-play-state: paused; }
+        @keyframes tkroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .tk-item { direction: rtl; display: inline-flex; align-items: center; gap: 7px;
+          font-size: 12.5px; font-weight: 800; color: #E8EBF2; padding: 0 4px; }
+        .tk-item img { height: 15px; width: auto; }
+        .tk-ic { font-size: 14px; line-height: 1; }
+        .tk-sep { color: rgba(212,175,55,0.75); margin: 0 12px; font-size: 13px; }
+        @media (max-width: 700px) { .tk-item { font-size: 11.5px; } .tk-track { animation-duration: 34s; padding: 8px 0; } }
+        @media (prefers-reduced-motion: reduce) { .tk-track { animation: none; } }
         /* أزرار الطباعة: خلفية فاتحة كي يظهر رمز الطابعة الداكن بوضوح */
         .print-btn {
           display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -8674,6 +8783,7 @@ export default function FleetApp() {
       })()}
 
       <main className="app-main" style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 40px", width: "100%", boxSizing: "border-box", flex: 1 }}>
+        {CMD_TABS.some(([t]) => t === view) && <Ticker items={tickerItems} />}
         {CMD_TABS.some(([t]) => t === view) && (
           <div className="cmd-tabs no-print">
             {CMD_TABS.map(([id, ic, lbl]) => (
@@ -8793,7 +8903,12 @@ export default function FleetApp() {
 
         {view === "decision" && (
           <DecisionPage vehicles={vehicles} rdyHist={db.rdyHist || {}}
-            centerReadiness={db.centerReadiness || {}} equip={db.equipReadiness || {}}
+            centerReadiness={db.centerReadiness || {}} equip={db.equipReadiness || {}} isOwner={isOwner}
+            onMarkReturned={(vid, fid) => {
+              const tv = vehicles.find((x) => x.id === vid);
+              if (!tv) return;
+              updateVehicle({ ...tv, faults: (tv.faults || []).map((f) => (f._id === fid ? { ...f, coverDone: true } : f)) });
+            }}
             onOpenVehicle={(id) => { setSelectedId(id); setView("detail"); }} />
         )}
         {view === "charts" && (

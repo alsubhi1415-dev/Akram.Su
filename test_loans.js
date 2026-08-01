@@ -51,13 +51,14 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   await click("الصفحة الرئيسية",1200);
   const dt=Array.from(D.querySelectorAll(".cmd-tab")).find(t=>(t.textContent||"").includes("مركز القرار"));
   if(dt){dt.click(); await wait(1500);}
-  const tb=Array.from(D.querySelectorAll(".grid-btn")).find(b=>(b.textContent||"").includes("الإعارات القائمة"));
-  ok("تبويب «الإعارات القائمة» موجود", !!tb);
-  ok("عدّاد التبويب = 1 (المفتوحة فقط)", tb && /\(\s*1\s*\)/.test(tb.textContent));
+  const tb=Array.from(D.querySelectorAll(".grid-btn")).find(b=>(b.textContent||"").includes("الإعارات"));
+  ok("تبويب «الإعارات» موجود", !!tb);
+  ok("عدّاد التبويب = 2 (قائمة + قابلة للإعادة)", tb && /\(\s*2\s*\)/.test(tb.textContent));
   if(tb){tb.click(); await wait(1000);}
   const t=txt();
   ok("الإعارة المفتوحة معروضة", t.includes("قسم الدعم والإسناد") && t.includes("شعبة الجامعة"));
-  ok("الإعارة المغلقة بإصلاح لا تظهر", !t.includes("شعبة الشاطئ") || !t.includes("عطل سابق"));
+  ok("الإعارة المُصلَحة تظهر ضمن «قابلة للإعادة»", t.includes("قابلة للإعادة الآن"));
+  ok("زر «تمت الإعادة» متاح للمشرف", Array.from(D.querySelectorAll("button")).some(b=>(b.textContent||"").trim()==="تمت الإعادة"));
   ok("إعارة آلية الرجيع مستثناة", !t.includes("رجيع") || !t.includes("شعبة خزام"));
   ok("عمر الإعارة بالأيام ظاهر", /يوماً/.test(t));
   // --- الحقل داخل نموذج العطل ---
@@ -88,6 +89,15 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   };
   if(tank) ok("[صهريج] لا يظهر حقل الإعارة", !(await openFor(tank.plate)));
   if(high) ok("[مباني عالية] لا يظهر حقل الإعارة", !(await openFor(high.plate)));
+  // الشريط المتحرك بالصفحة الرئيسية
+  await click("الصفحة الرئيسية",1400);
+  const tk=D.querySelector(".tk-wrap");
+  ok("الشريط المتحرك ظاهر", !!tk);
+  const tks=tk?tk.textContent:"";
+  ok("الشريط ينبّه بإمكان إعادة المُعارة", tks.includes("يمكن إعادة المُعارة"));
+  ok("الشريط يذكر نسبة الجاهزية", tks.includes("نسبة الجاهزية الحالية"));
+  ok("الشريط مستثنى من الطباعة", (tk.getAttribute("class")||"").includes("no-print"));
+  ok("العناصر مضاعفة لدوران سلس", tk.querySelectorAll(".tk-item").length % 2 === 0);
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
