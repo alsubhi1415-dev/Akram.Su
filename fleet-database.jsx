@@ -1051,11 +1051,33 @@ function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, s
 
 // ====== الإعارة بين الشعب: الأنواع المشمولة وقائمة المصادر ======
 // وايت · إنقاذ · سلالم فقط — وما عداها لا يظهر له حقل الإعارة.
-function loanCat(type) {
-  const t = (type || "");
-  if (t.includes("وايت") && !t.includes("سقيا")) return "وايت";
-  if (t.includes("سلالم") || t.includes("سنوركل")) return "سلالم";
-  if ((t.includes("انقاذ") || t.includes("إنقاذ")) && !t.includes("دراجة") && !t.includes("زلازل")) return "إنقاذ";
+// المرجع لوحات لا أسماء أنواع: الوايت من أعمدة التقرير الأسبوعي (بروبلين + ماء + جبلي)
+// منقوصاً منها الصهاريج التسع، ووايت المباني العالية عمود مستقل فلا يدخل أصلاً.
+// والإنقاذ والسلالم من التصنيف الخاص المعتمد بصفحة التقارير.
+const TANKER_PLATES = ["بدق3669", "بدق3654", "بدق3664", "بدق3659", "اين3852", "اين3851", "اين3866", "اين3859", "اين3860"];
+const WHIT_WEEKLY_COLS = ["وايت روزنباور بروبلين مطور", "وايت ماء", "وايت جبلي"];
+let __loanSets = null;
+function loanSets() {
+  if (__loanSets) return __loanSets;
+  const whit = new Set();
+  WEEKLY_COLS.forEach((c) => {
+    if (WHIT_WEEKLY_COLS.includes(c.name)) (c.plates || []).forEach((p) => whit.add(normPlate(p)));
+  });
+  TANKER_PLATES.forEach((p) => whit.delete(normPlate(p)));
+  const grp = (n) => {
+    const g = CUSTOM_GROUPS.find((x) => x.name === n);
+    return new Set((g && g.plates ? g.plates : []).map(normPlate));
+  };
+  __loanSets = { whit, rescue: grp("الانقاذات"), ladder: grp("السلالم") };
+  return __loanSets;
+}
+function loanCat(vehicle) {
+  const np = normPlate(typeof vehicle === "string" ? vehicle : (vehicle && vehicle.plate));
+  if (!np) return null;
+  const S = loanSets();
+  if (S.whit.has(np)) return "وايت";
+  if (S.rescue.has(np)) return "إنقاذ";
+  if (S.ladder.has(np)) return "سلالم";
   return null;
 }
 // آلية بحالة رجيع لا تُحسب أصلاً — لا تُعار ولا يُنتظر رجوعها
@@ -1070,7 +1092,7 @@ function openLoans(vehicles) {
   const out = [];
   (vehicles || []).forEach((v) => {
     if (isRejee(v.status)) return;              // رجيع: لا تُنتظر عودته
-    const cat = loanCat(v.type);
+    const cat = loanCat(v);
     if (!cat) return;
     (v.faults || []).forEach((f) => {
       if (!f.cover || f.repairDate) return;
@@ -1254,7 +1276,7 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
           })()}
           <LogSection title="سجل الأعطال والإصلاحات" accent="#C4353C" items={v.faults} sortKey="date"
             emptyMsg="لا توجد أعطال مسجلة على هذه الآلية."
-            fields={loanCat(v.type) && !isRejee(v.status)
+            fields={loanCat(v) && !isRejee(v.status)
               ? [...FAULT_FIELDS, { key: "cover", label: "غُطّي العجز بآلية من", options: loanSources(), ph: "اختياري" }]
               : FAULT_FIELDS}
             onAdd={(it) => mutate("faults", (a) => [...a, it])}
@@ -1707,7 +1729,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 16.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.0 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],

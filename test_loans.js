@@ -10,16 +10,27 @@ const mk=b=>({ok:true,status:200,headers:{get:()=>null},text:async()=>b,json:asy
 const base=JSON.parse(fs.readFileSync(__dirname+"/data_restored.json","utf8"));
 const V=base.db.vehicles;
 const pick=(pred)=>V.find(pred);
-const w=pick(v=>(v.type||"").includes("وايت") && !(v.type||"").includes("سقيا"));
+const norm=p=>(p||"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/\s+/g,"");
+const src=fs.readFileSync(__dirname+"/fleet-database.jsx","utf8");
+const grab=(n)=>{const i=src.indexOf('name: "'+n+'"');const j=src.indexOf("plates: [",i);const k=src.indexOf("]",j);
+  return new Set((src.slice(j,k).match(/"[^"]+"/g)||[]).map(x=>x.slice(1,-1)));};
+const RES=grab("الانقاذات"), LAD=grab("السلالم");
+const wcols=(()=>{const i=src.indexOf("const WEEKLY_COLS = [");let d=0,e=0;const r=src.slice(i+"const WEEKLY_COLS = ".length);
+  for(let k=0;k<r.length;k++){if(r[k]==="[")d++;else if(r[k]==="]"){d--;if(d===0){e=k+1;break;}}}
+  return JSON.parse(r.slice(0,e));})();
+const WH=new Set(); ["وايت روزنباور بروبلين مطور","وايت ماء","وايت جبلي"].forEach(n=>{
+  const c=wcols.find(x=>x.name===n); if(c)(c.plates||[]).forEach(p=>WH.add(norm(p)));});
+["بدق3669","بدق3654","بدق3664","بدق3659","اين3852","اين3851","اين3866","اين3859","اين3860"].forEach(p=>WH.delete(p));
+const w=pick(v=>WH.has(norm(v.plate)));
 w.status="عطلانة"; w.unit="شعبة الجامعة";
 w.faults=[{_id:1,faultType:"ميكانيكي",date:"1448/02/01",desc:"عطل مضخة",cover:"قسم الدعم والإسناد"}];
-const l=pick(v=>(v.type||"").includes("سلالم"));
+const l=pick(v=>LAD.has(norm(v.plate)));
 l.status="تم الإصلاح"; l.unit="شعبة المروة";
 l.faults=[{_id:2,faultType:"كهربائي",date:"1448/01/20",repairDate:"1448/02/10",desc:"عطل سابق",cover:"شعبة الشاطئ"}];
-const rj=V.filter(v=>(v.type||"").includes("وايت"))[3];
+const rj=V.filter(v=>WH.has(norm(v.plate)))[3];
 rj.status="صدر قرار الرجيع"; rj.unit="شعبة خزام";
 rj.faults=[{_id:3,faultType:"ميكانيكي",date:"1448/01/05",desc:"رجيع",cover:"شعبة المروة"}];
-const jeep=pick(v=>(v.type||"").includes("جيب"));
+const jeep=pick(v=>!WH.has(norm(v.plate))&&!RES.has(norm(v.plate))&&!LAD.has(norm(v.plate))&&(v.type||"").includes("جيب"));
 jeep.status="عطلانة"; jeep.faults=[];
 const DATA=JSON.stringify(base);
 const stub=u=>{u=String(u);
@@ -63,6 +74,20 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   const sels=Array.from(D.querySelectorAll("select"));
   const cov=sels.find(s=>Array.from(s.options).some(o=>o.text==="قسم الدعم والإسناد"));
   ok("قائمة المصادر بها 14 خياراً (13 شعبة + الدعم)", cov && cov.options.length===15);
+  // التصنيف باللوحات: صهريج ومباني عالية لا يظهر لهما الحقل
+  const tank=V.find(v=>["بدق3669","بدق3654","اين3852"].includes(norm(v.plate)));
+  const high=V.find(v=>(v.type||"").includes("مباني عالية"));
+  const openFor=async(plate)=>{
+    await click("سجل الآليات",1300);
+    const bx=Array.from(D.querySelectorAll("input")).find(i=>(i.getAttribute("placeholder")||"").includes("بحث"));
+    if(bx){setN(bx,plate); await wait(900);}
+    const r=D.querySelector("table.fleet-tbl tbody tr"); if(r){r.click(); await wait(1200);}
+    const ab=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").trim()==="+ إضافة");
+    if(ab){ab.click(); await wait(700);}
+    return txt().includes("غُطّي العجز بآلية من");
+  };
+  if(tank) ok("[صهريج] لا يظهر حقل الإعارة", !(await openFor(tank.plate)));
+  if(high) ok("[مباني عالية] لا يظهر حقل الإعارة", !(await openFor(high.plate)));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
