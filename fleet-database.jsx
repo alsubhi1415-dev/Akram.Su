@@ -1708,7 +1708,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.7 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7166,6 +7166,7 @@ export default function FleetApp() {
   const baseFromCloudRef = useRef(false); // الأساس مؤكَّد من السحابة لا من المرآة المحلية
   const pushStartRef = useRef(0);         // بدء آخر محاولة رفع — لكشف المحاولة المعلّقة
   const pendSinceRef = useRef(0);
+  const conflictRef = useRef(0);
   const [pendLong, setPendLong] = useState(false); // انتظار مستمر يستحق التنبيه (لا وميض لحظي)
   const retryRef = useRef(null);
 
@@ -7315,8 +7316,10 @@ export default function FleetApp() {
     const payload = JSON.stringify({ cfg: cfgRef.current || {}, db: pushed, rev, meta: { by: _cid, at: Date.now() } });
     if (shaDataRef.current === undefined) shaDataRef.current = await ghGetSha(tok, GH.path);
     if (shaVerRef.current === undefined) shaVerRef.current = await ghGetSha(tok, VER_PATH);
-    shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
-    shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
+    try {
+      shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
+      shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
+    } catch (e) { pushPendingRef.current = false; throw e; }   // لا تبقى راية «جارية» معلّقة
     baseRef.current = JSON.parse(JSON.stringify(pushed)); // ما دُفع صار الأساس المتفق عليه
     baseFromCloudRef.current = true;
     baseRevRef.current = rev;
@@ -7343,16 +7346,24 @@ export default function FleetApp() {
         pushPendingRef.current = false;
         const m = String(e && e.message || "");
         if (m === "gh-conflict") {
+          conflictRef.current = (conflictRef.current || 0) + 1;
           // نسخة سبقتنا من جهاز آخر: ندمج التعديلات دمجاً ثلاثياً فلا يضيع عمل أحد
           try {
             const remote = await ghGetJson(tokenRef.current, GH.path);
             const rdb = migrateDb((remote && remote.db) || {});
             const mine = dbRef.current || {};
             const { merged, stats } = mergeDb(baseRef.current || rdb, mine, rdb);
+            // اعتماد نسخة السحابة أساساً قبل إعادة الدفع — وإلا رفضها طوق التعارض مرة أخرى بلا نهاية
+            baseRef.current = JSON.parse(JSON.stringify(rdb));
+            baseRevRef.current = String((remote && remote.rev) || baseRevRef.current || "");
+            baseFromCloudRef.current = true;
+            if (remote && remote.rev) lastRevRef.current = remote.rev;
+            if (remote && remote.cfg) { cfgRef.current = remote.cfg; if (!tokenRef.current) tokenRef.current = tryDecryptToken(remote.cfg, roleRef.current); }
             shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
             shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
-            setDb(merged); saveDB(merged);
+            setDb(merged); saveDB(merged); dbRef.current = merged;
             await doPush(merged);
+            conflictRef.current = 0;
             const parts = [];
             if (stats.mine) parts.push("تعديلاتك " + stats.mine);
             if (stats.theirs) parts.push("تعديلات زميلك " + stats.theirs);
@@ -7364,6 +7375,8 @@ export default function FleetApp() {
             return;
           } catch {
             try {
+              const rv = await readVer(tokenRef.current, {});
+              if (rv && rv.ver && rv.ver.rev) baseRevRef.current = String(rv.ver.rev);
               shaDataRef.current = await ghGetSha(tokenRef.current, GH.path);
               shaVerRef.current = await ghGetSha(tokenRef.current, VER_PATH);
               await doPush(dbRef.current);
