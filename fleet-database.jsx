@@ -1708,7 +1708,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.4 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7034,6 +7034,7 @@ export default function FleetApp() {
       dbRef.current = boot.db;
       if (boot.from === "mirror") {
         baseRef.current = JSON.parse(JSON.stringify(boot.db));
+        baseFromCloudRef.current = false;   // مرآة محلية: ليست إثباتاً أن السحابة استلمت
         baseRevRef.current = boot.rev || "";
         lastRevRef.current = boot.rev || null;
         remoteSeenRef.current = !!boot.rev;   // لدينا أساس سحابي معروف
@@ -7049,7 +7050,27 @@ export default function FleetApp() {
       const pend = pendingRead();
       if (pend && pend.db) {
         setDb(pend.db); dbRef.current = pend.db; setHasPending(true);
-        setTimeout(() => { try { queueCloud(pend.db); } catch (e) {} }, 3000);
+        // يُعاد الرفع حين يتوفر أساس سحابي — لا محاولة يتيمة تضيع بصمت
+        let tries = 0;
+        const kick = async () => {
+          if (!pendingRead()) return;
+          if (roRef.current || newVerRef.current) return;
+          if (!baseFromCloudRef.current) {
+            // لا ننتظر تغيّر المؤشر: نجلب نسخة السحابة صراحةً لنعرف الأساس الحقيقي
+            try {
+              const txt = await readData(tokenRef.current, null);
+              if (txt) applyRemote(txt);
+            } catch (e) {}
+            if (!baseFromCloudRef.current) {
+              if (++tries < 10) setTimeout(kick, 4000);
+              return;
+            }
+          }
+          const a = dbRef.current || pend.db;
+          if (JSON.stringify(a) === JSON.stringify(baseRef.current)) { pendingClear(); setHasPending(false); return; }
+          try { queueCloud(dbRef.current || pend.db); } catch (e) {}
+        };
+        setTimeout(kick, 2500);
       }
       const rl = await stGet(LOGO_KEY); if (rl) setLogo(rl.value);
     })();
@@ -7142,6 +7163,7 @@ export default function FleetApp() {
   const tokenRef = useRef("");
   const cfgRef = useRef(null);
   const pushTimer = useRef(null);
+  const baseFromCloudRef = useRef(false); // الأساس مؤكَّد من السحابة لا من المرآة المحلية
   const retryRef = useRef(null);
 
   const tryDecryptToken = (cfg, roleNow) => {
@@ -7162,14 +7184,19 @@ export default function FleetApp() {
       // دمج ثلاثي عند الاستلام بدل الاستبدال — يحفظ أي قرار محلي لم يُدفع بعد
       const mine = dbRef.current;
       let finalDb = remoteDb, note = "⬇ آخر استلام";
+      // إن كان لدينا عمل محلي لم يصل السحابة، فالأساس الصحيح هو نسخة السحابة نفسها
+      // حتى يبقى عملنا "تعديلاً لنا" في الدمج الثلاثي فلا يُبتلع.
+      let mergeBase = baseRef.current;
+      try { if (!baseFromCloudRef.current && pendingRead()) mergeBase = remoteDb; } catch (e) {}
       try {
-        if (mine && baseRef.current && JSON.stringify(mine) !== JSON.stringify(baseRef.current)) {
-          const { merged, stats } = mergeDb(baseRef.current, mine, remoteDb);
+        if (mine && mergeBase && JSON.stringify(mine) !== JSON.stringify(mergeBase)) {
+          const { merged, stats } = mergeDb(mergeBase, mine, remoteDb);
           finalDb = merged;
           if (stats.mine > 0) note = "⬇ استلام مع حفظ " + stats.mine + " تعديلاً محلياً";
         }
       } catch (e) {}
       baseRef.current = JSON.parse(JSON.stringify(remoteDb)); // الأساس المرجعي للدمج الثلاثي
+      baseFromCloudRef.current = true;
       setDb(finalDb); saveDB(finalDb, parsed.rev || "", cfgRef.current);
       baseRevRef.current = String(parsed.rev || "");
       bootDoneRef.current = true; remoteSeenRef.current = true; setBootPhase("ready");
@@ -7287,6 +7314,7 @@ export default function FleetApp() {
     shaDataRef.current = await ghPutFile(tok, GH.path, payload, shaDataRef.current, "تحديث بيانات السجل");
     shaVerRef.current = await ghPutFile(tok, VER_PATH, JSON.stringify({ rev, by: _cid, at: Date.now() }), shaVerRef.current, "مؤشر التحديث " + rev);
     baseRef.current = JSON.parse(JSON.stringify(pushed)); // ما دُفع صار الأساس المتفق عليه
+    baseFromCloudRef.current = true;
     baseRevRef.current = rev;
     setDb(pushed); dbRef.current = pushed;
     mirrorWrite(pushed, rev, cfgRef.current);
@@ -7403,6 +7431,33 @@ export default function FleetApp() {
     }
     setGhBusy(false);
   };
+
+  // مصالحة الطابور: إن لم يعد بين ما عندي وما استقر بالسحابة أي فرق، فلا شيء ينتظر الرفع.
+  // تحرس من بقاء الشارة عالقة إذا سقطت محاولة رفع بصمت (رمز مفقود، أو أساس لم يصل بعد).
+  useEffect(() => {
+    if (!hasPending) return;
+    const settle = () => {
+      try {
+        if (!pendingRead()) { setHasPending(false); return; }
+        const a = dbRef.current, b = baseRef.current;
+        if (a && b && baseFromCloudRef.current && JSON.stringify(a) === JSON.stringify(b)) {
+          pendingClear(); setHasPending(false); backoffRef.current = 0;
+          SYNC.push = "مستقر — لا فرق عن السحابة"; SYNC.err = "";
+          return;
+        }
+        // فرق حقيقي وما من محاولة جارية: نعيد المحاولة بدل الانتظار الأبدي
+        if (pushPendingRef.current || roRef.current || newVerRef.current) return;
+        if (!baseFromCloudRef.current) {
+          readData(tokenRef.current, null).then((t) => { if (t) applyRemote(t); }).catch(() => {});
+          return;
+        }
+        try { queueCloud(a); } catch (e) {}
+      } catch (e) {}
+    };
+    const t0 = setTimeout(settle, 1500);
+    const id = setInterval(settle, 9000);
+    return () => { clearTimeout(t0); clearInterval(id); };
+  }, [hasPending]);
 
   const roleRef = useRef(role);
   useEffect(() => { roleRef.current = role; }, [role]);
@@ -8159,6 +8214,7 @@ export default function FleetApp() {
               ["نسخة أحدث منشورة", newVerRef.current || "لا توجد"],
               ["الحفظ متاح الآن", ro ? "لا (وضع استعراض)" : saveLocked ? "لا" : "نعم"],
               ["تعديل بانتظار الرفع", hasPending ? "نعم — يُعاد تلقائياً" : "لا"],
+              ["فرق فعلي عن السحابة", (() => { try { const a = dbRef.current, b = baseRef.current; if (!a || !b) return "غير معروف"; return JSON.stringify(a) === JSON.stringify(b) ? "لا يوجد" : "يوجد"; } catch (e) { return "غير معروف"; } })()],
               ["آخر رفع", SYNC.push || "لم يُرفع شيء في هذه الجلسة"],
               ["عدد الآليات المعروضة", String(vehicles.length)],
             ].map(([k, v]) => (
