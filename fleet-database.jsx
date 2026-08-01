@@ -1670,7 +1670,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 16.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 16.7 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -8841,10 +8841,10 @@ export default function FleetApp() {
                 }}>
                   <thead>
                     <tr>
-                      {[[<VIcon key="v" />, "نوع الآلية", isOwner ? "19%" : "21%"], ["🔖", "رقم اللوحة", "9.5%"], ["📅", "الموديل", "6%"],
-                        ["🏢", "الجهة", isOwner ? "16%" : "18%"], ["📍", "الموقع الحالي", "13%"], ["🩺", "الحالة الفنية", "11%"],
-                        ["📝", "وصف العطل", isOwner ? "13%" : "14.5%"], ["🗓", "التاريخ", "8%"],
-                        ...(isOwner ? [["⚡", "إجراء", "4.5%"]] : [])].map(([ic, h, wd]) => {
+                      {[[<VIcon key="v" />, "نوع الآلية", isOwner ? "17.5%" : "20%"], ["🔖", "رقم اللوحة", "9.5%"], ["📅", "الموديل", "7.5%"],
+                        ["🏢", "الجهة", isOwner ? "14.5%" : "16.5%"], ["📍", "الموقع الحالي", isOwner ? "12.5%" : "13%"], ["🩺", "الحالة الفنية", "11%"],
+                        ["📝", "وصف العطل", isOwner ? "13.5%" : "14.5%"], ["🗓", "التاريخ", "8%"],
+                        ...(isOwner ? [["", "إجراء", "6%"]] : [])].map(([ic, h, wd]) => {
                         const k = SORT_KEYS[h];
                         const on = sortK === k && k;
                         return (
@@ -8857,7 +8857,7 @@ export default function FleetApp() {
                               zIndex: 2, cursor: k ? "pointer" : "default", userSelect: "none", textAlign: "right",
                               borderBottom: "2px solid rgba(212,175,55,0.45)", fontSize: 12.5,
                             }}>
-                            <span style={{ opacity: 0.85, marginLeft: 5 }}>{ic}</span>{h}{on ? (sortD === 1 ? " ▲" : " ▼") : ""}
+                            {ic ? <span style={{ opacity: 0.85, marginLeft: 5 }}>{ic}</span> : null}{h}{on ? (sortD === 1 ? " ▲" : " ▼") : ""}
                           </th>
                         );
                       })}
@@ -8874,10 +8874,13 @@ export default function FleetApp() {
                       const fs = (v.faults || []);
                       const openF = fs.filter((f) => !f.repairDate).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
                       const fixF = fs.filter((f) => f.repairDate).sort((a, b) => String(b.repairDate || "").localeCompare(String(a.repairDate || "")))[0];
-                      const desc = isDown ? ((openF && (openF.desc || openF.faultType)) || "—") : "—";
-                      const dt = isDown ? (openF && openF.date) : (fixF && fixF.repairDate);
-                      const dtIc = isDown ? "⚠️" : "🛠";
-                      const dtLbl = isDown ? "عطل" : "إصلاح";
+                      // آلية متعطلة بلا عطل مفتوح: يُعرض آخر عطل مسجّل لها بدل ترك الخانة فارغة
+                      const lastF = [...fs].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+                      const refF = isDown ? (openF || lastF) : fixF;
+                      const desc = isDown ? ((refF && (refF.desc || refF.faultType)) || "—") : "—";
+                      const dt = isDown ? (refF && refF.date) : (fixF && fixF.repairDate);
+                      const dtIc = isDown ? (openF ? "⚠️" : "🕘") : "🛠";
+                      const dtLbl = isDown ? (openF ? "عطل" : "آخر عطل") : "إصلاح";
                       const accent = stColor(st);
                       return (
                         <tr key={v.id} className="row-hover" onClick={() => { setSelectedId(v.id); setView("detail"); }}
