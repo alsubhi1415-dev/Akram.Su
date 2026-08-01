@@ -40,7 +40,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   if(dt){dt.click(); await wait(1500);}
   const dg=Array.from(D.querySelectorAll(".btn-grid")).pop();
   const dbt=dg?Array.from(dg.querySelectorAll(".grid-btn")):[];
-  ok("[مركز القرار] ستة تبويبات بالشبكة (مع الإعارات)", dbt.length===6);
+  ok("[مركز القرار] خمسة تبويبات بالشبكة", dbt.length===5);
   ok("[مركز القرار] العدّاد بصنف مستقل", !!dg.querySelector(".gb-n"));
   // العمليات
   await click("إحصائيات عملياتية",1600);

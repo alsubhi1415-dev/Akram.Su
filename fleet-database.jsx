@@ -1049,87 +1049,27 @@ function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, s
   );
 }
 
-// ====== الإعارة بين الشعب: الأنواع المشمولة وقائمة المصادر ======
-// وايت · إنقاذ · سلالم فقط — وما عداها لا يظهر له حقل الإعارة.
-// المرجع لوحات لا أسماء أنواع: الوايت من أعمدة التقرير الأسبوعي (بروبلين + ماء + جبلي)
-// منقوصاً منها الصهاريج التسع، ووايت المباني العالية عمود مستقل فلا يدخل أصلاً.
-// والإنقاذ والسلالم من التصنيف الخاص المعتمد بصفحة التقارير.
-const TANKER_PLATES = ["بدق3669", "بدق3654", "بدق3664", "بدق3659", "اين3852", "اين3851", "اين3866", "اين3859", "اين3860"];
-const WHIT_WEEKLY_COLS = ["وايت روزنباور بروبلين مطور", "وايت ماء", "وايت جبلي"];
-let __loanSets = null;
-function loanSets() {
-  if (__loanSets) return __loanSets;
-  const whit = new Set();
-  WEEKLY_COLS.forEach((c) => {
-    if (WHIT_WEEKLY_COLS.includes(c.name)) (c.plates || []).forEach((p) => whit.add(normPlate(p)));
-  });
-  TANKER_PLATES.forEach((p) => whit.delete(normPlate(p)));
-  const grp = (n) => {
-    const g = CUSTOM_GROUPS.find((x) => x.name === n);
-    return new Set((g && g.plates ? g.plates : []).map(normPlate));
-  };
-  __loanSets = { whit, rescue: grp("الانقاذات"), ladder: grp("السلالم") };
-  return __loanSets;
-}
-function loanCat(vehicle) {
-  const np = normPlate(typeof vehicle === "string" ? vehicle : (vehicle && vehicle.plate));
-  if (!np) return null;
-  const S = loanSets();
-  if (S.whit.has(np)) return "وايت";
-  if (S.rescue.has(np)) return "إنقاذ";
-  if (S.ladder.has(np)) return "سلالم";
-  return null;
-}
-// آلية بحالة رجيع لا تُحسب أصلاً — لا تُعار ولا يُنتظر رجوعها
-const REJEE_ST = ["تحت إجراءات الرجيع", "صدر قرار الرجيع"];
-const isRejee = (st) => REJEE_ST.includes((st || "").trim());
-const SUPPORT_UNIT = "قسم الدعم والإسناد";
-// تُقرأ عند العرض لا عند تحميل الوحدة، لأن MANUAL_CENTERS مُعرَّف لاحقاً في الملف
-const loanSources = () => [...MANUAL_CENTERS.map((m) => m.branch), SUPPORT_UNIT];
-
-// إعارة قائمة = عطل يحمل قيد تغطية، ولمّا يُسجَّل له تاريخ إصلاح، وآليته ليست رجيعاً
-function openLoans(vehicles) {
-  const out = [];
-  (vehicles || []).forEach((v) => {
-    if (isRejee(v.status)) return;              // رجيع: لا تُنتظر عودته
-    const cat = loanCat(v);
-    if (!cat) return;
-    (v.faults || []).forEach((f) => {
-      if (!f.cover || f.repairDate) return;
-      out.push({
-        id: v.id + "|" + f._id, cat, plate: v.plate, type: v.type,
-        to: v.unit || "—", from: f.cover, date: f.date || "", desc: f.desc || f.faultType || "",
-        age: (() => { const n = hDayNum(f.date); if (!n) return null; const t = todayHijri(); return Math.max(0, Math.round(t.y * 354.367 + (t.m - 1) * 29.53 + t.d - n)); })(),
-      });
-    });
-  });
-  return out.sort((a, b) => (b.age || 0) - (a.age || 0));
-}
-
-// إعارة قابلة للإعادة: عادت الآلية للعمل (سُجّل تاريخ إصلاح) ولم يُؤشَّر بإتمام الإعادة
-function returnableLoans(vehicles) {
-  const t = todayHijri();
-  const now = t.y * 354.367 + (t.m - 1) * 29.53 + t.d;
-  const out = [];
-  (vehicles || []).forEach((v) => {
-    if (isRejee(v.status)) return;
-    const cat = loanCat(v);
-    if (!cat) return;
-    (v.faults || []).forEach((f) => {
-      if (!f.cover || !f.repairDate || f.coverDone) return;
-      const n = hDayNum(f.repairDate);
-      out.push({
-        id: v.id + "|" + f._id, vid: v.id, fid: f._id, cat, plate: v.plate, type: v.type,
-        to: v.unit || "—", from: f.cover, repairDate: f.repairDate,
-        since: n ? Math.max(0, Math.round(now - n)) : null,
-      });
-    });
-  });
-  return out.sort((a, b) => (a.since || 0) - (b.since || 0));
-}
-
 // ====== الشريط المتحرك بالصفحة الرئيسية ======
+// الحركة مدفوعة بجافاسكربت عمداً: تنسيق CSS يتوقف على أجهزة مفعَّل بها «تقليل الحركة».
 function Ticker({ items }) {
+  const trackRef = useRef(null);
+  const xRef = useRef(0);
+  const pauseRef = useRef(false);
+  useEffect(() => {
+    if (!items || !items.length) return;
+    const el = trackRef.current;
+    if (!el) return;
+    xRef.current = 0;
+    const id = setInterval(() => {
+      if (pauseRef.current) return;
+      const half = el.scrollWidth / 2;
+      if (!half) return;
+      xRef.current -= 0.7;
+      if (Math.abs(xRef.current) >= half) xRef.current = 0;
+      el.style.transform = "translateX(" + xRef.current + "px)";
+    }, 30);
+    return () => clearInterval(id);
+  }, [items]);
   if (!items || !items.length) return null;
   const line = (k) => items.map((it, i) => (
     <span key={k + "-" + i} className="tk-item" onClick={it.go} style={{ cursor: it.go ? "pointer" : "default" }}>
@@ -1139,8 +1079,10 @@ function Ticker({ items }) {
     </span>
   ));
   return (
-    <div className="tk-wrap no-print" title="مرّر المؤشر لإيقاف الحركة">
-      <div className="tk-track">{line("a")}{line("b")}</div>
+    <div className="tk-wrap no-print" title="مرّر المؤشر لإيقاف الحركة"
+      onMouseEnter={() => { pauseRef.current = true; }}
+      onMouseLeave={() => { pauseRef.current = false; }}>
+      <div className="tk-track" ref={trackRef}>{line("a")}{line("b")}</div>
     </div>
   );
 }
@@ -1315,9 +1257,7 @@ function VehicleDetail({ vehicle, onUpdate, onDelete, onBack }) {
           })()}
           <LogSection title="سجل الأعطال والإصلاحات" accent="#C4353C" items={v.faults} sortKey="date"
             emptyMsg="لا توجد أعطال مسجلة على هذه الآلية."
-            fields={loanCat(v) && !isRejee(v.status)
-              ? [...FAULT_FIELDS, { key: "cover", label: "غُطّي العجز بآلية من", options: loanSources(), ph: "اختياري" }]
-              : FAULT_FIELDS}
+            fields={FAULT_FIELDS}
             onAdd={(it) => mutate("faults", (a) => [...a, it])}
             onDelete={(id) => mutate("faults", (a) => a.filter((x) => x._id !== id))}
           />
@@ -1768,7 +1708,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.3 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6327,17 +6267,14 @@ function availabilityStats(hist) {
   return { rows, days: days.length, from: days[0] || "", to: days[days.length - 1] || "" };
 }
 
-function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip, onMarkReturned, isOwner }) {
+function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip }) {
   const D = useMemo(() => decisionData(vehicles), [vehicles]);
   const [tab, setTab] = useState("top");
   const card = { background: "#fff", border: "1.5px solid #E1E4EA", borderRadius: 14, padding: "13px 15px", boxShadow: "0 3px 12px rgba(20,26,40,0.05)" };
   const INT = useMemo(() => integrityChecks(vehicles), [vehicles]);
   const intTotal = INT.reduce((a, b) => a + b.n, 0);
   const AV = useMemo(() => availabilityStats(rdyHist), [rdyHist]);
-  const LOANS = useMemo(() => openLoans(vehicles), [vehicles]);
-  const RET = useMemo(() => returnableLoans(vehicles), [vehicles]);
   const Tabs = [["top", "🎯 أولويات الإصلاح", D.top.length], ["exp", <span key="e"><SrIcon /> انكشاف التغطية</span>, D.exposure.length],
-    ["loan", "⚖ الإعارات", LOANS.length + RET.length],
     ["chr", "🔁 الآليات المزمنة", D.chronic.length], ["int", "🧪 سلامة البيانات", intTotal], ["avl", "⏱ التوافر الزمني", AV.rows.length]];
   return (
     <div>
@@ -6449,67 +6386,6 @@ function DecisionPage({ vehicles, onOpenVehicle, rdyHist, centerReadiness, equip
               <div style={{ fontSize: 17, fontWeight: 800, color: readinessColor(r.pct), minWidth: 46, textAlign: "center" }}>{r.pct}%</div>
             </div>
           ))}
-        </div>
-      )}
-
-      {tab === "loan" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#5A6172", lineHeight: 1.9, background: "#F4F6FA", border: "1px solid #DFE3EA", borderRadius: 12, padding: "10px 13px" }}>
-            كل آلية (وايت · إنقاذ · سلالم) سُجّل على عطلها أنه غُطّي بآلية من جهة أخرى، ولم يُسجَّل لها تاريخ إصلاح بعد.
-            حين تُصلَح الآلية وتعود، تُغلق الإعارة من هنا تلقائياً ويصل تنبيه بإمكان إعادة المُعار.
-            وآليات الرجيع مستثناة لأنها لا تعود.
-          </div>
-          {RET.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#8A5D0B", background: "#FCF0D9", border: "1px solid #E6CB92", borderRadius: 12, padding: "9px 13px" }}>
-                ⚖ قابلة للإعادة الآن ({RET.length}) — عادت الآلية المتعطلة للعمل
-              </div>
-              {RET.map((L) => (
-                <div key={L.id} style={{ ...card, display: "flex", gap: 12, alignItems: "center", borderRight: "5px solid #C77F1A", background: "#FFFDF8" }}>
-                  <span style={{ background: "#FCF0D9", border: "1px solid #E6CB92", color: "#8A5D0B", borderRadius: 8, padding: "3px 10px", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0 }}>{L.cat}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#141A28", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.type}</div>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 3 }}>
-                      اللوحة {L.plate || "—"} · عادت لدى <b>{L.to}</b> · تُعاد المُعارة إلى <b>{L.from}</b>
-                      {L.since != null ? " · منذ " + L.since + " يوماً" : ""}
-                    </div>
-                  </div>
-                  {isOwner && onMarkReturned && (
-                    <button onClick={() => onMarkReturned(L.vid, L.fid)} style={{
-                      background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 14px",
-                      fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-                    }}>تمت الإعادة</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {LOANS.length === 0 ? (
-            RET.length > 0 ? null : (
-            <div style={{ ...card, textAlign: "center", color: "#8B93A3", fontWeight: 700, fontSize: 12.5, padding: "26px 12px", lineHeight: 1.9 }}>
-              لا توجد إعارات قائمة — أو لم تُسجَّل بعد.
-              <div style={{ fontSize: 11.5, marginTop: 6, color: "#A3AAB8" }}>تُسجَّل الإعارة من حقل «غُطّي العجز بآلية من» داخل نموذج تسجيل العطل.</div>
-            </div>)
-          ) : LOANS.map((L) => {
-            const col = L.age == null ? "#8B93A3" : L.age >= 14 ? "#C4353C" : L.age >= 7 ? "#C77F1A" : "#0E7A5F";
-            return (
-              <div key={L.id} onClick={() => onOpenVehicle && onOpenVehicle(L.plate)}
-                style={{ ...card, display: "flex", gap: 12, alignItems: "center", borderRight: "5px solid " + col, cursor: onOpenVehicle ? "pointer" : "default" }}>
-                <span style={{ background: "#EEF1F7", border: "1px solid #D7DCE6", color: "#3A4152", borderRadius: 8, padding: "3px 10px", fontSize: 10.5, fontWeight: 800, whiteSpace: "nowrap", flexShrink: 0 }}>{L.cat}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#141A28", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.type}</div>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#5A6172", marginTop: 3 }}>
-                    اللوحة {L.plate || "—"} · المتعطلة لدى <b>{L.to}</b> · غُطّيت من <b>{L.from}</b>
-                  </div>
-                  {L.desc && <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A3", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{L.desc}</div>}
-                </div>
-                <div style={{ textAlign: "center", minWidth: 58, flexShrink: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: col }}>{L.age == null ? "—" : L.age}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, color: "#8B93A3" }}>يوماً</div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
 
@@ -7698,26 +7574,17 @@ export default function FleetApp() {
   }, [vehicles]);
   const tickerItems = useMemo(() => {
     const arr = [];
-    const RET = returnableLoans(vehicles);
-    RET.slice(0, 6).forEach((L) => arr.push({
-      ic: "⚖", tone: "#FFD166",
-      txt: `عادت ${L.cat} ${L.to} للعمل — يمكن إعادة المُعارة من ${L.from}` + (L.since != null ? ` (منذ ${L.since} يوماً)` : ""),
-      go: () => { setView("overview"); setTimeout(() => setView("decision"), 0); },
-    }));
-    const S = (() => {
-      const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
-      const base = vehicles.filter((v) => !(v.status || "").includes("الرجيع")).length;
-      return base ? Math.round((ready / base) * 100) : 0;
-    })();
-    arr.push({ ic: <MdIcon />, tone: "#9FE3C4", txt: `نسبة الجاهزية الحالية ${S}%` });
+    const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
+    const base = vehicles.filter((v) => !(v.status || "").includes("الرجيع")).length;
+    arr.push({ ic: <MdIcon />, tone: "#9FE3C4", txt: `نسبة الجاهزية الحالية ${base ? Math.round((ready / base) * 100) : 0}%` });
     if (alerts.long.length) arr.push({ ic: "⏳", tone: "#FFB4A2",
       txt: `${alerts.long.length} آلية متوقفة أكثر من 90 يوماً — أقدمها ${alerts.long[0].d} يوماً` });
     if (alerts.warr.length) arr.push({ ic: "🔁", tone: "#FFD166",
       txt: `${alerts.warr.length} آلية عاودها العطل خلال 30 يوماً من الإصلاح` });
     if (alerts.rej.length) arr.push({ ic: <RjIcon />, tone: "#C7D2FE",
       txt: `${alerts.rej.length} آلية تحت إجراءات الرجيع` });
-    const OL = openLoans(vehicles);
-    if (OL.length) arr.push({ ic: "⚖", tone: "#E8EBF2", txt: `${OL.length} إعارة قائمة بين الشعب` });
+    const brk = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
+    arr.push({ ic: <WrIcon />, tone: "#FFB4A2", txt: `${brk} آلية متعطلة حالياً من ${vehicles.length} بالملاك` });
     if (hasPending) arr.push({ ic: "⏳", tone: "#FFD166", txt: "تعديل بانتظار الرفع — سيُرسل تلقائياً" });
     return arr;
   }, [vehicles, alerts, hasPending]);
@@ -8005,24 +7872,6 @@ export default function FleetApp() {
         /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
         header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
         header .hdr-sub { color: #E2E8F4 !important; }
-        /* الشريط المتحرك: أخبار تشغيلية تمرّ أعلى الصفحة الرئيسية */
-        .tk-wrap {
-          direction: ltr; overflow: hidden; width: 100%; margin: 0 auto 14px; max-width: 1080px;
-          background: linear-gradient(90deg,#141A28,#1E2952 55%,#3A1420);
-          border: 1px solid rgba(212,175,55,0.35); border-radius: 12px;
-          box-shadow: 0 4px 14px rgba(20,26,40,0.22);
-        }
-        .tk-track { display: inline-flex; white-space: nowrap; padding: 9px 0; will-change: transform;
-          animation: tkroll 46s linear infinite; }
-        .tk-wrap:hover .tk-track { animation-play-state: paused; }
-        @keyframes tkroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .tk-item { direction: rtl; display: inline-flex; align-items: center; gap: 7px;
-          font-size: 12.5px; font-weight: 800; color: #E8EBF2; padding: 0 4px; }
-        .tk-item img { height: 15px; width: auto; }
-        .tk-ic { font-size: 14px; line-height: 1; }
-        .tk-sep { color: rgba(212,175,55,0.75); margin: 0 12px; font-size: 13px; }
-        @media (max-width: 700px) { .tk-item { font-size: 11.5px; } .tk-track { animation-duration: 34s; padding: 8px 0; } }
-        @media (prefers-reduced-motion: reduce) { .tk-track { animation: none; } }
         /* أزرار الطباعة: خلفية فاتحة كي يظهر رمز الطابعة الداكن بوضوح */
         .print-btn {
           display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -8096,6 +7945,20 @@ export default function FleetApp() {
           .cmd-tab .ct-img { height: 22px; }
           .cmd-tab.act { box-shadow: 0 4px 12px rgba(20,26,40,0.28), inset 0 -2px 0 #D4AF37; }
         }
+        /* الشريط المتحرك: أخبار تشغيلية تمرّ أعلى الصفحة الرئيسية */
+        .tk-wrap {
+          direction: ltr; overflow: hidden; width: 100%; margin: 0 auto 14px; max-width: 1080px;
+          background: linear-gradient(90deg,#141A28,#1E2952 55%,#3A1420);
+          border: 1px solid rgba(212,175,55,0.35); border-radius: 12px;
+          box-shadow: 0 4px 14px rgba(20,26,40,0.22);
+        }
+        .tk-track { display: inline-flex; white-space: nowrap; padding: 9px 0; will-change: transform; }
+        .tk-item { direction: rtl; display: inline-flex; align-items: center; gap: 7px;
+          font-size: 12.5px; font-weight: 800; color: #E8EBF2; padding: 0 4px; }
+        .tk-item img { height: 15px; width: auto; }
+        .tk-ic { font-size: 14px; line-height: 1; }
+        .tk-sep { color: rgba(212,175,55,0.75); margin: 0 12px; font-size: 13px; }
+        @media (max-width: 700px) { .tk-item { font-size: 11.5px; } .tk-track { padding: 8px 0; } }
         .veh-card { transition: box-shadow .14s ease, transform .14s ease; }
         @keyframes bootspin { to { transform: rotate(360deg); } }
         .boot-ring { animation: bootspin 0.85s linear infinite; }
@@ -8903,12 +8766,7 @@ export default function FleetApp() {
 
         {view === "decision" && (
           <DecisionPage vehicles={vehicles} rdyHist={db.rdyHist || {}}
-            centerReadiness={db.centerReadiness || {}} equip={db.equipReadiness || {}} isOwner={isOwner}
-            onMarkReturned={(vid, fid) => {
-              const tv = vehicles.find((x) => x.id === vid);
-              if (!tv) return;
-              updateVehicle({ ...tv, faults: (tv.faults || []).map((f) => (f._id === fid ? { ...f, coverDone: true } : f)) });
-            }}
+            centerReadiness={db.centerReadiness || {}} equip={db.equipReadiness || {}}
             onOpenVehicle={(id) => { setSelectedId(id); setView("detail"); }} />
         )}
         {view === "charts" && (
