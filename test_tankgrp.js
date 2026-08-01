@@ -46,6 +46,23 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   const t=txt();
   ok("التقرير يعرض الصهاريج فقط", t.includes("صهريج"));
   ok("لا تظهر آليات خارج التصنيف", !t.includes("دراجة نارية ياماها"));
+  // كل لوحات التصنيفات الخاصة موجودة فعلياً بالقاعدة
+  const src=fs.readFileSync(__dirname+"/fleet-database.jsx","utf8");
+  const blk=src.slice(src.indexOf("const CUSTOM_GROUPS = ["), src.indexOf("function matchGroup"));
+  const names=(blk.match(/name: "[^"]+"/g)||[]).map(x=>x.slice(7,-1));
+  const nm=p=>(p||"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/\s+/g,"");
+  const have=new Set(base.db.vehicles.map(v=>nm(v.plate)));
+  let stale=0, lad=0;
+  names.forEach(n=>{
+    const i=blk.indexOf('name: "'+n+'"'); const j=blk.indexOf("plates: [",i);
+    if(j<0||j>blk.indexOf("},",i)) return;
+    const k=blk.indexOf("]",j);
+    const pl=(blk.slice(j,k).match(/"[^"]+"/g)||[]).map(x=>x.slice(1,-1));
+    if(n==="السلالم") lad=pl.length;
+    pl.forEach(p=>{ if(!have.has(p)) stale++; });
+  });
+  ok("السلالم 14 لوحة", lad===14);
+  ok("لا لوحات مسحوبة في أي تصنيف", stale===0);
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
