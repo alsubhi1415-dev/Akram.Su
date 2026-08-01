@@ -1708,7 +1708,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 17.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 17.6 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7165,6 +7165,8 @@ export default function FleetApp() {
   const pushTimer = useRef(null);
   const baseFromCloudRef = useRef(false); // الأساس مؤكَّد من السحابة لا من المرآة المحلية
   const pushStartRef = useRef(0);         // بدء آخر محاولة رفع — لكشف المحاولة المعلّقة
+  const pendSinceRef = useRef(0);
+  const [pendLong, setPendLong] = useState(false); // انتظار مستمر يستحق التنبيه (لا وميض لحظي)
   const retryRef = useRef(null);
 
   const tryDecryptToken = (cfg, roleNow) => {
@@ -7204,7 +7206,8 @@ export default function FleetApp() {
       setSaveLocked(!!newVerRef.current);
       SYNC.lastRev = String(parsed.rev || ""); SYNC.lastAt = Date.now(); SYNC.token = !!tokenRef.current; SYNC.err = "";
       // إن نتج عن الدمج فارق عن السحابة نُعيد دفعه ليستقر الطرفان
-      if (finalDb !== remoteDb) { try { queueCloud(finalDb); } catch (e) {} }
+      // يُعاد الدفع فقط إن اختلف المضمون فعلاً عن السحابة — لا لمجرد اختلاف المرجع
+      try { if (finalDb !== remoteDb && JSON.stringify(finalDb) !== JSON.stringify(remoteDb)) queueCloud(finalDb); } catch (e) {}
       stampNow(note);
     } catch {}
   };
@@ -7435,6 +7438,16 @@ export default function FleetApp() {
 
   // مصالحة الطابور: إن لم يعد بين ما عندي وما استقر بالسحابة أي فرق، فلا شيء ينتظر الرفع.
   // تحرس من بقاء الشارة عالقة إذا سقطت محاولة رفع بصمت (رمز مفقود، أو أساس لم يصل بعد).
+  // لا تُظهر شيئاً لانتظار عابر: التنبيه بعد استمراره ثماني ثوانٍ
+  useEffect(() => {
+    if (!hasPending) { pendSinceRef.current = 0; setPendLong(false); return; }
+    if (!pendSinceRef.current) pendSinceRef.current = Date.now();
+    const id = setInterval(() => {
+      setPendLong(!!pendSinceRef.current && Date.now() - pendSinceRef.current > 8000);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [hasPending]);
+
   useEffect(() => {
     if (!hasPending) return;
     const settle = async () => {
@@ -7648,9 +7661,9 @@ export default function FleetApp() {
       txt: `${alerts.rej.length} آلية تحت إجراءات الرجيع` });
     const brk = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
     arr.push({ ic: <WrIcon />, tone: "#FFB4A2", txt: `${brk} آلية متعطلة حالياً من ${vehicles.length} بالملاك` });
-    if (hasPending) arr.push({ ic: "⏳", tone: "#FFD166", txt: "تعديل بانتظار الرفع — سيُرسل تلقائياً" });
+    if (pendLong) arr.push({ ic: "⏳", tone: "#FFD166", txt: "تعديل بانتظار الرفع — يُعاد إرساله تلقائياً" });
     return arr;
-  }, [vehicles, alerts, hasPending]);
+  }, [vehicles, alerts, pendLong]);
   const SORT_KEYS = { "نوع الآلية": "type", "رقم اللوحة": "plate", "الجهة": "unit", "الموديل": "model", "الموقع الحالي": "location", "الحالة الفنية": "status", "التاريخ": "__d" };
   const sortRows = (arr) => {
     if (!sortK) return arr;
@@ -8352,16 +8365,22 @@ export default function FleetApp() {
           {/* الصف الثاني: الجاهزية أساس التنقل والبقية بالقائمة الجانبية */}
           <nav className="app-nav" style={{ display: "flex", gap: 8, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.13)", paddingTop: 7, paddingBottom: 9, flexWrap: "wrap" }}>
             <span onClick={() => {
-              const msg = cloud === "on" ? "🟢 متصل — المزامنة عبر GitHub تعمل (كل 5 ثوانٍ)" + (syncStamp ? " · " + syncStamp : "")
+              const msg = (!ro && pendLong) ? "⏳ تعديل بانتظار الرفع — يُعاد إرساله تلقائياً · اضغط 🩺 حالة المزامنة للتفاصيل"
+                : cloud === "on" ? "🟢 متصل — المزامنة عبر GitHub تعمل (كل 5 ثوانٍ)" + (syncStamp ? " · " + syncStamp : "")
                 : cloud === "off" ? "⚪ غير متصل — تعديلاتك محلية الآن وسيعاد البث تلقائياً عند عودة الاتصال"
                 : cloud === "nodata" ? "🟡 المستودع بلا بيانات بعد — المشرف يربط GitHub من 🔑 فتُرفع تلقائياً"
                 : cloud === "notoken" ? "🔑 لم يُربط GitHub — المشرف يضيف رمز الربط مرة واحدة"
                 : "🟡 جارٍ فحص المستودع...";
               setImportMsg(msg); setTimeout(() => setImportMsg(""), 6000);
             }} title="اضغط لمعرفة حالة المزامنة"
-              style={{ fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.08)", borderRadius: 10, padding: "0 10px", minHeight: 34 }}>
-              {cloud === "on" ? "🟢" : cloud === "off" ? "⚪" : cloud === "notoken" ? "🔑" : "🟡"}
-              {syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>}
+              style={{ fontSize: 11, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, minHeight: 34, borderRadius: 10, padding: "0 10px",
+                background: (!ro && pendLong) ? "rgba(184,124,20,0.30)" : "rgba(255,255,255,0.08)",
+                border: (!ro && pendLong) ? "1px solid rgba(255,205,110,0.55)" : "1px solid transparent",
+                transition: "background .3s ease, border-color .3s ease" }}>
+              {(!ro && pendLong) ? "⏳" : cloud === "on" ? "🟢" : cloud === "off" ? "⚪" : cloud === "notoken" ? "🔑" : "🟡"}
+              {(!ro && pendLong)
+                ? <span style={{ fontSize: 10, fontWeight: 800, color: "#FFD98A" }}>بانتظار الرفع</span>
+                : (syncStamp && <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.75)" }}>{syncStamp}</span>)}
             </span>
             {histLen > 0 && (
               <button className="no-print fd-float-back" onClick={goBack} title="العودة للصفحة السابقة" style={{
@@ -8432,13 +8451,6 @@ export default function FleetApp() {
                 border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: 10, padding: "8px 12px",
                 fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
               }}><GrIcon /> أدوات</button>
-              {!ro && hasPending && (
-                <span onClick={() => setDiagOpen(true)} title="اضغط لمعرفة الحالة" style={{
-                  marginRight: 8, background: "rgba(184,124,20,0.92)", color: "#fff", borderRadius: 9,
-                  padding: "6px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
-                  border: "1px solid rgba(255,255,255,0.25)",
-                }}>⏳ بانتظار الرفع</span>
-              )}
               {!ro && saveLocked && (
                 <span onClick={() => setDiagOpen(true)} title="اضغط لمعرفة السبب" style={{
                   marginRight: 8, background: "rgba(179,18,28,0.9)", color: "#fff", borderRadius: 9,
