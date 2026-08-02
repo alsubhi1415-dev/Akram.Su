@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.8 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7686,6 +7686,17 @@ export default function FleetApp() {
     const rej = vehicles.filter((v) => (v.status || "").trim() === "تحت إجراءات الرجيع");
     return { long, warr, rej, total: long.length + warr.length + rej.length };
   }, [vehicles]);
+  const toolItems = [
+    !ro && ["⚙️", "عتبة تنبيه الجاهزية", () => setAlertOpen(true), null],
+    isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), ((db && db.trash) || []).length || null],
+    isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
+    isOwner && ["👤", "سجل دخول الفريق", () => setLoginOpen(true), (((db && db.loginLog) || []).length || null)],
+    ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), (((db && db.syncLog) || []).length || null)],
+    isOwner && ["💾", "نسخة احتياطية", () => backupNow(), null],
+    isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
+    ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],
+    [dark ? "☀️" : "🌙", dark ? "الوضع النهاري" : "الوضع الليلي", () => setDark(!dark), null],
+  ].filter(Boolean);
   const tickerItems = useMemo(() => {
     const arr = [];
     const ready = vehicles.filter((v) => READY_SET.includes((v.status || "").trim())).length;
@@ -8202,6 +8213,35 @@ export default function FleetApp() {
         }
       `}</style>
 
+      {toolsOpen && narrowHdr && (
+        <div className="modal-overlay no-print" onClick={() => setToolsOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.55)", zIndex: 900, display: "flex", alignItems: "flex-end" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            background: "#fff", borderRadius: "18px 18px 0 0", width: "100%", maxHeight: "78vh", overflowY: "auto",
+            padding: "10px 12px calc(14px + env(safe-area-inset-bottom))", textAlign: "right",
+            boxShadow: "0 -12px 40px rgba(10,14,26,0.45)",
+          }}>
+            <div style={{ width: 44, height: 4, borderRadius: 99, background: "#D7DCE6", margin: "2px auto 10px" }} />
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#8B93A8", padding: "0 6px 8px" }}>أدوات إضافية</div>
+            {toolItems.map(([ic, lbl, fn, badge], ti) => (
+              <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "13px 8px", borderRadius: 12,
+                  cursor: "pointer", fontSize: 13.5, fontWeight: 800, color: "#1B2440", borderBottom: "1px solid #F2F4F8",
+                }}>
+                <span style={{ fontSize: 17 }}>{ic}</span>
+                <span>{lbl}</span>
+                {badge && <span style={{ marginRight: "auto", background: "#8B93A8", color: "#fff", borderRadius: 9, fontSize: 10.5, fontWeight: 800, padding: "2px 8px" }}>{badge}</span>}
+              </div>
+            ))}
+            <button onClick={() => setToolsOpen(false)} style={{
+              width: "100%", marginTop: 12, background: "#141A28", color: "#fff", border: "none", borderRadius: 12,
+              padding: "11px 0", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            }}>إغلاق</button>
+          </div>
+        </div>
+      )}
+
       {loginOpen && (
         <div className="modal-overlay no-print" onClick={() => setLoginOpen(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.6)", zIndex: 874, display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
@@ -8484,7 +8524,8 @@ export default function FleetApp() {
               }}><BlIcon />{alerts.total > 0 && <span style={{ position: "absolute", top: -6, left: -6, background: "#FF4D57", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1.5px 6px", boxShadow: "0 2px 8px rgba(255,77,87,0.6)" }}>{alerts.total}</span>}</button>
               {bellOpen && (
                 <div className="no-print" style={narrowHdr ? {
-                  position: "fixed", top: 68, left: 10, right: 10, width: "auto", maxHeight: "70vh", overflowY: "auto",
+                  // لوحة سفلية بالجوال: لا تعتمد على ارتفاع الترويسة فلا تُحجب خلفها
+                  position: "fixed", bottom: 10, top: "auto", left: 10, right: 10, width: "auto", maxHeight: "72vh", overflowY: "auto",
                   background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.5)", zIndex: 880,
                   padding: "14px 16px", textAlign: "right",
                 } : {
@@ -8523,27 +8564,13 @@ export default function FleetApp() {
                   border: "1px solid rgba(255,255,255,0.25)",
                 }}>🔒 الحفظ موقوف</span>
               )}
-              {toolsOpen && (
-                <div className="no-print" style={narrowHdr ? {
-                  position: "fixed", top: 68, left: 10, right: 10, width: "auto", maxHeight: "70vh", overflowY: "auto",
-                  background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.5)", zIndex: 880,
-                  padding: 10, textAlign: "right",
-                } : {
+              {toolsOpen && !narrowHdr && (
+                <div className="no-print" style={{
                   position: "absolute", top: 44, left: 0, width: 268, background: "#fff", borderRadius: 16,
                   boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500, padding: 10, textAlign: "right",
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#8B93A8", padding: "2px 8px 8px" }}>أدوات إضافية</div>
-                  {[
-                    !ro && ["⚙️", "عتبة تنبيه الجاهزية", () => setAlertOpen(true), null],
-                    isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), (db.trash || []).length || null],
-                    isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
-                    isOwner && ["👤", "سجل دخول الفريق", () => setLoginOpen(true), ((db.loginLog || []).length || null)],
-                    ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), ((db.syncLog || []).length || null)],
-                    isOwner && ["💾", "نسخة احتياطية", backupNow, null],
-                    isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
-                    ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],
-                    [dark ? "☀️" : "🌙", dark ? "الوضع النهاري" : "الوضع الليلي", () => setDark(!dark), null],
-                  ].filter(Boolean).map(([ic, lbl, fn, badge], ti) => (
+                  {toolItems.map(([ic, lbl, fn, badge], ti) => (
                     <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "#F1F3F7"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
