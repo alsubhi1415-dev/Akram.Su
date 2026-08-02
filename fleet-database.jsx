@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.7 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -3147,8 +3147,19 @@ function MultiSelect({ label, options, values, onChange, flex }) {
                 <input value={q2} onChange={(e) => setQ2(e.target.value)} placeholder="🔍 بحث في القائمة..."
                   style={{ ...inputStyle, padding: "7px 10px", fontSize: 12.5, marginBottom: 7 }} />
               )}
-              <div onClick={() => onChange([])} style={{ fontSize: 12.5, fontWeight: 800, color: "#9E1B22", cursor: "pointer" }}>
-                ✕ مسح التحديد (عرض الكل)
+              {/* تحديد الكل ثم إزالة ما لا يلزم — أسرع من انتقاء عشرات الخانات يدوياً */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <div onClick={() => onChange(Array.from(new Set([...values, ...shown])))}
+                  style={{ fontSize: 12.5, fontWeight: 800, color: "#0E7A5F", cursor: "pointer" }}>
+                  ✓ تحديد الكل{q2 ? " (نتائج البحث)" : ""}
+                </div>
+                <span style={{ color: "#C9CDD6" }}>|</span>
+                <div onClick={() => onChange([])} style={{ fontSize: 12.5, fontWeight: 800, color: "#9E1B22", cursor: "pointer" }}>
+                  ✕ مسح التحديد (عرض الكل)
+                </div>
+                <span style={{ marginRight: "auto", fontSize: 11, fontWeight: 800, color: "#8B93A3", whiteSpace: "nowrap" }}>
+                  {values.length} / {options.length}
+                </span>
               </div>
             </div>
             {shown.length === 0 ? (
