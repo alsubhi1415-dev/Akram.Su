@@ -15,6 +15,11 @@ PL.forEach((p,i)=>{ if(!have.has(norm(p))) base.db.vehicles.push({
   id:"tank_"+i, type:i<4?"سيارة رآس تريلا سكس افيكو (صهريج)":"وايت ماء سقيا سكس مان (صهريج)",
   plate:p, unit:"قسم الدعم والإسناد الأول", model:"2015", location:"شعبة المروة",
   status:"تعمل", faults:[], transfers:[], createdAt:"2026-01-01" }); });
+// الآلية الجديدة: عربة الحرائق الصناعية بالبرج التلسكوبي (أُضيفت لقاعدة البيانات الحيّة)
+if(!new Set(base.db.vehicles.map(v=>norm(v.plate))).has("بصا2621")) base.db.vehicles.push({
+  id:"v_471_بصا2621", type:"عربة للحرائق الصناعية مع برج تلسكوبي", plate:"ب ص ا 2621",
+  unit:"شعبة الدفاع المدني الميدانية بالصناعية", model:"2021", location:"ش روزنباور",
+  status:"تعمل", faults:[], transfers:[], createdAt:"2026-08-02" });
 const DATA=JSON.stringify(base);
 const stub=u=>{u=String(u);
   if(u.includes("app-ver.json"))return Promise.resolve(mk(APPV));
@@ -62,6 +67,16 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
     pl.forEach(p=>{ if(!have.has(p)) stale++; });
   });
   ok("السلالم 14 لوحة", lad===14);
+  // الآلية الجديدة: عربة الحرائق الصناعية بالبرج التلسكوبي
+  const NEW="بصا2621", TWIN="بصا2622";
+  const grp=(n)=>{const i=blk.indexOf('name: "'+n+'"'); const j=blk.indexOf("plates: [",i); const k=blk.indexOf("]",j);
+    return (blk.slice(j,k).match(/"[^"]+"/g)||[]).map(x=>x.slice(1,-1));};
+  ok("[نوعية] الجديدة مضافة والعدد 34", grp("الآليات النوعية").includes(NEW) && grp("الآليات النوعية").length===34);
+  ok("[صناعية] الجديدة مضافة والعدد 4", grp("عربات الحرائق الصناعية").includes(NEW) && grp("عربات الحرائق الصناعية").length===4);
+  ok("[بيان 186] لم يتغيّر عدده", grp("بيان 186 آلية").length===186 && !grp("بيان 186 آلية").includes(NEW));
+  ok("[نموذج 2] عمود الحرائق الصناعية أربع لوحات", /"name": "اطفاء الحرائق الصناعية", "plates": \["اقي2545", "اقي2546", "بصا2621", "بصا2622"\]/.test(src));
+  ok("[النوعي] العمود نفسه أربع لوحات", src.includes('"n":"اطفاء الحرائق الصناعية","p":["اقي2545","اقي2546","بصا2621","بصا2622"]'));
+  ok("الجديدة حيثما وُجد توأمها عدا بيان 186", ["الآليات النوعية","عربات الحرائق الصناعية"].every(n=>grp(n).includes(TWIN)&&grp(n).includes(NEW)));
   ok("لا لوحات مسحوبة في أي تصنيف", stale===0);
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
