@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.0 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -4056,7 +4056,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
             {canEdit && changes.length > 0 && (
               <div style={{ background: "#FFF6E8", border: "2px solid #EBD5A8", borderRadius: 14, padding: 14, marginBottom: 12 }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7A5209" }}>🔔 مراجعة تغييرات بعد آخر تحديث للسجل ({changes.length})</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7A5209" }}>🔔 مراجعة تغييرات بعد آخر تحديث للسجل ({changes.length}){askRows.length > 0 ? ` — منها ${askRows.length} تحتاج قرارك` : ""}</span>
                   {clearRows.length > 0 && (
                     <button onClick={applyClear} style={{ marginRight: "auto", background: "#0E7A5F", color: "#fff", border: "none", borderRadius: 9, padding: "7px 15px", fontSize: 11.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                       <RIcon /> اعتماد الحركات الواضحة ({clearRows.length})
@@ -4064,9 +4064,11 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                   )}
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5209", marginBottom: 10, lineHeight: 1.8 }}>
-                  رصد البرنامج تغيّر حالة الآليات التالية بسجل الآليات (بعد استيراد الإكسل أو أي تعديل). لا يُنقل أي بيان إلا بقرارك:
+                  {askRows.length > 0
+                    ? "آليات كانت ضمن ما تم إصلاحه ثم عادت متعطلة — وهذا وحده ما يحتاج قرارك: هل عاودها العطل نفسه أم أصابها عطل جديد مختلف؟"
+                    : "لا يوجد سؤال مفصلي. ما دون ذلك حركات بديهية تُعتمد بضغطة واحدة."}
                 </div>
-                {changes.slice(0, 40).map((c) => (
+                {askRows.slice(0, 40).map((c) => (
                   <div key={c.k} style={{ background: "#fff", border: "1px solid #E7E9EE", borderRadius: 12, padding: "10px 12px", marginBottom: 8 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1B2130" }}>{c.v.type} — {c.v.plate}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", margin: "3px 0 8px" }}>
@@ -4109,7 +4111,21 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
                     </div>
                   </div>
                 ))}
-                {changes.length > 40 && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#7A5209" }}>وبقية التغييرات عددها {changes.length - 40}</div>}
+                {askRows.length > 40 && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#7A5209" }}>وبقية الأسئلة عددها {askRows.length - 40}</div>}
+                {clearRows.length > 0 && (
+                  <div style={{ background: "#F4F7FB", border: "1px solid #D9E1EC", borderRadius: 12, padding: "10px 12px", marginTop: 4 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#1F4E8C", marginBottom: 5 }}>
+                      حركات بديهية لا تحتاج سؤالاً ({clearRows.length}) — {clearRows.filter((c) => c.kind === "fixed").length} إلى بيان ما تم إصلاحه · {clearRows.filter((c) => c.kind === "rejee").length} إلى بيان الرجيع
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6172", lineHeight: 1.9, maxHeight: 96, overflowY: "auto" }}>
+                      {clearRows.slice(0, 30).map((c) => (c.v.type + " — " + c.v.plate)).join(" · ")}
+                      {clearRows.length > 30 ? " · وغيرها " + (clearRows.length - 30) : ""}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A3", marginTop: 6 }}>
+                      تُعتمد كلها بضغطة «اعتماد الحركات الواضحة» أعلاه.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {lastAct && (
