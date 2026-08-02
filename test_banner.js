@@ -1,0 +1,40 @@
+// بطاقة صدر الصفحة الرئيسية: سطور متزنة بلا شرطة معلّقة
+const fs=require("fs"); const {JSDOM}=require("jsdom");
+const html=fs.readFileSync(__dirname+"/index.html","utf8");
+const DATA=fs.readFileSync(__dirname+"/data_restored.json","utf8");
+const VER=fs.readFileSync(__dirname+"/ver_restored.json","utf8");
+const APPV=fs.readFileSync(__dirname+"/app-ver.json","utf8");
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const mk=b=>({ok:true,status:200,headers:{get:()=>null},text:async()=>b,json:async()=>JSON.parse(b)});
+const stub=u=>{u=String(u);
+  if(u.includes("app-ver.json"))return Promise.resolve(mk(APPV));
+  if(u.includes("ver.json"))return Promise.resolve(mk(VER));
+  if(u.includes("data.json"))return Promise.resolve(mk(DATA));
+  return Promise.resolve(mk("{}"));};
+const dom=new JSDOM(html,{runScripts:"dangerously",pretendToBeVisual:true,url:"https://alsubhi1415-dev.github.io/Akram.Su/",beforeParse(w){w.fetch=stub;}});
+const W=dom.window,D=W.document;
+const errs=[];W.addEventListener("error",e=>errs.push(e.message));
+const setW=(px)=>{Object.defineProperty(W,"innerWidth",{value:px,configurable:true,writable:true});W.dispatchEvent(new W.Event("resize"));};
+const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
+(async()=>{
+  await wait(6000); await wait(3000);
+  const b=D.querySelector(".ov-banner");
+  ok("البطاقة موجودة", !!b);
+  const t1=b.querySelector(".ovb-t1"), t2=b.querySelector(".ovb-t2");
+  ok("العنوان في عنصر مستقل", t1 && t1.textContent.trim()==="سجل متابعة الآليات");
+  ok("اسم الإدارة في سطر مستقل", t2 && t2.textContent.trim()==="الإدارة العامة للدفاع المدني بمحافظة جدة");
+  ok("لا شرطة فاصلة معلّقة", !(b.textContent||"").includes("الآليات —") && !(b.textContent||"").includes("— الإدارة"));
+  ok("فاصل ذهبي بدل الشرطة", !!b.querySelector(".ovb-rule"));
+  const day=b.querySelector(".ovb-day");
+  ok("سطر التاريخ مستقل", !!day && day.textContent.includes("اليوم"));
+  const nb=Array.from(day.querySelectorAll("span")).filter(x=>(x.getAttribute("style")||"").includes("nowrap"));
+  ok("التاريخان لا ينكسران في المنتصف", nb.length===2);
+  ok("الهجري والميلادي مفصولان بنقطة", (day.textContent||"").includes("·"));
+  ok("قواعد الجوال مبنيّة", html.includes(".ov-banner .ovb-t1 { font-size: 19px !important; }"));
+  setW(390); await wait(700);
+  ok("[جوال] البطاقة باقية سليمة", !!D.querySelector(".ov-banner .ovb-t1"));
+  ok("لا أخطاء تشغيل", errs.length===0);
+  let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
+  console.log("النتيجة: "+p+"/"+checks.length);
+  process.exit(p===checks.length?0:2);
+})();

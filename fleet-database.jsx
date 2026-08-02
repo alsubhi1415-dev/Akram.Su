@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.2 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.3 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -2183,10 +2183,21 @@ function OverviewPage({ vehicles, incidents, onGo }) {
   };
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-      <div style={{ background: "linear-gradient(120deg, #1B2440, #3A1A2A 60%, #7E1A2F)", borderRadius: 24, padding: "30px 32px", color: "#fff", marginBottom: 20, boxShadow: "0 16px 44px rgba(27,36,64,0.4)", position: "relative", overflow: "hidden" }}>
+      <div className="ov-banner" style={{ background: "linear-gradient(120deg, #1B2440, #3A1A2A 60%, #7E1A2F)", borderRadius: 24, padding: "30px 32px", color: "#fff", marginBottom: 20, boxShadow: "0 16px 44px rgba(27,36,64,0.4)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", left: -40, top: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(212,175,55,0.08)" }} />
-        <div style={{ fontSize: 24, fontWeight: 800 }}>سجل متابعة الآليات — الإدارة العامة للدفاع المدني بمحافظة جدة</div>
-        <div style={{ fontSize: 13.5, fontWeight: 700, opacity: 0.85, marginTop: 6 }}>منظومة رقمية حية لمتابعة الآليات والجاهزية الميدانية والعمليات · اليوم <span style={{ color: "#FFD75E", fontWeight: 800, textShadow: "0 1px 8px rgba(255,215,94,0.35)" }}>{["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][new Date().getDay()]} {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y}هـ - {new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric" })}م</span></div>
+        {/* سطران مستقلان بدل عبارة واحدة تلتفّ فتترك الشرطة معلّقة في الفراغ */}
+        <div className="ovb-t1" style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.35 }}>سجل متابعة الآليات</div>
+        <div className="ovb-t2" style={{ fontSize: 15, fontWeight: 800, opacity: 0.92, marginTop: 3, lineHeight: 1.5 }}>الإدارة العامة للدفاع المدني بمحافظة جدة</div>
+        <div className="ovb-rule" style={{ height: 2, width: 84, borderRadius: 99, background: "linear-gradient(90deg,#D4AF37,rgba(212,175,55,0))", margin: "11px 0 9px" }} />
+        <div className="ovb-sub" style={{ fontSize: 13, fontWeight: 700, opacity: 0.85, lineHeight: 1.85 }}>
+          منظومة رقمية حية لمتابعة الآليات والجاهزية الميدانية والعمليات
+        </div>
+        <div className="ovb-day" style={{ fontSize: 13, fontWeight: 800, marginTop: 4, lineHeight: 1.85 }}>
+          <span style={{ opacity: 0.8, fontWeight: 700 }}>اليوم </span>
+          <span style={{ color: "#FFD75E", textShadow: "0 1px 8px rgba(255,215,94,0.35)", whiteSpace: "nowrap" }}>{["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][new Date().getDay()]} {t.d} {HIJRI_MONTHS[t.m - 1]} {t.y}هـ</span>
+          <span style={{ opacity: 0.55, margin: "0 7px" }}>·</span>
+          <span style={{ color: "#FFD75E", textShadow: "0 1px 8px rgba(255,215,94,0.35)", whiteSpace: "nowrap" }}>{new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", year: "numeric" })}م</span>
+        </div>
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <C n={S.total} label="إجمالي الآليات" color="#1B2440" icon={<VIcon />} go="list" />
@@ -8118,6 +8129,14 @@ export default function FleetApp() {
           }
           .cmd-tab .ct-img { height: 22px; }
           .cmd-tab.act { box-shadow: 0 4px 12px rgba(20,26,40,0.28), inset 0 -2px 0 #D4AF37; }
+        }
+        /* بطاقة صدر الصفحة الرئيسية: مقاسات أهدأ بالجوال فلا يلتفّ العنوان ثلاثة أسطر */
+        @media screen and (max-width: 700px) {
+          .ov-banner { padding: 20px 18px !important; border-radius: 20px !important; }
+          .ov-banner .ovb-t1 { font-size: 19px !important; }
+          .ov-banner .ovb-t2 { font-size: 13px !important; }
+          .ov-banner .ovb-sub, .ov-banner .ovb-day { font-size: 12px !important; }
+          .ov-banner .ovb-rule { margin: 9px 0 8px !important; width: 70px !important; }
         }
         /* الشريط المتحرك: أخبار تشغيلية تمرّ أعلى الصفحة الرئيسية */
         .tk-wrap {
