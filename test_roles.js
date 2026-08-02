@@ -31,6 +31,8 @@ const txt=w=>w.document.getElementById("root").textContent;
   const wo=boot(OW); await wait(6000); await wait(3000);
   ok("[مشرف] لا زر «إضافة آلية»", !txt(wo).includes("إضافة آلية"));
   ok("[مشرف] زر «استيراد» متاح", txt(wo).includes("استيراد"));
+  ok("[مشرف] الاستيراد ضمن شريط الأزرار لا فوق الصورة", (wo.document.querySelector("nav.app-nav").textContent||"").includes("استيراد"));
+  ok("[مشرف] لا صف أزرار طافٍ بصف الهوية", !wo.document.querySelector("header .hdr-actions"));
   const rb=Array.from(wo.document.querySelectorAll("header span")).find(x=>(x.textContent||"").trim().endsWith("المشرف"));
   ok("[مشرف] شارة الصفة برمز مصوّر", !!(rb && rb.querySelector("img")));
   ok("[مشرف] لا 👑 نصية", !/\u{1F451}/u.test(txt(wo)));

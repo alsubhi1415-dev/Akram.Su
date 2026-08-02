@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.5 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.6 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -8004,9 +8004,7 @@ export default function FleetApp() {
         /* فجوة محجوزة لزر الرجوع الطافي: النص يلتفّ حولها فلا يقع تحته أبداً،
            وهي ثابتة سواء ظهر الزر أم لا حتى لا يتغيّر ارتفاع الترويسة بين الصفحات */
         header .hdr-title .hdr-gap { float: left; width: 112px; height: 28px; }
-        /* أزرار الترويسة تنزل قليلاً كي لا تقع تحت زر الرجوع الطافي */
-        header .hdr-actions { align-self: flex-end; margin-top: 26px; }
-        @media screen and (max-width: 700px) { header .hdr-actions { align-self: auto; margin-top: 0; } }
+        /* زر رفع الملف صار ضمن شريط الأزرار السفلي فلا يتداخل مع زر الرجوع ولا يغطي الصورة */
         @media screen and (max-width: 700px) {
           /* بالجوال: الشعار في سطر أعلى، ونص العنوان تحته بعرض الشاشة كاملاً فيكفيه سطران */
           header .hdr-id { flex-direction: column; align-items: flex-start !important; gap: 6px; padding-bottom: 8px; }
@@ -8426,16 +8424,6 @@ export default function FleetApp() {
                 <span className="hdr-gap" aria-hidden="true" />{"المنصة الرقمية لجاهزية الآليات والمراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
-            <div className="app-nav hdr-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              {isOwner && <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
-                if (!vehGuard()) return;
-                persist({ ...db, vehicles: nv }, mode === "replace" ? "الاستبدال الكامل من الإكسل" : "الدمج من الإكسل");
-                setImportMsg(mode === "replace"
-                  ? `تم الاستبدال الكامل: ${nv.length} آلية من الملف`
-                  : `تم الدمج: تحديث ${pv.matched} وإضافة ${pv.added} آلية و${faultsAdded} عطل جديد`);
-                setTimeout(() => setImportMsg(""), 6000);
-              }} />}
-            </div>
           </div>
           {/* الصف الثاني: الجاهزية أساس التنقل والبقية بالقائمة الجانبية */}
           <nav className="app-nav" style={{ display: "flex", gap: 8, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.13)", paddingTop: 7, paddingBottom: 9, flexWrap: "wrap" }}>
@@ -8569,6 +8557,14 @@ export default function FleetApp() {
                 </div>
               )}
             </span>
+              {isOwner && <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
+                if (!vehGuard()) return;
+                persist({ ...db, vehicles: nv }, mode === "replace" ? "الاستبدال الكامل من الإكسل" : "الدمج من الإكسل");
+                setImportMsg(mode === "replace"
+                  ? `تم الاستبدال الكامل: ${nv.length} آلية من الملف`
+                  : `تم الدمج: تحديث ${pv.matched} وإضافة ${pv.added} آلية و${faultsAdded} عطل جديد`);
+                setTimeout(() => setImportMsg(""), 6000);
+              }} />}
             <span title="نسخة التطبيق الحالية" style={{
               alignSelf: "center", marginLeft: "auto", marginInlineEnd: -12, background: "linear-gradient(135deg,#FFD75E,#E8A81C)", color: "#3B2A00",
               border: "1.5px solid #FFE9A3", borderRadius: 999, padding: "4px 12px",
