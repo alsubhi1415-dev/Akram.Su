@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.4 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7993,7 +7993,7 @@ export default function FleetApp() {
         @media screen and (max-width: 700px) {
           /* بالجوال: الشعار في سطر أعلى، ونص العنوان تحته بعرض الشاشة كاملاً فيكفيه سطران */
           header .hdr-id { flex-direction: column; align-items: flex-start !important; gap: 6px; padding-bottom: 8px; }
-          header .hdr-id > .hdr-logo { width: 76px; height: 57px; margin-right: 0; }
+          header .hdr-id > .hdr-logo { width: 92px; height: 69px; margin-right: 0; }
           header .hdr-id > div:not(.hdr-logo) { width: 100%; min-width: 0 !important; }
           header .hdr-title { font-size: 17px !important; }
           header .hdr-title .hdr-gap { display: none; }   /* لا حاجة لحجز مكان: الزر يطفو فوق سطر الشعار الفارغ */
