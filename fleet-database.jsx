@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.7 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.8 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -4722,17 +4722,34 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         )}
         {repMode === "vehicles" && (() => {
           // سطر يوضح المرشحات المطبقة، يتحدث تلقائياً مع كل تغيير بالأعلى
-          const parts = [];
-          if (rStatus.length) parts.push("الحالة الفنية: " + rStatus.join("، "));
-          if (rGroup !== "الكل") parts.push("التصنيف الخاص: " + rGroup);
-          if (rBranch.length) parts.push("الشعبة / الجهة: " + rBranch.join("، "));
-          if (rUnit.length) parts.push("المركز: " + rUnit.join("، "));
-          if (rVType.length) parts.push("نوع الآلية: " + rVType.join("، "));
-          if (rModel.length) parts.push("الموديل: " + rModel.join("، "));
-          if (rFType.length) parts.push("نوع العطل: " + rFType.join("، "));
-          return parts.length ? (
-            <div style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#3A4152", marginBottom: 14 }}>
-              ({parts.join(" — ")})
+          // سطر موجز ملوّن يوضح موضوع البيان — لا سرد لعشرات الجهات
+          // القاعدة: مرشّح غير مفعّل أو مفعّل على كل خياراته = «الكل» فلا يُذكر،
+          // وأكثر من خيارين يُختصر بعددها، فيبقى العنوان مقروءاً في سطر واحد.
+          const segs = [];
+          const push = (label, vals, all, color, unitWord) => {
+            if (!vals || !vals.length) return;
+            if (all && all.length && vals.length >= all.length) return;
+            const txt = vals.length <= 2 ? vals.join(" و") : vals.length + " " + unitWord;
+            segs.push({ t: label + ": " + txt, c: color });
+          };
+          if (rStatus.length && rStatus.length < [...STATUSES, READY_GROUP].length) {
+            const one = rStatus.length === 1 ? rStatus[0] : null;
+            const col = one === READY_GROUP ? "#0E7A5F" : (one && ST[one] ? ST[one].c : "#1B2440");
+            segs.push({ t: "الحالة الفنية: " + (rStatus.length <= 2 ? rStatus.join(" و") : rStatus.length + " حالات"), c: col });
+          }
+          if (rGroup !== "الكل") segs.push({ t: "التصنيف الخاص: " + rGroup, c: "#6D28D9" });
+          push("الشعبة / الجهة", rBranch, branches, "#1F4E8C", "جهة");
+          push("المركز", rUnit, unitsList, "#1F6FB8", "مركزاً");
+          push("نوع الآلية", rVType, typesList, "#7B4B2A", "أنواع");
+          push("الموديل", rModel, modelsList, "#5A6172", "موديلات");
+          push("نوع العطل", rFType, FAULT_TYPES, "#B87207", "أنواع أعطال");
+          return segs.length ? (
+            <div style={{ textAlign: "center", marginBottom: 14, display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10, fontSize: 12.5, fontWeight: 800 }}>
+              {segs.map((g, gi) => (
+                <span key={gi} style={{ color: g.c }}>
+                  {g.t}{gi < segs.length - 1 ? <span style={{ color: "#C9CDD6", marginRight: 10 }}>·</span> : null}
+                </span>
+              ))}
             </div>
           ) : <div style={{ marginBottom: 12 }} />;
         })()}
