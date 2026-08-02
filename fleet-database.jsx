@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.6 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.7 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -2161,7 +2161,8 @@ function OverviewPage({ vehicles, incidents, onGo }) {
     const norm = (s) => String(s || "").replace(/[\/-]0?/g, "/").replace(/^0/, "");
     const todayInc = (incidents || []).filter((i) => norm(i.date) === norm(todayStr)).length;
     const notes = vehicles.filter((v) => (v.status || "").trim() === "تعمل بوجود ملاحظات").length;
-    return { total, ready, broken, rejee, notes, units, todayInc, base: total - rejee || 1, pct: total ? Math.round((ready / (total - rejee || 1)) * 100) : 0 };
+    const prep = vehicles.filter((v) => (v.status || "").trim() === "تحت التجهيز والتسليم").length;
+    return { total, ready, broken, rejee, notes, prep, units, todayInc, base: total - rejee || 1, pct: total ? Math.round((ready / (total - rejee || 1)) * 100) : 0 };
   }, [vehicles, incidents]);
   const C = ({ n, label, color, icon, go, sub, pctOf, pctNote }) => {
     const cv = useCountUp(n);
@@ -2192,6 +2193,7 @@ function OverviewPage({ vehicles, incidents, onGo }) {
         <C n={S.ready} label="الآليات الجاهزة للعمل" pctOf={S.base} color="#00875A" icon={<RIcon />} go="list" />
         <C n={S.notes} label="آليات تعمل بوجود ملاحظات" pctOf={S.base} color="#B45309" icon={<NtIcon />} go="list" />
         <C n={S.broken} label="الآليات المتعطلة حالياً" pctOf={S.base} color="#B3121C" icon={<WrIcon />} go="list" />
+        {S.prep > 0 && <C n={S.prep} label="آليات تحت التجهيز والتسليم" pctOf={S.base} color="#0B5A52" icon={<HrIcon />} go="list" />}
         <C n={S.rejee} label="آليات الرجيع" pctOf={S.total} pctNote="من الملاك" sub="ما بين تحت الإجراءات وصدر القرار" color="#4E3D80" icon={<RjIcon />} go="list" />
         <C n={S.pct} label="نسبة الجاهزية" color="#1F6FB8" icon={<MdIcon />} go="charts" />
         <C n={S.units} label="جهة" sub="ما بين شعب ومراكز ميدانية ومراكز سلامة وأقسام داخلية" color="#6D28D9" icon={<StIcon />} go="readiness" />
