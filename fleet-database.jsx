@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.1 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7707,7 +7707,7 @@ export default function FleetApp() {
     isOwner && ["🗑", "سلة المحذوفات", () => setTrashOpen(true), ((db && db.trash) || []).length || null],
     isOwner && ["🕘", "سجل التدقيق", () => setAuditOpen(true), null],
     isOwner && ["👤", "سجل دخول الفريق", () => setLoginOpen(true), (((db && db.loginLog) || []).length || null)],
-    ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), (((db && db.syncLog) || []).length || null)],
+    !ro && ["✅", "آخر التغييرات المعتمدة", () => setSyncOpen(true), (((db && db.syncLog) || []).length || null)],
     isOwner && ["💾", "نسخة احتياطية", () => backupNow(), null],
     isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
     ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],
@@ -8238,7 +8238,13 @@ export default function FleetApp() {
             boxShadow: "0 -12px 40px rgba(10,14,26,0.45)",
           }}>
             <div style={{ width: 44, height: 4, borderRadius: 99, background: "#D7DCE6", margin: "2px auto 10px" }} />
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#8B93A8", padding: "0 6px 8px" }}>أدوات إضافية</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 2px 10px", borderBottom: "1px solid #EEF1F6", marginBottom: 6 }}>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: "#141A28" }}><GrIcon /> أدوات إضافية</div>
+              <button onClick={() => setToolsOpen(false)} title="إغلاق" aria-label="إغلاق" style={{
+                background: "#F0F1F5", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10,
+                width: 34, height: 34, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0,
+              }}>✕</button>
+            </div>
             {toolItems.map(([ic, lbl, fn, badge], ti) => (
               <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
                 style={{
@@ -8542,6 +8548,7 @@ export default function FleetApp() {
                 <div className="no-print" style={narrowHdr ? {
                   // لوحة سفلية بالجوال: لا تعتمد على ارتفاع الترويسة فلا تُحجب خلفها
                   position: "fixed", bottom: 10, top: "auto", left: 10, right: 10, width: "auto", maxHeight: "72vh", overflowY: "auto",
+                  paddingTop: 8,
                   background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.5)", zIndex: 880,
                   padding: "14px 16px", textAlign: "right",
                 } : {
@@ -8549,7 +8556,13 @@ export default function FleetApp() {
                   background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500,
                   padding: "14px 16px", textAlign: "right",
                 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "#1B2440", marginBottom: 8 }}><BlIcon /> التنبيهات الذكية ({alerts.total})</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: "#1B2440" }}><BlIcon /> التنبيهات الذكية ({alerts.total})</div>
+                    <button onClick={() => setBellOpen(false)} title="إغلاق" aria-label="إغلاق" style={{
+                      background: "#F0F1F5", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10,
+                      width: 32, height: 32, fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0,
+                    }}>✕</button>
+                  </div>
                   {alerts.total === 0 && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8B93A8" }}>لا تنبيهات حالياً — الوضع مستقر <RIcon /></div>}
                   {alerts.long.length > 0 && (<div style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 800, color: "#B3121C" }}>⏳ توقف تجاوز 90 يوماً ({alerts.long.length})</div>
@@ -8741,11 +8754,19 @@ export default function FleetApp() {
         return (
           <div className="modal-overlay no-print" onClick={() => setCmdOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(10,14,24,0.55)", zIndex: 900, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "9vh 14px 0", backdropFilter: "blur(3px)" }}>
             <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(620px,100%)", maxHeight: "76vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.35)", padding: 14 }}>
-              <input autoFocus value={cmdQ} onChange={(e) => setCmdQ(e.target.value)} placeholder="ابحث بلوحة أو نوع آلية أو مركز أو صفحة…" style={{
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: "#141A28" }}><SeIcon /> بحث سريع وتنقّل</div>
+                <button onClick={() => setCmdOpen(false)} title="إغلاق" aria-label="إغلاق" style={{
+                  background: "#F0F1F5", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10,
+                  width: 34, height: 34, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0,
+                }}>✕</button>
+              </div>
+              {/* بلا تركيز تلقائي: لوحة مفاتيح الجوال لا ترتفع إلا حين يلمس المستخدم الحقل */}
+              <input value={cmdQ} onChange={(e) => setCmdQ(e.target.value)} placeholder="ابحث بلوحة أو نوع آلية أو مركز أو صفحة…" style={{
                 width: "100%", boxSizing: "border-box", border: "2px solid #C9CDD6", borderRadius: 12, padding: "11px 14px",
                 fontSize: 14, fontWeight: 800, fontFamily: "inherit", color: "#141A28", outline: "none",
               }} />
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8B93A3", margin: "7px 3px 10px" }}>Ctrl+K للفتح · Esc للإغلاق</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8B93A3", margin: "7px 3px 10px" }}>اضغط الحقل للكتابة · Esc للإغلاق</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {vres.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#5A6172", marginTop: 4 }}>الآليات</div>}
                 {vres.map((v) => <Row key={v.id} ic={<VIcon />} t1={`${v.type} — ${v.plate}`} t2={`${v.unit || "—"} · ${v.status}`}

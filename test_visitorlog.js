@@ -25,18 +25,18 @@ const stub=(u,o)=>{u=String(u);o=o||{};
   if(u.includes("data.json"))return Promise.resolve(mk(OLD));              // نفس الأصل متأخر
   return Promise.resolve(mk("{}",404));};
 const dom=new JSDOM(html,{runScripts:"dangerously",pretendToBeVisual:true,url:"https://alsubhi1415-dev.github.io/Akram.Su/",
-  beforeParse(w){ w.fetch=stub; }});   // بلا تسجيل دخول = مستعرض
+  beforeParse(w){ try{w.localStorage.setItem("cdfleet_role_hash","0f37b8ff0653a56ad7d30277ff9efd50b309c399d24efc42d24e3463acafeecd");}catch(e){} w.fetch=stub; }});   // مشرف: العنصر صار مقصوراً على المسجّلين
 const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;
 const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 (async()=>{
   await wait(6000); await wait(3000);
-  ok("الصلاحية مستعرض", txt().includes("المستعرض") || !txt().includes("المشرف"));
+  ok("الصلاحية مشرف", txt().includes("المشرف"));
   const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb){tb.click(); await wait(700);}
   const item=Array.from(D.querySelectorAll("div")).find(d=>(d.textContent||"").trim().startsWith("✅آخر التغييرات المعتمدة"));
-  ok("العنصر متاح للمستعرض", !!item);
+  ok("العنصر متاح للمشرف", !!item);
   if(item){item.click(); await wait(800);}
   ok("النافذة تفتح وتعرض القيد القديم", txt().includes("تعديل 2 آلية"));
   ok("زر التحديث الآن موجود", txt().includes("تحديث الآن"));
@@ -48,8 +48,8 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("رسالة تأكيد ظهرت", txt().includes("وصلت نسخة أحدث") || txt().includes("أنت على أحدث نسخة"));
   {
     const hb=Array.from(D.querySelector("header").querySelectorAll("button"));
-    ok("[مستعرض] زر دخول المحررين برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("دخول المحررين")));
-    ok("[مستعرض] زر البحث السريع برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("بحث سريع")));
+    ok("[مشرف] شارة الصفة برمز مصوّر", !!Array.from(D.querySelectorAll("header span")).find(x=>x.querySelector("img") && (x.textContent||"").includes("المشرف")));
+    ok("زر البحث السريع برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("بحث سريع")));
   }
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
