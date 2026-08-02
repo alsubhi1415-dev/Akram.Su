@@ -59,6 +59,8 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   await click("سجل الآليات",1100);
   ok("[مكتب] الحشو موحّد أيضاً بلا إزاحة", !pad().includes("86px"));
   ok("[مكتب] الفجوة محجوزة كذلك", !!D.querySelector("header .hdr-title .hdr-gap"));
+  ok("[مكتب] زر الاستيراد منزَّل عن زر الرجوع", html.includes("header .hdr-actions { align-self: flex-end; margin-top: 26px; }"));
+  ok("[جوال] لا إزاحة لأزرار الترويسة", html.includes("header .hdr-actions { align-self: auto; margin-top: 0; }"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   console.log("النتيجة: "+p+"/"+checks.length);

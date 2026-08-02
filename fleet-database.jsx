@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.5 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7697,6 +7697,20 @@ export default function FleetApp() {
       txt: `${alerts.rej.length} آلية تحت إجراءات الرجيع` });
     const brk = vehicles.filter((v) => BROKEN_SET.includes((v.status || "").trim())).length;
     arr.push({ ic: <WrIcon />, tone: "#FFB4A2", txt: `${brk} آلية متعطلة حالياً من ${vehicles.length} بالملاك` });
+    // الآليات النوعية: مرجعها التصنيف الخاص المعتمد بصفحة التقارير
+    try {
+      const g = CUSTOM_GROUPS.find((x) => x.name === "الآليات النوعية");
+      const set = new Set(((g && g.plates) || []).map(normPlate));
+      const nawi = vehicles.filter((v) => set.has(normPlate(v.plate)));
+      const down = nawi.filter((v) => BROKEN_SET.includes((v.status || "").trim()));
+      if (nawi.length) arr.push({
+        ic: <VIcon />, tone: down.length ? "#FFB4A2" : "#9FE3C4",
+        txt: down.length
+          ? `الآليات النوعية: ${down.length} متعطلة من ${nawi.length}`
+          : `الآليات النوعية: ${nawi.length} جاهزة بالكامل`,
+        go: () => { setReportsInit("nawi"); setView("reports"); },
+      });
+    } catch (e) {}
     if (pendLong) arr.push({ ic: "⏳", tone: "#FFD166", txt: "تعديل بانتظار الرفع — يُعاد إرساله تلقائياً" });
     return arr;
   }, [vehicles, alerts, pendLong]);
@@ -7990,6 +8004,9 @@ export default function FleetApp() {
         /* فجوة محجوزة لزر الرجوع الطافي: النص يلتفّ حولها فلا يقع تحته أبداً،
            وهي ثابتة سواء ظهر الزر أم لا حتى لا يتغيّر ارتفاع الترويسة بين الصفحات */
         header .hdr-title .hdr-gap { float: left; width: 112px; height: 28px; }
+        /* أزرار الترويسة تنزل قليلاً كي لا تقع تحت زر الرجوع الطافي */
+        header .hdr-actions { align-self: flex-end; margin-top: 26px; }
+        @media screen and (max-width: 700px) { header .hdr-actions { align-self: auto; margin-top: 0; } }
         @media screen and (max-width: 700px) {
           /* بالجوال: الشعار في سطر أعلى، ونص العنوان تحته بعرض الشاشة كاملاً فيكفيه سطران */
           header .hdr-id { flex-direction: column; align-items: flex-start !important; gap: 6px; padding-bottom: 8px; }
@@ -8409,7 +8426,7 @@ export default function FleetApp() {
                 <span className="hdr-gap" aria-hidden="true" />{"المنصة الرقمية لجاهزية الآليات والمراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
-            <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div className="app-nav hdr-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               {isOwner && <ExcelImport vehicles={vehicles} onApply={(nv, mode, faultsAdded, pv) => {
                 if (!vehGuard()) return;
                 persist({ ...db, vehicles: nv }, mode === "replace" ? "الاستبدال الكامل من الإكسل" : "الدمج من الإكسل");
