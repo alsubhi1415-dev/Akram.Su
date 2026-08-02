@@ -27,18 +27,22 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   await wait(6000); await wait(3000);
   setW(390); await wait(800);
   const p0=pad(), h0=minH(), n0=keyBtns();
+  const ttl=()=>{const e=D.querySelector("header .hdr-title"); return e?e.textContent.trim():"";};
+  const t0=ttl();
   ok("[جوال] الترويسة لها ارتفاع أدنى ثابت", h0.includes("150"));
   const pages=["سجل الآليات","الجاهزية الميدانية","المؤشرات والتحليلات","إحصائيات عملياتية","التقارير والبيانات","الصفحة الرئيسية"];
-  let same=true, sameH=true, sameN=true;
+  let same=true, sameH=true, sameN=true, sameT=true;
   for(const pg of pages){
     await click(pg,1100);
     if(pad()!==p0) { same=false; console.log("   تغيّر الحشو عند:",pg,"→",pad()); }
     if(minH()!==h0) sameH=false;
     if(keyBtns()<n0) { sameN=false; console.log("   نقصت أزرار الشريط عند:",pg,keyBtns(),"بدل",n0); }
+    if(ttl()!==t0) { sameT=false; console.log("   تغيّر عنوان الترويسة عند:",pg,"→",ttl()); }
   }
   ok("[جوال] الحشو ثابت عبر كل الصفحات", same);
   ok("[جوال] الارتفاع الأدنى ثابت", sameH);
   ok("[جوال] أزرار الشريط الأساسية كاملة دائماً", sameN && n0===4);
+  ok("[جوال] عنوان الترويسة ثابت في كل الصفحات", sameT && t0.includes("المنصة الرقمية"));
   ok("[جوال] زر الرجوع ظهر بعد التنقل", !!D.querySelector(".fd-float-back"));
   ok("[جوال] قاعدة تصغير زر الرجوع مبنيّة", html.includes(".fd-float-back { top: 6px !important; left: 6px !important;"));
   // سطح المكتب يحتفظ بسلوكه القديم
