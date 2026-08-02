@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.2 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -6990,19 +6990,21 @@ export default function FleetApp() {
     h();
     return () => window.removeEventListener("resize", h);
   }, []);
+  // بالجوال تُرسم اللوحتان بجذر التطبيق ولهما غطاء يغلقهما، فمستمع «النقر خارج العنصر»
+  // يُعطَّل هناك: كان يلتقط لمسة البند نفسها فيغلق اللوحة قبل تنفيذ الأمر.
   useEffect(() => {
-    if (!bellOpen) return;
+    if (!bellOpen || narrowHdr) return;
     const h = (e) => { if (bellRef.current && !bellRef.current.contains(e.target)) setBellOpen(false); };
     document.addEventListener("mousedown", h);
     document.addEventListener("touchstart", h);
     return () => { document.removeEventListener("mousedown", h); document.removeEventListener("touchstart", h); };
-  }, [bellOpen]);
+  }, [bellOpen, narrowHdr]);
   useEffect(() => {
-    if (!toolsOpen) return;
+    if (!toolsOpen || narrowHdr) return;
     const h = (e) => { if (toolsRef.current && !toolsRef.current.contains(e.target)) setToolsOpen(false); };
     document.addEventListener("mousedown", h); document.addEventListener("touchstart", h);
     return () => { document.removeEventListener("mousedown", h); document.removeEventListener("touchstart", h); };
-  }, [toolsOpen]);
+  }, [toolsOpen, narrowHdr]);
   const [dark, setDark] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   useEffect(() => {
@@ -7711,7 +7713,7 @@ export default function FleetApp() {
     isOwner && ["💾", "نسخة احتياطية", () => backupNow(), null],
     isOwner && ["🔑", "ربط GitHub", () => { setGhVal(""); setGhErr(""); setGhOpen(true); }, null],
     ["🩺", "حالة المزامنة", () => setDiagOpen(true), null],
-    [dark ? "☀️" : "🌙", dark ? "الوضع النهاري" : "الوضع الليلي", () => setDark(!dark), null],
+    [dark ? "☀️" : "🌙", dark ? "الوضع النهاري" : "الوضع الليلي", () => setDark(!dark), null, true],
   ].filter(Boolean);
   const tickerItems = useMemo(() => {
     const arr = [];
@@ -8229,6 +8231,40 @@ export default function FleetApp() {
         }
       `}</style>
 
+      {bellOpen && narrowHdr && (
+        <div className="modal-overlay no-print" onClick={() => setBellOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.55)", zIndex: 900, display: "flex", alignItems: "flex-end" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            background: "#fff", borderRadius: "18px 18px 0 0", width: "100%", maxHeight: "80vh", overflowY: "auto",
+            padding: "10px 14px calc(16px + env(safe-area-inset-bottom))", textAlign: "right",
+            boxShadow: "0 -12px 40px rgba(10,14,26,0.45)",
+          }}>
+            <div style={{ width: 44, height: 4, borderRadius: 99, background: "#D7DCE6", margin: "2px auto 10px" }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: "#1B2440" }}><BlIcon /> التنبيهات الذكية ({alerts.total})</div>
+                    <button onClick={() => setBellOpen(false)} title="إغلاق" aria-label="إغلاق" style={{
+                      background: "#F0F1F5", color: "#3A4152", border: "1.5px solid #C9CDD6", borderRadius: 10,
+                      width: 32, height: 32, fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0,
+                    }}>✕</button>
+                  </div>
+                  {alerts.total === 0 && <div style={{ fontSize: 12.5, fontWeight: 700, color: "#8B93A8" }}>لا تنبيهات حالياً — الوضع مستقر <RIcon /></div>}
+                  {alerts.long.length > 0 && (<div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#B3121C" }}>⏳ توقف تجاوز 90 يوماً ({alerts.long.length})</div>
+                    {alerts.long.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 11.5, fontWeight: 700, color: "#3A4560", padding: "3px 0" }}>{x.v.type} — {x.v.plate} <b style={{ color: "#B3121C" }}>({x.d} يوماً)</b></div>)}
+                    {alerts.long.length > 5 && <div style={{ fontSize: 11, fontWeight: 700, color: "#8B93A8" }}>و{alerts.long.length - 5} أخرى...</div>}
+                  </div>)}
+                  {alerts.warr.length > 0 && (<div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#D97706" }}>🔁 معاودة تعطل خلال فترة الضمان ({alerts.warr.length})</div>
+                    {alerts.warr.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 11.5, fontWeight: 700, color: "#3A4560", padding: "3px 0" }}>{x.v.type} — {x.v.plate} <b style={{ color: "#D97706" }}>(بعد {x.gap} يوماً)</b></div>)}
+                  </div>)}
+                  {alerts.rej.length > 0 && (<div>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: "#5A6172" }}><RjIcon /> تحت إجراءات الرجيع المعلقة ({alerts.rej.length})</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", padding: "3px 0" }}>آليات بانتظار إتمام قرارها النهائي</div>
+                  </div>)}
+          </div>
+        </div>
+      )}
+
       {toolsOpen && narrowHdr && (
         <div className="modal-overlay no-print" onClick={() => setToolsOpen(false)}
           style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.55)", zIndex: 900, display: "flex", alignItems: "flex-end" }}>
@@ -8245,8 +8281,8 @@ export default function FleetApp() {
                 width: 34, height: 34, fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", lineHeight: 1, flexShrink: 0,
               }}>✕</button>
             </div>
-            {toolItems.map(([ic, lbl, fn, badge], ti) => (
-              <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
+            {toolItems.map(([ic, lbl, fn, badge, keepOpen], ti) => (
+              <div key={ti} onClick={() => { if (keepOpen) { fn(); return; } setToolsOpen(false); setTimeout(fn, 40); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "13px 8px", borderRadius: 12,
                   cursor: "pointer", fontSize: 13.5, fontWeight: 800, color: "#1B2440", borderBottom: "1px solid #F2F4F8",
@@ -8544,17 +8580,11 @@ export default function FleetApp() {
                 background: "rgba(255,255,255,0.1)", color: "#fff", border: "1.5px solid rgba(255,255,255,0.25)",
                 borderRadius: 10, padding: "8px 12px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", position: "relative",
               }}><BlIcon />{alerts.total > 0 && <span style={{ position: "absolute", top: -6, left: -6, background: "#FF4D57", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 800, padding: "1.5px 6px", boxShadow: "0 2px 8px rgba(255,77,87,0.6)" }}>{alerts.total}</span>}</button>
-              {bellOpen && (
-                <div className="no-print" style={narrowHdr ? {
-                  // لوحة سفلية بالجوال: لا تعتمد على ارتفاع الترويسة فلا تُحجب خلفها
-                  position: "fixed", bottom: 10, top: "auto", left: 10, right: 10, width: "auto", maxHeight: "72vh", overflowY: "auto",
-                  paddingTop: 8,
-                  background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.5)", zIndex: 880,
-                  padding: "14px 16px", textAlign: "right",
-                } : {
-                  position: "absolute", top: 44, left: 0, width: 330, maxHeight: 420, overflowY: "auto",
+              {bellOpen && !narrowHdr && (
+                <div className="no-print" style={{
+                  position: "absolute", top: 44, left: 0, width: 320, maxHeight: "70vh", overflowY: "auto",
                   background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500,
-                  padding: "14px 16px", textAlign: "right",
+                  padding: "12px 14px 16px", textAlign: "right",
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                     <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: "#1B2440" }}><BlIcon /> التنبيهات الذكية ({alerts.total})</div>
@@ -8599,8 +8629,8 @@ export default function FleetApp() {
                   boxShadow: "0 20px 60px rgba(10,14,26,0.45)", zIndex: 500, padding: 10, textAlign: "right",
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#8B93A8", padding: "2px 8px 8px" }}>أدوات إضافية</div>
-                  {toolItems.map(([ic, lbl, fn, badge], ti) => (
-                    <div key={ti} onClick={() => { fn(); setToolsOpen(false); }}
+                  {toolItems.map(([ic, lbl, fn, badge, keepOpen], ti) => (
+                    <div key={ti} onClick={() => { if (keepOpen) { fn(); return; } setToolsOpen(false); setTimeout(fn, 40); }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "#F1F3F7"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                       style={{

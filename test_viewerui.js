@@ -60,6 +60,28 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[مستعرض] حالة المزامنة متاحة", st.includes("حالة المزامنة"));
   ok("[مستعرض] لا أدوات أخرى", !st.includes("سلة المحذوفات") && !st.includes("سجل التدقيق") && !st.includes("نسخة احتياطية") && !st.includes("ربط GitHub") && !st.includes("عتبة تنبيه") && !st.includes("آخر التغييرات المعتمدة"));
   ok("للوحة الأدوات زر ✕", !!Array.from(sheet.querySelectorAll("button")).find(b=>(b.textContent||"").trim()==="✕"));
+  // لوحة التنبيهات بالجوال تُرسم بجذر التطبيق
+  const bl2=byTitle("التنبيهات"); bl2.click(); await wait(900);
+  const bsheet=Array.from(D.querySelectorAll(".modal-overlay")).find(o=>(o.textContent||"").includes("التنبيهات الذكية"));
+  ok("[جوال] لوحة التنبيهات بجذر التطبيق", !!bsheet && !D.querySelector("header").contains(bsheet));
+  bsheet.click(); await wait(600);
+  ok("الضغط خارجها يغلقها", !Array.from(D.querySelectorAll(".modal-overlay")).some(o=>(o.textContent||"").includes("التنبيهات الذكية")));
+  // الوضع الليلي يبدّل دون إغلاق اللوحة
+  const sh2=()=>Array.from(D.querySelectorAll(".modal-overlay")).find(o=>(o.textContent||"").includes("أدوات إضافية"));
+  if(!sh2()){ byTitle("أدوات إضافية").click(); await wait(800); }
+  ok("لوحة الأدوات مفتوحة", !!sh2());
+  const darkRow=Array.from(sh2().querySelectorAll("div")).find(d=>/الوضع (الليلي|النهاري)/.test((d.textContent||"").trim()) && d.querySelectorAll("div").length===0);
+  const wasDark=D.body.classList.contains("dark");
+  if(darkRow){darkRow.click(); await wait(700);}
+  ok("[مستعرض] الوضع الليلي تبدّل فعلاً", D.body.classList.contains("dark")!==wasDark);
+  ok("اللوحة بقيت مفتوحة بعد تبديل الوضع", !!sh2());
+  // حالة المزامنة تفتح نافذتها
+  const syncRow=Array.from(sh2().querySelectorAll("div")).find(d=>(d.textContent||"").trim()==="🩺حالة المزامنة");
+  if(syncRow){syncRow.click(); await wait(900);}
+  await wait(600);
+  const dg=Array.from(D.querySelectorAll(".modal-overlay")).find(o=>(o.textContent||"").includes("🩺 حالة المزامنة"));
+  ok("[مستعرض] نافذة حالة المزامنة فتحت", !!dg && (dg.textContent||"").includes("هذه الشاشة"));
+  ok("لوحة الأدوات أُغلقت بعد فتح النافذة", !sh2());
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));

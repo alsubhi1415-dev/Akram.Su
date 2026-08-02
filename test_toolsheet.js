@@ -54,9 +54,9 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   const bell=Array.from(D.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"").includes("التنبيهات"));
   ok("[جوال] زر التنبيهات موجود", !!bell);
   if(bell){bell.click(); await wait(800);}
-  const bp=Array.from(D.querySelectorAll('div[style*="position: fixed"]')).find(d=>(d.getAttribute("style")||"").includes("bottom: 10px"));
-  ok("[جوال] لوحة التنبيهات سفلية", !!bp);
-  ok("لا اعتماد على ارتفاع الترويسة في أي لوحة", !html.includes("position: fixed; top: 68px"));
+  const bp=Array.from(D.querySelectorAll(".modal-overlay")).find(o=>(o.textContent||"").includes("التنبيهات الذكية"));
+  ok("[جوال] لوحة التنبيهات بجذر التطبيق", !!bp && !D.querySelector("header").contains(bp));
+  ok("لا اعتماد على ارتفاع الترويسة في أي لوحة", !html.includes("top: 68"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   if(errs.length)console.log("أخطاء:",errs.slice(0,3).join(" | "));
