@@ -25,7 +25,7 @@ const stub=(u,o)=>{u=String(u);o=o||{};
   if(u.includes("data.json"))return Promise.resolve(mk(OLD));              // نفس الأصل متأخر
   return Promise.resolve(mk("{}",404));};
 const dom=new JSDOM(html,{runScripts:"dangerously",pretendToBeVisual:true,url:"https://alsubhi1415-dev.github.io/Akram.Su/",
-  beforeParse(w){ try{w.localStorage.setItem("cdfleet_role_hash","0f37b8ff0653a56ad7d30277ff9efd50b309c399d24efc42d24e3463acafeecd");}catch(e){} w.fetch=stub; }});   // مشرف: العنصر صار مقصوراً على المسجّلين
+  beforeParse(w){ try{w.localStorage.setItem("cdfleet_role_hash","a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49");}catch(e){} w.fetch=stub; }});   // مشرف: العنصر صار مقصوراً على المسجّلين
 const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;

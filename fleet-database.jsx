@@ -4,9 +4,9 @@ import html2canvas from "html2canvas";
 import QRCode from "qrcode";
 
 // بصمة كلمة سر المحررين (SHA-256) — تُستخدم للواجهة ولرمز الكتابة السحابي
-const PW_HASH = "6346fc1b001a16dd9e1e8b172d33847c99e6016733cb2fde11baf8d107b364ce";
+const PW_HASH = "7a5df5ffa0dec2228d90b8d0a0f1b0767b748b0a41314c123075b8289e4e053f";
 // بصمة كلمة سر المشرف (صلاحية سجل الآليات — أعلى من المحرر)
-const OWNER_HASH = "0f37b8ff0653a56ad7d30277ff9efd50b309c399d24efc42d24e3463acafeecd";
+const OWNER_HASH = "a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49";
 const ROLE_KEY = "cdfleet_role_hash";
 
 // SHA-256 خفيفة تعمل في كل البيئات (بما فيها فتح الملف محلياً)
@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.4 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.5 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],

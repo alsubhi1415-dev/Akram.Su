@@ -4,7 +4,7 @@ const fs = require("fs");
 const { JSDOM } = require("jsdom");
 
 const html = fs.readFileSync(__dirname + "/index.html", "utf8");
-const OWNER_HASH = "0f37b8ff0653a56ad7d30277ff9efd50b309c399d24efc42d24e3463acafeecd";
+const OWNER_HASH = "a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49";
 const ROLE_KEY = "cdfleet_role_hash";
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 

@@ -34,7 +34,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("زر دخول المحررين موجود", !!lb);
   if(lb){lb.click(); await wait(700);}
   const inp=Array.from(D.querySelectorAll("input")).find(i=>i.type==="password") || Array.from(D.querySelectorAll("input")).pop();
-  if(inp){setN(inp,"admin4441"); await wait(300);}
+  if(inp){setN(inp,"1322144"); await wait(300);}
   const sb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").trim()==="دخول");
   if(sb){sb.click(); await wait(1200);}
   ok("تمّ الدخول كمشرف", txt().includes("تم الدخول كمشرف") || txt().includes("المشرف"));

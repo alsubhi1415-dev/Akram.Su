@@ -19,7 +19,7 @@ function stub(u,o){u=String(u);o=o||{};
     return Promise.resolve(mk("{}",404)); }
   return Promise.resolve(mk("{}",404));}
 const dom=new JSDOM(html,{runScripts:"dangerously",pretendToBeVisual:true,url:"https://alsubhi1415-dev.github.io/Akram.Su/",
-  beforeParse(w){try{w.localStorage.setItem("cdfleet_role_hash","0f37b8ff0653a56ad7d30277ff9efd50b309c399d24efc42d24e3463acafeecd");}catch(e){} w.fetch=stub;}});
+  beforeParse(w){try{w.localStorage.setItem("cdfleet_role_hash","a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49");}catch(e){} w.fetch=stub;}});
 const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;
@@ -33,7 +33,7 @@ const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).fi
   if(row){row.click(); await wait(700);}
   const t=txt();
   ok("النافذة فُتحت", t.includes("حالة المزامنة"));
-  ok("تعرض نسخة البرنامج", t.includes("19.4"));
+  ok("تعرض نسخة البرنامج", t.includes("19.5"));
   ok("تعرض حالة الاتصال", t.includes("متصل"));
   ok("تعرض مصدر القراءة", t.includes("نفس أصل الصفحة") || t.includes("الواجهة الرسمية"));
   ok("تعرض مؤشر الاستلام", t.includes("rstr1101"));
