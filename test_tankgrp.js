@@ -40,7 +40,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("قائمة «التصنيف الخاص» موجودة", !!sel);
   const opts=sel?Array.from(sel.options).map(o=>o.text):[];
   ok("خيار «وايتات صهاريج» مضاف", opts.includes("وايتات صهاريج"));
-  ok("التصنيفات القديمة باقية", opts.includes("السلالم") && opts.includes("الانقاذات") && opts.includes("وايتات البروبلين") && opts.includes("المزدوجات"));
+  ok("التصنيفات القديمة باقية", opts.includes("السلالم") && opts.includes("الانقاذات") && opts.includes("وايتات البروبلين") && opts.includes("المزدوجات (الكومندر)"));
   ok("عدد التصنيفات 12 + الكل", opts.length===13);
   // اختيار التصنيف الجديد
   if(sel){
