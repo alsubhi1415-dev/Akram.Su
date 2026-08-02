@@ -43,12 +43,17 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("[جوال] الارتفاع الأدنى ثابت", sameH);
   ok("[جوال] أزرار الشريط الأساسية كاملة دائماً", sameN && n0===4);
   ok("[جوال] عنوان الترويسة ثابت في كل الصفحات", sameT && t0.includes("المنصة الرقمية"));
+  const gap=()=>D.querySelector("header .hdr-title .hdr-gap");
+  ok("[جوال] فجوة زر الرجوع محجوزة داخل العنوان", !!gap());
+  ok("[جوال] الفجوة تطفو يساراً فيلتفّ النص حولها", html.includes("header .hdr-title .hdr-gap { float: left;"));
+  ok("[جوال] الحشو موحّد بلا إزاحة 86px", !pad().includes("86px"));
   ok("[جوال] زر الرجوع ظهر بعد التنقل", !!D.querySelector(".fd-float-back"));
   ok("[جوال] قاعدة تصغير زر الرجوع مبنيّة", html.includes(".fd-float-back { top: 6px !important; left: 6px !important;"));
   // سطح المكتب يحتفظ بسلوكه القديم
   setW(1400); await wait(800);
   await click("سجل الآليات",1100);
-  ok("[مكتب] حشو الرجوع 86px كما كان", pad().includes("86px"));
+  ok("[مكتب] الحشو موحّد أيضاً بلا إزاحة", !pad().includes("86px"));
+  ok("[مكتب] الفجوة محجوزة كذلك", !!D.querySelector("header .hdr-title .hdr-gap"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}
   console.log("النتيجة: "+p+"/"+checks.length);

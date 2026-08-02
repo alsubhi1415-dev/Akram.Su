@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.1 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7983,6 +7983,10 @@ export default function FleetApp() {
         .fleet-tbl tbody td { vertical-align: middle; }
         /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
         header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
+        /* فجوة محجوزة لزر الرجوع الطافي: النص يلتفّ حولها فلا يقع تحته أبداً،
+           وهي ثابتة سواء ظهر الزر أم لا حتى لا يتغيّر ارتفاع الترويسة بين الصفحات */
+        header .hdr-title .hdr-gap { float: left; width: 112px; height: 28px; }
+        @media screen and (max-width: 700px) { header .hdr-title .hdr-gap { width: 104px; height: 26px; } }
         header .hdr-sub { color: #E2E8F4 !important; }
         /* أزرار الطباعة: خلفية فاتحة كي يظهر رمز الطابعة الداكن بوضوح */
         .print-btn {
@@ -8380,8 +8384,8 @@ export default function FleetApp() {
             : "linear-gradient(270deg, rgba(15,20,33,0.97) 0%, rgba(15,20,33,0.90) 28%, rgba(18,25,42,0.68) 44%, rgba(18,25,42,0.34) 62%, rgba(18,25,42,0.12) 82%, rgba(18,25,42,0.03) 100%)"
           }, url(${HEADER_BG}) left center / cover no-repeat, linear-gradient(120deg, #121826, #3A1420)`,
           minHeight: narrowHdr ? 150 : 158,
-          // الحشو ثابت بالجوال مهما تنقّلت: زر الرجوع يطفو فوق الترويسة ولا يقتطع من عرضها
-          padding: narrowHdr ? "12px 14px 0" : (histLen > 0 ? "12px 22px 0 86px" : "12px 22px 0"), color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.48)", boxShadow: "0 8px 26px rgba(8,12,22,0.45)" }}>
+          // حشو موحّد دائماً: مكان زر الرجوع محجوز داخل العنوان نفسه فلا يغطي حرفاً
+          padding: narrowHdr ? "12px 14px 0" : "12px 22px 0", color: "#fff", position: "relative", borderBottom: "1.5px solid rgba(212,175,55,0.48)", boxShadow: "0 8px 26px rgba(8,12,22,0.45)" }}>
         {/* زر خفي: تنزيل index.html بأحدث بياناتك الحية لرفعه على GitHub */}
         
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -8389,7 +8393,8 @@ export default function FleetApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
             <Logo logoSrc={logo} onUpload={uploadLogo} />
             <div style={{ flex: 1, minWidth: 210 }}>
-              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>{"المنصة الرقمية لجاهزية الآليات والمراكز الميدانية"}</div>
+              <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>
+                <span className="hdr-gap" aria-hidden="true" />{"المنصة الرقمية لجاهزية الآليات والمراكز الميدانية"}</div>
               <div className="hdr-sub" style={{ fontSize: 13, color: "#C9CCD4", marginTop: 2 }}>الإدارة العامة للدفاع المدني بمحافظة جدة — إدارة العمليات - <span style={{ color: "#FF4D57", fontWeight: 800 }}>شعبة الاطفاء والانقاذ</span></div>
             </div>
             <div className="app-nav" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
