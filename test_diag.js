@@ -38,7 +38,7 @@ const clickTxt=async(t,ms)=>{const b=Array.from(D.querySelectorAll("button")).fi
   ok("تعرض مصدر القراءة", t.includes("نفس أصل الصفحة") || t.includes("الواجهة الرسمية"));
   ok("تعرض مؤشر الاستلام", t.includes("rstr1101"));
   ok("تعرض حالة رمز الكتابة", t.includes("مفكوك وجاهز") || t.includes("غير متاح"));
-  ok("تعرض عدد الآليات", t.includes("638"));
+  ok("تعرض عدد الآليات", t.includes("639"));
   ok("زر التحديث الكامل", t.includes("تحديث كامل"));
   ok("لا أخطاء تشغيل", errs.length===0);
   let p=0;for(const[n,c] of checks){if(c)p++;console.log((c?"✔":"✘")+" "+n);}

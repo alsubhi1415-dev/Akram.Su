@@ -27,7 +27,7 @@ const txt=w=>w.document.getElementById("root").textContent;
 const setN=(w,el,v,p)=>{Object.getOwnPropertyDescriptor(w[p].prototype,"value").set.call(el,v);
   el.dispatchEvent(new w.Event(p==="HTMLSelectElement"?"change":"input",{bubbles:true}));};
 async function saveFault(w){
-  const nav=Array.from(w.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
+  const nav=Array.from(w.document.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(w.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if(nav){nav.click(); await wait(1000);}
   const f=Array.from(w.document.querySelectorAll("button")).find(b=>b.getAttribute("title")==="تسجيل عطل فوري");
   if(f){f.click(); await wait(700);}
@@ -46,6 +46,7 @@ async function saveFault(w){
   ok("[1] لم يُرفع شيء (الشبكة تفشل)", puts.length===0);
   const pend=w1.localStorage.getItem("fd_pending_v1");
   ok("[1] التعديل محفوظ بطابور الرفع", !!pend);
+  await wait(10000);   // مهلة التهدئة: التنبيه لا يظهر لانتظار عابر
   ok("[1] شارة «بانتظار الرفع» ظاهرة", txt(w1).includes("بانتظار الرفع"));
   // احتفظ بالتخزين لمحاكاة إعادة فتح الصفحة
   for(const k of ["fd_mirror_v1","fd_pending_v1"]) { const v=w1.localStorage.getItem(k); if(v) store[k]=v; }

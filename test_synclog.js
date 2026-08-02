@@ -25,7 +25,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 (async()=>{
   await wait(6000); await wait(2500);
   // حفظ عطل
-  const nav=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
+  const nav=Array.from(D.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if(nav){nav.click(); await wait(1000);}
   const f=Array.from(D.querySelectorAll("button")).find(b=>b.getAttribute("title")==="تسجيل عطل فوري");
   if(f){f.click(); await wait(700);}

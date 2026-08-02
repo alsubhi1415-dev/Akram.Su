@@ -32,7 +32,7 @@ const checks=[]; const ok=(n,c)=>checks.push([n,!!c]);
   await wait(6000); await wait(2500);
   ok("شريط التحديث ظهر", txt().includes("تتوفر نسخة أحدث"));
   ok("وصلت بيانات السحابة", !txt().includes("لم تصل بيانات السحابة بعد"));
-  const nav=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
+  const nav=Array.from(D.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if(nav){nav.click(); await wait(900);}
   const f=byTitle("تسجيل عطل فوري"); if(f){f.click(); await wait(600);}
   const modal=Array.from(D.querySelectorAll("div")).find(d=>(d.className||"").includes("modal-card"));

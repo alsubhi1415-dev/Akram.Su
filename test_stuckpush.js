@@ -40,6 +40,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   if(sv){sv.click(); await wait(1500);}
   await wait(3000);
   ok("المحاولة علقت ولم يُرفع شيء", puts.length===0);
+  await wait(9000);    // مهلة التهدئة قبل ظهور التنبيه
   ok("شارة الانتظار ظاهرة (صادقة)", txt().includes("بانتظار الرفع"));
   // الشبكة تعافت: يجب أن تُحرَّر المحاولة العالقة ويُعاد الرفع تلقائياً
   hang=false;

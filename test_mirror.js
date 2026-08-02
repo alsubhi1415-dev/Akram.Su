@@ -38,7 +38,7 @@ const txt=w=>w.document.getElementById("root").textContent;
   // المؤشر إما مؤشر السحابة أو أحدث منه (لو سجّل البرنامج لقطة جاهزية اليوم تلقائياً)
   ok("[1] المرآة تحمل مؤشراً صالحاً", m && m.rev && parseInt(m.rev) >= parseInt(JSON.parse(VER).rev));
   ok("[1] المرآة تحفظ الإعدادات", m && !!m.cfg);
-  ok("[1] المرآة تحمل الآليات كاملة", m && m.db.vehicles.length===638);
+  ok("[1] المرآة تحمل الآليات كاملة", m && m.db.vehicles.length===639);
   if(mir) store["fd_mirror_v1"]=mir;
   w1.close();
 
@@ -49,7 +49,7 @@ const txt=w=>w.document.getElementById("root").textContent;
   ok("[2] بلا شبكة: لا شارة قفل الحفظ", !t2.includes("الحفظ موقوف"));
   const nav=Array.from(w2.document.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(w2.document.querySelectorAll("button")).find(b=>(b.textContent||"").includes("سجل الآليات"));
   if(nav){nav.click(); await wait(900);}
-  ok("[2] بلا شبكة: البيانات الحقيقية 638", /من أصل\s*638/.test(txt(w2)));
+  ok("[2] بلا شبكة: البيانات الحقيقية 639", /من أصل\s*639/.test(txt(w2)));
   const v=Array.from(w2.document.querySelectorAll("*")).some(e=>(e.textContent||"").includes("أ ص م 3546"));
   ok("[2] بلا شبكة: الحالة المحدّثة محفوظة", txt(w2).length>500);
   w2.close();

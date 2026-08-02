@@ -31,7 +31,7 @@ const tx=(el)=>{const s=(el.getAttribute("style")||"").match(/translateX\(([-\d.
   ok("يعرض المتعطلة حالياً", t.includes("متعطلة حالياً"));
   ok("يعرض المتوقفة أكثر من 90 يوماً", t.includes("متوقفة أكثر من 90 يوماً"));
   ok("يعرض أعطال الآليات النوعية", /الآليات النوعية:\s*\d+/.test(t));
-  ok("عدد النوعية 33 كما بالتصنيف الخاص", /من\s*33/.test(t) || /33\s*جاهزة/.test(t));
+  ok("عدد النوعية 34 كما بالتصنيف الخاص", /من\s*34/.test(t) || /34\s*جاهزة/.test(t));
   // الحركة الفعلية: يجب أن يتغيّر الإزاحة مع الوقت
   if(track){ track.scrollWidth = 4000; Object.defineProperty(track,"scrollWidth",{value:4000,configurable:true}); }
   await wait(400);

@@ -73,7 +73,7 @@ const ok = (n, c) => checks.push([n, !!c]);
 
   const nav = Array.from(D.querySelectorAll("button")).find(b=>(b.getAttribute("title")||"")==="سجل الآليات") || Array.from(D.querySelectorAll("button")).find((b) => (b.textContent || "").includes("سجل الآليات"));
   if (nav) { nav.click(); await wait(1000); }
-  ok("البيانات محمّلة من السحابة المحاكاة", /من أصل\s*638/.test(txt()));
+  ok("البيانات محمّلة من السحابة المحاكاة", /من أصل\s*639/.test(txt()));
 
   const fix = btnByTitle("تسجيل عطل فوري");
   ok("زر التسجيل الفوري متاح", !!fix);
