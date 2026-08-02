@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 18.1 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 18.2 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -7983,10 +7983,21 @@ export default function FleetApp() {
         .fleet-tbl tbody td { vertical-align: middle; }
         /* نص الترويسة فوق صورة: ظل خفيف يضمن الوضوح مهما كانت الخلفية */
         header .hdr-title, header .hdr-sub { text-shadow: 0 1px 3px rgba(6,10,20,0.9), 0 0 14px rgba(6,10,20,0.65); }
+        /* توزيع متوازن لأسطر العنوان بدل سطر ممتلئ وآخر بكلمة واحدة */
+        header .hdr-title { text-wrap: balance; }
+        header .hdr-sub { text-wrap: balance; }
         /* فجوة محجوزة لزر الرجوع الطافي: النص يلتفّ حولها فلا يقع تحته أبداً،
            وهي ثابتة سواء ظهر الزر أم لا حتى لا يتغيّر ارتفاع الترويسة بين الصفحات */
         header .hdr-title .hdr-gap { float: left; width: 112px; height: 28px; }
-        @media screen and (max-width: 700px) { header .hdr-title .hdr-gap { width: 104px; height: 26px; } }
+        @media screen and (max-width: 700px) {
+          /* بالجوال: الشعار في سطر أعلى، ونص العنوان تحته بعرض الشاشة كاملاً فيكفيه سطران */
+          header .hdr-id { flex-direction: column; align-items: flex-start; gap: 6px; padding-bottom: 8px; }
+          header .hdr-id > .hdr-logo { width: 62px; height: 47px; margin-right: 0; }
+          header .hdr-id > div:not(.hdr-logo) { width: 100%; min-width: 0 !important; }
+          header .hdr-title { font-size: 17.5px !important; }
+          header .hdr-title .hdr-gap { display: none; }   /* لا حاجة لحجز مكان: الزر يطفو فوق سطر الشعار الفارغ */
+          header .hdr-sub { font-size: 12px !important; }
+        }
         header .hdr-sub { color: #E2E8F4 !important; }
         /* أزرار الطباعة: خلفية فاتحة كي يظهر رمز الطابعة الداكن بوضوح */
         .print-btn {
@@ -8390,7 +8401,7 @@ export default function FleetApp() {
         
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           {/* الصف الأول: الهوية يميناً وأزرار الإجراءات يساراً */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
+          <div className="hdr-id" style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", paddingBottom: 10 }}>
             <Logo logoSrc={logo} onUpload={uploadLogo} />
             <div style={{ flex: 1, minWidth: 210 }}>
               <div className="hdr-title" style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.3 }}>
