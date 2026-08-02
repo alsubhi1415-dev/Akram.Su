@@ -1713,7 +1713,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.3 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.4 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -3118,7 +3118,7 @@ function InteractiveDashboard({ vehicles, counts, faultStats, centerReadiness, e
 function MultiSelect({ label, options, values, onChange, flex }) {
   const [open, setOpen] = useState(false);
   const [q2, setQ2] = useState("");
-  const shown = options.filter((o) => !q2 || String(o).includes(q2));
+  const shown = options.filter((o) => !q2 || normText(o).includes(normText(q2)));
   const toggle = (o) => (values.includes(o) ? onChange(values.filter((x) => x !== o)) : onChange([...values, o]));
   const summary = values.length === 0 ? "الكل" : values.length === 1 ? values[0] : values.length + " محدد";
   return (
@@ -3176,7 +3176,7 @@ function TypeSearchPicker({ value, onChange, options }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(value === "الكل" ? "" : value);
   useEffect(() => { setText(value === "الكل" ? "" : value); }, [value]);
-  const filtered = options.filter((o) => !text || o.includes(text));
+  const filtered = options.filter((o) => !text || normText(o).includes(normText(text)));
   return (
     <div style={{ position: "relative", flex: "1 1 190px" }}>
       <input style={inputStyle} placeholder="🔍 البحث بنوع الآلية..." value={text}
@@ -3215,8 +3215,19 @@ function TypeSearchPicker({ value, onChange, options }) {
 }
 
 // ====== التصنيفات الخاصة: مجموعات آليات تُضم معاً بحسب النوع أو أرقام لوحات محددة ======
+// توحيد الأرقام: العربية (٠١٢٣٤٥٦٧٨٩) والفارسية (۰۱۲۳۴۵۶۷۸۹) تُقرأ كالإنجليزية
+// فيتساوى البحث مهما كانت لغة لوحة المفاتيح.
+function normDigits(x) {
+  return String(x == null ? "" : x)
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0));
+}
 function normPlate(p) {
-  return (p || "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/\s+/g, "");
+  return normDigits(p).replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/\s+/g, "");
+}
+// نصّ عام للبحث: أرقام موحّدة وحروف بلا فروق همزات
+function normText(x) {
+  return normDigits(x).replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه").toLowerCase();
 }
 const CUSTOM_GROUPS = [
   {
@@ -7857,19 +7868,19 @@ export default function FleetApp() {
   const allModels = useMemo(() => [...new Set(vehicles.map((v) => v.model).filter(Boolean))].sort(), [vehicles]);
 
   const filtered = useMemo(() => {
-    // تحويل الأرقام العربية إلى إنجليزية لتوحيد البحث
-    const qNorm = q.trim().replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+    // توحيد الأرقام (عربية وفارسية) لتوحيد البحث
+    const qNorm = normDigits(q.trim());
     const qDigits = qNorm.replace(/\s+/g, "");
     // إذا كان المدخل أرقاماً فقط: البحث حصراً في أرقام اللوحات
     const numericOnly = qDigits.length > 0 && /^\d+$/.test(qDigits);
     return vehicles.filter((v) => {
       if (qNorm) {
         if (numericOnly) {
-          const plateDigits = (v.plate || "").replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D+/g, "");
+          const plateDigits = normDigits(v.plate).replace(/\D+/g, "");
           if (!plateDigits.includes(qDigits)) return false;
         } else {
-          const text = [v.type, v.plate, v.unit, v.itemNo, v.chassis, v.color, v.model, v.location, v.notes].join(" ").toLowerCase();
-          if (!text.includes(qNorm.toLowerCase())) return false;
+          const text = normText([v.type, v.plate, v.unit, v.itemNo, v.chassis, v.color, v.model, v.location, v.notes].join(" "));
+          if (!text.includes(normText(qNorm))) return false;
         }
       }
       if (fStatus.length && !fStatus.includes(v.status)) return false;
@@ -8783,14 +8794,15 @@ export default function FleetApp() {
 
       {cmdOpen && (() => {
         const q = cmdQ.trim();
+        const qt = normText(q);
         const nq = normPlate(q);
         const pages = [["overview", "نظرة عامة", <NvIcon key="n" />], ["readiness", "الجاهزية الميدانية", <ShIcon key="s" />], ["list", "سجل الآليات", <VIcon key="v" />],
           ["dashboard", "لوحة المعلومات", "📊"], ["charts", "المؤشرات والتحليلات", <ChIcon key="c" />], ["decision", "مركز القرار", "🎯"],
           ["ops", "إحصائيات عملياتية", <SrIcon key="s" />], ["reports", "التقارير والبيانات", <PrIcon key="p" />]]
-          .filter(([, l]) => !q || l.includes(q));
-        const vres = !q ? [] : vehicles.filter((v) => normPlate(v.plate).includes(nq) || (v.type || "").includes(q) || (v.unit || "").includes(q)).slice(0, 8);
+          .filter(([, l]) => !q || normText(l).includes(qt));
+        const vres = !q ? [] : vehicles.filter((v) => normPlate(v.plate).includes(nq) || normText(v.type).includes(qt) || normText(v.unit).includes(qt)).slice(0, 8);
         const cres = !q ? [] : MANUAL_CENTERS.flatMap(({ branch, centers }) => centers.map((c) => ({ c, branch })))
-          .filter(({ c, branch }) => c.includes(q) || branch.includes(q)).slice(0, 6);
+          .filter(({ c, branch }) => normText(c).includes(qt) || normText(branch).includes(qt)).slice(0, 6);
         const Row = ({ ic, t1, t2, onClick }) => (
           <div onClick={onClick} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 12px", borderRadius: 10, cursor: "pointer", background: "#F7F8FA", border: "1px solid #E6E9EF" }}>
             <span style={{ fontSize: 15 }}>{ic}</span>
