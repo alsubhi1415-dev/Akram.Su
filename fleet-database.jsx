@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import QRCode from "qrcode";
@@ -1057,21 +1057,21 @@ function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, s
 
 // ====== بيان العجز الميداني — إدخال يدوي مستقل تماماً عن الجاهزية اليومية ======
 const DEF_KEY = "fd_deficit_v1";
+// النصوص كما أقرّها المستخدم حرفياً — تُعرض كاملة في الإدخال وفي رؤوس أعمدة الطباعة
 const DEFICIT_OPTS = [
-  { k: "تعمل بلا وايت", s: "بلا وايت" },
-  { k: "تعمل بلا إنقاذ", s: "بلا إنقاذ" },
-  { k: "تعمل بلا وايت وبلا إنقاذ", s: "بلا وايت وإنقاذ" },
-  { k: "يعمل بوايت فقط (بلا إنقاذ)", s: "بوايت فقط" },
-  { k: "تعمل بإنقاذ خفيف (جيب إداري)", s: "إنقاذ خفيف" },
-  { k: "يعمل بإنقاذ خفيف (جيب إداري) + وايت", s: "إنقاذ خفيف + وايت" },
-  { k: "تعمل بوايت واحد فقط", s: "وايت واحد" },
-  { k: "تعمل بلا آلية سلالم", s: "بلا سلالم" },
-  { k: "الوايت تحت الصيانة", s: "وايت بالصيانة" },
-  { k: "الإنقاذ تحت الصيانة", s: "إنقاذ بالصيانة" },
-  { k: "نقص في أطقم التشغيل", s: "نقص أطقم" },
-  { k: "متوقف عن العمل", s: "متوقف" },
+  "تعمل بلا وايت",
+  "تعمل بلا إنقاذ",
+  "تعمل بلا وايت وبلا إنقاذ",
+  "يعمل بوايت فقط (بلا إنقاذ)",
+  "تعمل بإنقاذ خفيف (جيب إداري)",
+  "يعمل بإنقاذ خفيف (جيب إداري) + وايت",
+  "تعمل بوايت واحد فقط",
+  "تعمل بلا آلية سلالم",
+  "الوايت تحت الصيانة",
+  "الإنقاذ تحت الصيانة",
+  "نقص في أطقم التشغيل",
+  "متوقف عن العمل",
 ];
-const DEF_SHORT = (k) => (DEFICIT_OPTS.find((o) => o.k === k) || { s: k }).s;
 const SUPPORT_ONE = "قسم الدعم والإسناد (الأول والثاني والثالث)";
 // الشعب الميدانية ومراكزها + قسم الدعم كوحدة واحدة
 function deficitTree() {
@@ -1086,41 +1086,44 @@ function DeficitReport({ logo, isOwner, ro, value, onChange }) {
   const [openBr, setOpenBr] = useState("");
   const [q, setQ] = useState("");
   const [onlyPicked, setOnlyPicked] = useState(false);
+  const [noteFor, setNoteFor] = useState("");
   const tree = deficitTree();
   const rec = (c) => data[c] || { on: false, opts: [], notes: [] };
-  const setRec = (c, patch) => { if (ro) return; onChange({ ...data, [c]: { ...rec(c), ...patch } }); };
-  const toggleCenter = (c) => setRec(c, { on: !rec(c).on });
+  const write = (c, patch) => { if (ro) return; onChange({ ...data, [c]: { ...rec(c), ...patch } }); };
   const toggleOpt = (c, o) => {
     const r = rec(c); const has = (r.opts || []).includes(o);
-    setRec(c, { on: true, opts: has ? r.opts.filter((x) => x !== o) : [...(r.opts || []), o] });
+    const opts = has ? r.opts.filter((x) => x !== o) : [...(r.opts || []), o];
+    const notes = (r.notes || []).filter((x) => (x || "").trim());
+    if (!opts.length && !notes.length) { const n = { ...data }; delete n[c]; if (!ro) onChange(n); return; }
+    write(c, { on: true, opts });
   };
-  const setNote = (c, i, v) => { const r = rec(c); const ns = [...(r.notes || [])]; ns[i] = v; setRec(c, { on: true, notes: ns }); };
-  const addNote = (c) => { const r = rec(c); if ((r.notes || []).length >= 3) return; setRec(c, { on: true, notes: [...(r.notes || []), ""] }); };
-  const delNote = (c, i) => { const r = rec(c); setRec(c, { notes: (r.notes || []).filter((_, k) => k !== i) }); };
+  const setNote = (c, i, v) => { const r = rec(c); const ns = [...(r.notes || [])]; ns[i] = v; write(c, { on: true, notes: ns }); };
+  const addNote = (c) => { const r = rec(c); if ((r.notes || []).length >= 3) return; write(c, { on: true, notes: [...(r.notes || []), ""] }); };
+  const delNote = (c, i) => { const r = rec(c); write(c, { notes: (r.notes || []).filter((_, k) => k !== i) }); };
   const clearCenter = (c) => { if (ro) return; const n = { ...data }; delete n[c]; onChange(n); };
+  const cnt = (c) => { const r = rec(c); return (r.opts || []).length + (r.notes || []).filter((x) => (x || "").trim()).length; };
 
-  // صفوف البيان: مركز مختار وله بند عجز واحد على الأقل
   const rows = [];
   tree.forEach((b) => b.centers.forEach((c) => {
     const r = rec(c);
-    if (!r.on) return;
     const notes = (r.notes || []).map((x) => (x || "").trim()).filter(Boolean);
     if (!(r.opts || []).length && !notes.length) return;
     rows.push({ branch: b.branch, center: c, opts: r.opts || [], notes });
   }));
-  // الأعمدة المستعملة فقط — فيتمدد الجدول على عرض الصفحة بلا أعمدة فارغة
-  const usedOpts = DEFICIT_OPTS.filter((o) => rows.some((r) => r.opts.includes(o.k)));
+  const usedOpts = DEFICIT_OPTS.filter((o) => rows.some((r) => r.opts.includes(o)));
   const anyNotes = rows.some((r) => r.notes.length);
-  const chosen = tree.reduce((n, b) => n + b.centers.filter((c) => rec(c).on).length, 0);
+  const chosen = rows.length;
+  const matches = (c, br) => !q || normText(c).includes(normText(q)) || normText(br).includes(normText(q));
 
-  const chip = (on) => ({
-    display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "6px 4px", borderRadius: 9,
-    border: "1.5px solid " + (on ? "#9E1B22" : "#DFE3EA"), background: on ? "#9E1B22" : "#fff",
-    color: on ? "#fff" : "#4A5164", fontSize: 11, fontWeight: 800, cursor: ro ? "default" : "pointer",
-    userSelect: "none", textAlign: "center", lineHeight: 1.35, minHeight: 34,
-  });
-
-  const matches = (c) => !q || normText(c).includes(normText(q));
+  // مصفوفة الإدخال: صف لكل مركز وعمود لكل نوع عجز — نقرة واحدة تُثبّت البند
+  const cellBase = {
+    border: "1px solid #E6E9EF", textAlign: "center", verticalAlign: "middle",
+    cursor: ro ? "default" : "pointer", userSelect: "none", height: 34,
+  };
+  const headCell = {
+    border: "1px solid #E6E9EF", background: "#F2F4F8", padding: "6px 2px", verticalAlign: "bottom",
+    fontSize: 10.5, fontWeight: 800, color: "#3A4152", whiteSpace: "nowrap",
+  };
 
   return (
     <>
@@ -1132,24 +1135,24 @@ function DeficitReport({ logo, isOwner, ro, value, onChange }) {
             padding: "8px 14px", borderRadius: 10, cursor: "pointer", fontSize: 12.5, fontWeight: 800,
             border: "1.5px solid " + (onlyPicked ? "#0E7A5F" : "#D3D8E2"),
             background: onlyPicked ? "#E9F6F0" : "#fff", color: onlyPicked ? "#0E7A5F" : "#3A4152",
-          }}>{onlyPicked ? "✓ المختارة فقط" : "المختارة فقط"}</span>
+          }}>{onlyPicked ? "✓ ما به عجز فقط" : "ما به عجز فقط"}</span>
           <span style={{ background: "#EEF1F7", border: "1px solid #D7DCE6", borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: 800, color: "#3A4152" }}>
-            {chosen} مركزاً مختاراً · {rows.length} بالبيان
+            {chosen} مركزاً بالبيان
           </span>
           {!ro && chosen > 0 && (
             <button onClick={() => onChange({})} style={{ marginRight: "auto", background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>مسح الكل</button>
           )}
         </div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", lineHeight: 1.9, marginBottom: 10 }}>
-          إدخال يدوي مستقل — لا يقرأ من الجاهزية اليومية ولا يكتب فيها. ويُحفظ مع بيانات السجل فيصلك على كل أجهزتك.
+          انقر الخانة أمام المركز تحت نوع العجز لتثبيته — ونقرة أخرى تلغيه. إدخال مستقل عن الجاهزية اليومية، ويُحفظ مع بيانات السجل فيصلك على كل أجهزتك.
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {tree.map((b) => {
-            const cs = b.centers.filter((c) => matches(c) || normText(b.branch).includes(normText(q)));
-            const list = onlyPicked ? cs.filter((c) => rec(c).on) : cs;
+            const cs = b.centers.filter((c) => matches(c, b.branch));
+            const list = onlyPicked ? cs.filter((c) => cnt(c) > 0) : cs;
             if (!list.length) return null;
-            const n = b.centers.filter((c) => rec(c).on).length;
-            const isOpen = openBr === b.branch || (!!q && list.length > 0) || (onlyPicked && n > 0);
+            const n = b.centers.filter((c) => cnt(c) > 0).length;
+            const isOpen = openBr === b.branch || !!q || (onlyPicked && n > 0);
             return (
               <div key={b.branch} style={{ border: "1.5px solid " + (n ? "#E5C3C6" : "#E9ECF2"), borderRadius: 14, overflow: "hidden", background: "#fff" }}>
                 <div onClick={() => setOpenBr(openBr === b.branch ? "" : b.branch)}
@@ -1161,47 +1164,75 @@ function DeficitReport({ logo, isOwner, ro, value, onChange }) {
                   <span style={{ fontSize: 10, color: "#8B93A8" }}>{isOpen ? "▲" : "▼"}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ padding: "4px 12px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
-                    {list.map((c) => {
-                      const r = rec(c);
-                      const cnt = (r.opts || []).length + (r.notes || []).filter((x) => (x || "").trim()).length;
-                      return (
-                        <div key={c} style={{ border: "1.5px solid " + (r.on ? "#E5C3C6" : "#EFF1F5"), borderRadius: 12, background: r.on ? "#FFFCFC" : "#FBFCFE" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px" }}>
-                            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: ro ? "default" : "pointer", flex: 1, minWidth: 0 }}>
-                              <input type="checkbox" checked={!!r.on} disabled={ro} onChange={() => toggleCenter(c)} style={{ accentColor: "#9E1B22", width: 16, height: 16 }} />
-                              <span style={{ fontSize: 13, fontWeight: 800, color: r.on ? "#9E1B22" : "#3A4152", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c}</span>
-                            </label>
-                            {cnt > 0 && <span style={{ background: "#F1F3F7", color: "#5B6478", borderRadius: 999, padding: "2px 9px", fontSize: 10.5, fontWeight: 800 }}>{cnt} بند</span>}
-                            {!ro && r.on && (
-                              <button onClick={() => clearCenter(c)} title="إلغاء هذا المركز"
-                                style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 8, width: 28, height: 28, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>✕</button>
-                            )}
-                          </div>
-                          {r.on && (
-                            <div style={{ padding: "0 11px 11px", display: "flex", flexDirection: "column", gap: 9 }}>
-                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(122px, 1fr))", gap: 6 }}>
-                                {DEFICIT_OPTS.map((o) => (
-                                  <span key={o.k} title={o.k} onClick={() => !ro && toggleOpt(c, o.k)} style={chip((r.opts || []).includes(o.k))}>{o.s}</span>
-                                ))}
-                              </div>
-                              {(r.notes || []).map((v, i) => (
-                                <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                  <input value={v} readOnly={ro} onChange={(e) => setNote(c, i, e.target.value)} placeholder={"بيان عجز إضافي " + (i + 1)}
-                                    style={{ ...inputStyle, flex: 1, padding: "8px 10px", fontSize: 12.5 }} />
-                                  {!ro && <button onClick={() => delNote(c, i)} title="حذف" style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 9, width: 32, height: 32, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
-                                </div>
-                              ))}
-                              {!ro && (r.notes || []).length < 3 && (
-                                <button onClick={() => addNote(c)} style={{ alignSelf: "flex-start", background: "#F4F5F7", color: "#1B2440", border: "1.5px solid #D3D8E2", borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                                  + بيان نصي ({(r.notes || []).length}/3)
-                                </button>
+                  <div style={{ overflowX: "auto", padding: "0 0 8px" }}>
+                    <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 640 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...headCell, position: "sticky", right: 0, background: "#F2F4F8", zIndex: 2, minWidth: 176, textAlign: "right", padding: "6px 10px", verticalAlign: "bottom" }}>المركز</th>
+                          {DEFICIT_OPTS.map((o) => (
+                            <th key={o} title={o} style={{ ...headCell, width: 34 }}>
+                              <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", margin: "0 auto", height: 128, lineHeight: 1.15, whiteSpace: "normal", maxWidth: 30 }}>{o}</div>
+                            </th>
+                          ))}
+                          <th style={{ ...headCell, width: 62, textAlign: "center" }}>بيانات<br />أخرى</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {list.map((c) => {
+                          const r = rec(c);
+                          const has = cnt(c) > 0;
+                          const nts = (r.notes || []);
+                          return (
+                            <Fragment key={c}>
+                              <tr style={{ background: has ? "#FFFCFC" : "#fff" }}>
+                                <td style={{ border: "1px solid #E6E9EF", padding: "6px 10px", position: "sticky", right: 0, background: has ? "#FDF6F6" : "#fff", zIndex: 1, textAlign: "right" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                                    <span style={{ fontSize: 12.5, fontWeight: 800, color: has ? "#9E1B22" : "#3A4152", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c}</span>
+                                    {has && !ro && (
+                                      <span onClick={() => clearCenter(c)} title="إلغاء عجز هذا المركز"
+                                        style={{ color: "#9E1B22", fontSize: 12, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>✕</span>
+                                    )}
+                                  </div>
+                                </td>
+                                {DEFICIT_OPTS.map((o) => {
+                                  const on = (r.opts || []).includes(o);
+                                  return (
+                                    <td key={o} title={o} onClick={() => !ro && toggleOpt(c, o)}
+                                      style={{ ...cellBase, background: on ? "#9E1B22" : "#fff", color: "#fff", fontSize: 14, fontWeight: 800 }}>
+                                      {on ? "✓" : ""}
+                                    </td>
+                                  );
+                                })}
+                                <td onClick={() => !ro && setNoteFor(noteFor === c ? "" : c)}
+                                  style={{ ...cellBase, background: nts.length ? "#FCF0D9" : "#fff", color: "#8A5D0B", fontSize: 12, fontWeight: 800 }}>
+                                  {nts.filter((x) => (x || "").trim()).length || "✎"}
+                                </td>
+                              </tr>
+                              {noteFor === c && !ro && (
+                                <tr>
+                                  <td colSpan={DEFICIT_OPTS.length + 2} style={{ border: "1px solid #E6E9EF", background: "#FAFBFD", padding: "9px 12px" }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                                      {nts.map((v, i) => (
+                                        <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                          <input value={v} onChange={(e) => setNote(c, i, e.target.value)} placeholder={"بيان عجز إضافي " + (i + 1)}
+                                            style={{ ...inputStyle, flex: 1, padding: "8px 10px", fontSize: 12.5 }} />
+                                          <button onClick={() => delNote(c, i)} title="حذف" style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 9, width: 32, height: 32, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                                        </div>
+                                      ))}
+                                      {nts.length < 3 && (
+                                        <button onClick={() => addNote(c)} style={{ alignSelf: "flex-start", background: "#F4F5F7", color: "#1B2440", border: "1.5px solid #D3D8E2", borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                                          + بيان نصي ({nts.length}/3)
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
                               )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -1212,17 +1243,17 @@ function DeficitReport({ logo, isOwner, ro, value, onChange }) {
 
       <RepHead logo={logo} title="بيان العجز بالمراكز الميدانية" meta={`عدد المراكز بالبيان ${rows.length} مركزاً`} />
       {rows.length === 0 ? (
-        <RepEmpty>لم تُحدَّد مراكز بعد — اختر المركز ثم نوع العجز من الأعلى.</RepEmpty>
+        <RepEmpty>لم تُحدَّد مراكز بعد — انقر الخانة أمام المركز تحت نوع العجز.</RepEmpty>
       ) : (
         <>
           <RepTable
             cols={[
-              { k: "branch", t: "الشعبة / الجهة", w: (anyNotes ? 15 : 17) + "%", a: "right", get: (r) => r.branch },
-              { k: "center", t: "المركز", w: (anyNotes ? 17 : 20) + "%", a: "right", get: (r) => r.center },
+              { k: "branch", t: "الشعبة / الجهة", w: (anyNotes ? 14 : 16) + "%", a: "right", get: (r) => r.branch },
+              { k: "center", t: "المركز", w: (anyNotes ? 16 : 19) + "%", a: "right", get: (r) => r.center },
               ...usedOpts.map((o) => ({
-                k: o.k, t: o.s, w: (100 - (anyNotes ? 51.5 : 40.5)) / Math.max(1, usedOpts.length) + "%",
-                get: (r) => (r.opts.includes(o.k) ? "✓" : ""),
-                style: (r) => (r.opts.includes(o.k) ? { background: "#FBEDEE", fontWeight: 800, color: "#9E1B22" } : {}),
+                k: o, t: o, w: (100 - (anyNotes ? 49.5 : 38.5)) / Math.max(1, usedOpts.length) + "%",
+                get: (r) => (r.opts.includes(o) ? "✓" : ""),
+                style: (r) => (r.opts.includes(o) ? { background: "#FBEDEE", fontWeight: 800, color: "#9E1B22", fontSize: 12 } : {}),
               })),
               ...(anyNotes ? [{ k: "notes", t: "بيانات أخرى", w: "16%", a: "right", get: (r) => r.notes.join(" · ") }] : []),
             ]}
@@ -1893,7 +1924,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 20.0 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 20.1 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -4641,7 +4672,8 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
     document.body.removeChild(ta);
   };
   const exportPdf = async () => {
-    if (ro) { alert("🔒 تصدير PDF غير متاح بوضع الاستعراض — تسجيل الدخول يتيحه للمحرر والمشرف"); return; }
+    // التقرير النوعي الأسبوعي مستثنى من قيود الاستعراض
+    if (ro && repMode !== "nawi") { alert("🔒 تصدير PDF غير متاح بوضع الاستعراض — تسجيل الدخول يتيحه للمحرر والمشرف"); return; }
     const el = document.getElementById("print-area");
     if (!el || pdfBusy) return;
     setPdfBusy(true);
@@ -4761,7 +4793,8 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
             const el = document.getElementById("print-area");
             const titles = { c186: "بيان أعطال الـ 186 آلية", weekly: "تقرير الأعطال الأسبوعي", nawi: "تقرير التكميل النوعي", deficit: "بيان العجز بالمراكز الميدانية",
               tour: "كشف الجولة الميدانية", crit: "بيان تكميل البنود", center: "تقرير مركز", compare: "بيان المقارنة بين فترتين" };
-            printIsolated(el, { landscape: LAND.indexOf(repMode) >= 0, title: titles[repMode] || "تقرير", watermark: ro });
+            // التقرير النوعي الأسبوعي مستثنى: يطبعه المستعرض رسمياً بلا علامة مائية
+            printIsolated(el, { landscape: LAND.indexOf(repMode) >= 0, title: titles[repMode] || "تقرير", watermark: ro && repMode !== "nawi" });
           }} style={{
             background: "#9E1B22", color: "#fff", border: "none", borderRadius: 10,
             padding: "11px 30px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
@@ -4886,7 +4919,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
             )}
           </div>
         )}
-        {ro && (
+        {ro && repMode !== "nawi" && (
           <div className="draft-wm" aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
             {Array.from({ length: 30 }, (_, i) => (
               <div key={i} style={{

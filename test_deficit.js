@@ -29,25 +29,25 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("زر البيان موجود بصفحة التقارير", txt().includes("بيان العجز بالمراكز"));
   await click("بيان العجز بالمراكز",1600);
   const t=txt();
-  ok("الشاشة فُتحت", t.includes("ابحث عن مركز") || t.includes("مركزاً مختاراً"));
-  ok("تنويه الاستقلال عن الجاهزية", t.includes("لا يقرأ من الجاهزية اليومية ولا يكتب فيها"));
+  ok("الشاشة فُتحت", t.includes("انقر الخانة أمام المركز") && t.includes("مركزاً بالبيان"));
+  ok("تنويه الاستقلال عن الجاهزية", t.includes("مستقل عن الجاهزية اليومية"));
   ok("قسم الدعم مدموج بخانة واحدة", t.includes("قسم الدعم والإسناد (الأول والثاني والثالث)"));
   ok("البيان فارغ ابتداءً", t.includes("لم تُحدَّد مراكز بعد"));
   // فتح شعبة واختيار مركز
   const brs=Array.from(D.querySelectorAll("div")).filter(d=>(d.textContent||"").includes("مركزاً") && (d.getAttribute("style")||"").includes("cursor: pointer"));
   ok("قائمة الشعب معروضة", brs.length>=13);
   brs[0].click(); await wait(800);
-  const cbs=Array.from(D.querySelectorAll('input[type="checkbox"]'));
-  ok("مراكز الشعبة ظهرت", cbs.length>0);
-  cbs[0].click(); await wait(800);
+  ok("مراكز الشعبة ظهرت", D.querySelectorAll("tbody tr").length>0);
   // اختيار نوع عجز
-  const chipEl=Array.from(D.querySelectorAll("span")).find(x=>(x.textContent||"").trim()==="بلا وايت");
-  ok("خيارات العجز المختصرة ظاهرة", !!chipEl);
-  chipEl.click(); await wait(800);
+  const cell=Array.from(D.querySelectorAll("td")).find(x=>(x.getAttribute("title")||"")==="تعمل بلا وايت");
+  ok("خانات أنواع العجز ظاهرة بالمصفوفة", !!cell);
+  cell.click(); await wait(900);
   ok("البيان صار فيه صف", !txt().includes("لم تُحدَّد مراكز بعد"));
-  ok("عمود نوع العجز ظهر بالبيان", area().textContent.includes("بلا وايت"));
+  ok("عمود نوع العجز ظهر بالبيان بنصه الكامل", area().textContent.includes("تعمل بلا وايت"));
   // مربعات النص: حتى ثلاثة
-  const addBtn=()=>Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("بيان نصي"));
+  const noteCell=()=>Array.from(D.querySelectorAll("td")).find(x=>(x.textContent||"").trim()==="✎");
+const addBtn=()=>Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("بيان نصي"));
+  const nc=noteCell(); if(nc){nc.click(); await wait(800);}
   ok("زر إضافة بيان نصي موجود", !!addBtn());
   addBtn().click(); await wait(600);
   const inp=Array.from(D.querySelectorAll("input")).find(i=>(i.getAttribute("placeholder")||"").includes("بيان عجز إضافي"));
@@ -60,11 +60,11 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   ok("عدد مربعات النص = 3", Array.from(D.querySelectorAll("input")).filter(i=>(i.getAttribute("placeholder")||"").includes("بيان عجز إضافي")).length===3);
   // الحفظ محلي لا سحابي
   // قد يقع رفع روتيني عند الإقلاع لا علاقة له بالبيان — المهم أن البيان محلي
-  ok("الخياران الجديدان موجودان", txt().includes("بوايت فقط") && txt().includes("إنقاذ خفيف + وايت"));
+  ok("الخياران الجديدان بنصهما الحرفي", txt().includes("يعمل بوايت فقط (بلا إنقاذ)") && txt().includes("يعمل بإنقاذ خفيف (جيب إداري) + وايت"));
   ok("البيان يُحفظ بقاعدة البيانات (متزامن)", puts > 0);
   ok("الطباعة أفقية للبيان", html.includes('"c186", "weekly", "nawi", "tour", "deficit"') || html.includes("deficit"));
   ok("بحث المراكز موجود", !!Array.from(D.querySelectorAll("input")).find(i=>(i.getAttribute("placeholder")||"").includes("ابحث عن مركز")));
-  ok("مرشّح «المختارة فقط» موجود", txt().includes("المختارة فقط"));
+  ok("مرشّح «ما به عجز فقط» موجود", txt().includes("ما به عجز فقط"));
 
   // ترويسة وتذييل الطباعة
   ok("ترويسة رسمية بالبيان", area().textContent.includes("المديرية العامة للدفاع المدني"));
