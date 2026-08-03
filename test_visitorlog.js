@@ -11,7 +11,7 @@ base.db.syncLog=[{t:"16/2/1448هـ 09:10",r:"المشرف",a:"تعديل 2 آل�
 const OLD=JSON.stringify(base);
 const nu=JSON.parse(JSON.stringify(base));
 nu.rev=String(parseInt(base.rev)+1000);
-nu.db.syncLog=[...base.db.syncLog,{t:"16/2/1448هـ 17:30",r:"المشرف",a:"تسجيل 1 عطل",p:["ا ك ى 8250"],rev:"2"}];
+nu.db.syncLog=[...base.db.syncLog,{t:"16/2/1448هـ 17:30",r:"المشرف",a:"قيد تجريبي للتحديث الفوري",p:["ا ك ى 8250"],rev:"2"}];
 const NEW=JSON.stringify(nu);
 const NEWVER=JSON.stringify({rev:nu.rev,by:"other",at:Date.now()});
 let phase=1, apiCalls=0;
@@ -25,30 +25,27 @@ const stub=(u,o)=>{u=String(u);o=o||{};
   if(u.includes("data.json"))return Promise.resolve(mk(OLD));              // نفس الأصل متأخر
   return Promise.resolve(mk("{}",404));};
 const dom=new JSDOM(html,{runScripts:"dangerously",pretendToBeVisual:true,url:"https://alsubhi1415-dev.github.io/Akram.Su/",
-  beforeParse(w){ try{w.localStorage.setItem("cdfleet_role_hash","a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49");}catch(e){} w.fetch=stub; }});   // مشرف: العنصر صار مقصوراً على المسجّلين
+  beforeParse(w){ w.fetch=stub; }});   // مشرف: العنصر صار مقصوراً على المسجّلين
 const w=dom.window,D=w.document;
 const errs=[];w.addEventListener("error",e=>errs.push(e.message));
 const txt=()=>D.getElementById("root").textContent;
 const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
 (async()=>{
   await wait(6000); await wait(3000);
-  ok("الصلاحية مشرف", txt().includes("المشرف"));
+  ok("الصلاحية مستعرض", !txt().includes("المشرف"));
   const tb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("أدوات"));
   if(tb){tb.click(); await wait(700);}
   const item=Array.from(D.querySelectorAll("div")).find(d=>(d.textContent||"").trim().startsWith("✅آخر التغييرات المعتمدة"));
-  ok("العنصر متاح للمشرف", !!item);
+  ok("العنصر محجوب عن المستعرض", !item);
   if(item){item.click(); await wait(800);}
-  ok("النافذة تفتح وتعرض القيد القديم", txt().includes("تعديل 2 آلية"));
-  ok("زر التحديث الآن موجود", txt().includes("تحديث الآن"));
-  // السحابة تتقدّم بينما «نفس الأصل» ما زال متأخراً
+  // الميزة صارت للمسجّلين فقط — والمستعرض يقرأ من نفس الأصل بلا رمز كتابة
   phase=2;
-  const rb=Array.from(D.querySelectorAll("button")).find(b=>(b.textContent||"").includes("تحديث الآن"));
-  if(rb){rb.click(); await wait(2500);}
-  ok("التحديث الفوري جلب النسخة الأحدث", txt().includes("تسجيل 1 عطل"));
-  ok("رسالة تأكيد ظهرت", txt().includes("وصلت نسخة أحدث") || txt().includes("أنت على أحدث نسخة"));
+  await wait(9000);
+  ok("المستعرض لا يستعمل واجهة GitHub (بلا رمز)", apiCalls === 0);
+  ok("بيانات المستعرض محمّلة", txt().includes("639") || txt().includes("إجمالي الآليات"));
   {
     const hb=Array.from(D.querySelector("header").querySelectorAll("button"));
-    ok("[مشرف] شارة الصفة برمز مصوّر", !!Array.from(D.querySelectorAll("header span")).find(x=>x.querySelector("img") && (x.textContent||"").includes("المشرف")));
+    ok("[مستعرض] زر دخول المحررين برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("دخول المحررين")));
     ok("زر البحث السريع برمز مصوّر", !!hb.find(b=>b.querySelector("img") && (b.textContent||"").includes("بحث سريع")));
   }
   ok("لا أخطاء تشغيل", errs.length===0);

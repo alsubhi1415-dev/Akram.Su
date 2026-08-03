@@ -1054,6 +1054,157 @@ function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, s
   );
 }
 
+// ====== بيان العجز الميداني — إدخال يدوي مستقل تماماً عن الجاهزية اليومية ======
+const DEF_KEY = "fd_deficit_v1";
+const DEFICIT_OPTS = [
+  "تعمل بلا وايت",
+  "تعمل بلا إنقاذ",
+  "تعمل بإنقاذ خفيف (جيب إداري)",
+  "تعمل بلا آلية سلالم",
+  "تعمل بوايت واحد فقط",
+  "تعمل بلا وايت وبلا إنقاذ",
+  "الوايت تحت الصيانة",
+  "الإنقاذ تحت الصيانة",
+  "نقص في أطقم التشغيل",
+  "متوقف عن العمل",
+];
+const SUPPORT_ONE = "قسم الدعم والإسناد (الأول والثاني والثالث)";
+// الشعب الميدانية ومراكزها + قسم الدعم كوحدة واحدة
+function deficitTree() {
+  return [
+    ...MANUAL_CENTERS.map((m) => ({ branch: m.branch, centers: m.centers })),
+    { branch: SUPPORT_ONE, centers: [SUPPORT_ONE] },
+  ];
+}
+
+function DeficitReport({ logo, isOwner }) {
+  const [data, setData] = useState(() => {
+    try { return JSON.parse(window.localStorage.getItem(DEF_KEY) || "{}") || {}; } catch (e) { return {}; }
+  });
+  const [openBr, setOpenBr] = useState("");
+  const save = (next) => {
+    setData(next);
+    try { window.localStorage.setItem(DEF_KEY, JSON.stringify(next)); } catch (e) {}
+  };
+  const tree = deficitTree();
+  const rec = (c) => data[c] || { on: false, opts: [], notes: [] };
+  const setRec = (c, patch) => save({ ...data, [c]: { ...rec(c), ...patch } });
+  const toggleCenter = (c) => setRec(c, { on: !rec(c).on });
+  const toggleOpt = (c, o) => {
+    const r = rec(c); const has = (r.opts || []).includes(o);
+    setRec(c, { on: true, opts: has ? r.opts.filter((x) => x !== o) : [...(r.opts || []), o] });
+  };
+  const setNote = (c, i, v) => {
+    const r = rec(c); const ns = [...(r.notes || [])]; ns[i] = v;
+    setRec(c, { on: true, notes: ns });
+  };
+  const addNote = (c) => { const r = rec(c); if ((r.notes || []).length >= 3) return; setRec(c, { on: true, notes: [...(r.notes || []), ""] }); };
+  const delNote = (c, i) => { const r = rec(c); setRec(c, { notes: (r.notes || []).filter((_, k) => k !== i) }); };
+
+  // صفوف الطباعة: مركز مختار وله بند عجز واحد على الأقل
+  const rows = [];
+  tree.forEach((b) => b.centers.forEach((c) => {
+    const r = rec(c);
+    if (!r.on) return;
+    const items = [...(r.opts || []), ...((r.notes || []).map((x) => (x || "").trim()).filter(Boolean))];
+    if (!items.length) return;
+    rows.push({ branch: b.branch, center: c, txt: items.join(" · ") });
+  }));
+  const chosen = tree.reduce((n, b) => n + b.centers.filter((c) => rec(c).on).length, 0);
+
+  const chip = (on) => ({
+    display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 999,
+    border: "1.5px solid " + (on ? "#9E1B22" : "#D3D8E2"), background: on ? "#FDF1F2" : "#fff",
+    color: on ? "#9E1B22" : "#3A4152", fontSize: 11.5, fontWeight: 800, cursor: "pointer", userSelect: "none",
+  });
+
+  return (
+    <>
+      <div className="no-print" style={{ background: "#fff", border: "1px solid #E4E7F0", borderRadius: 16, padding: 14, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#141A28" }}>اختر المراكز التي بها عجز ثم حدّد نوعه</div>
+          <span style={{ background: "#EEF1F7", border: "1px solid #D7DCE6", borderRadius: 999, padding: "3px 10px", fontSize: 11.5, fontWeight: 800, color: "#3A4152" }}>
+            المختار {chosen} · بالبيان {rows.length}
+          </span>
+          <button onClick={() => save({})} style={{ marginRight: "auto", background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>مسح الكل</button>
+        </div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", lineHeight: 1.9, marginBottom: 10 }}>
+          إدخال يدوي مستقل — لا يقرأ من الجاهزية اليومية ولا يكتب فيها. يُحفظ على هذا الجهاز فقط.
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+          {tree.map((b) => {
+            const n = b.centers.filter((c) => rec(c).on).length;
+            const isOpen = openBr === b.branch;
+            return (
+              <div key={b.branch} style={{ border: "1px solid " + (n ? "#E5C3C6" : "#E4E7F0"), borderRadius: 12, overflow: "hidden" }}>
+                <div onClick={() => setOpenBr(isOpen ? "" : b.branch)}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", cursor: "pointer", background: n ? "#FDF6F6" : "#F7F8FB" }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "#1B2440", flex: 1, minWidth: 0 }}>{b.branch}</span>
+                  {n > 0 && <span style={{ background: "#9E1B22", color: "#fff", borderRadius: 999, padding: "1px 9px", fontSize: 10.5, fontWeight: 800 }}>{n}</span>}
+                  <span style={{ fontSize: 11, color: "#8B93A8" }}>{b.centers.length} مركزاً</span>
+                  <span style={{ fontSize: 10, color: "#8B93A8" }}>{isOpen ? "▲" : "▼"}</span>
+                </div>
+                {isOpen && (
+                  <div style={{ padding: "6px 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {b.centers.map((c) => {
+                      const r = rec(c);
+                      return (
+                        <div key={c} style={{ border: "1px solid " + (r.on ? "#E5C3C6" : "#EDF0F5"), borderRadius: 10, padding: "8px 10px", background: r.on ? "#FFFDFD" : "#fff" }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                            <input type="checkbox" checked={!!r.on} onChange={() => toggleCenter(c)} style={{ accentColor: "#9E1B22", width: 15, height: 15 }} />
+                            <span style={{ fontSize: 12.5, fontWeight: 800, color: r.on ? "#9E1B22" : "#3A4152" }}>{c}</span>
+                          </label>
+                          {r.on && (
+                            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {DEFICIT_OPTS.map((o) => (
+                                  <span key={o} onClick={() => toggleOpt(c, o)} style={chip((r.opts || []).includes(o))}>{o}</span>
+                                ))}
+                              </div>
+                              {(r.notes || []).map((v, i) => (
+                                <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                  <input value={v} onChange={(e) => setNote(c, i, e.target.value)} placeholder={"بيان عجز إضافي " + (i + 1)}
+                                    style={{ ...inputStyle, flex: 1, padding: "8px 10px", fontSize: 12.5 }} />
+                                  <button onClick={() => delNote(c, i)} title="حذف" style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 9, width: 32, height: 32, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                                </div>
+                              ))}
+                              {(r.notes || []).length < 3 && (
+                                <button onClick={() => addNote(c)} style={{ alignSelf: "flex-start", background: "#F4F5F7", color: "#1B2440", border: "1.5px solid #D3D8E2", borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                                  + إضافة بيان نصي ({(r.notes || []).length}/3)
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <RepHead logo={logo} title="بيان العجز بالمراكز الميدانية" meta={`عدد المراكز بالبيان ${rows.length} مركزاً`} />
+      {rows.length === 0 ? (
+        <RepEmpty>لم تُحدَّد مراكز بعد — اختر المركز ثم نوع العجز من الأعلى.</RepEmpty>
+      ) : (
+        <>
+          <RepTable
+            cols={[
+              { k: "branch", t: "الشعبة / الجهة", w: "24%", get: (r) => r.branch },
+              { k: "center", t: "المركز", w: "28%", get: (r) => r.center },
+              { k: "txt", t: "بيان العجز", w: "44.5%", a: "right", get: (r) => r.txt },
+            ]}
+            rows={rows} />
+          <RepSign isOwner={isOwner} />
+        </>
+      )}
+    </>
+  );
+}
+
 // ====== الشريط المتحرك بالصفحة الرئيسية ======
 // الحركة مدفوعة بجافاسكربت عمداً: تنسيق CSS يتوقف على أجهزة مفعَّل بها «تقليل الحركة».
 function Ticker({ items }) {
@@ -1713,7 +1864,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.8 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 19.9 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -4529,13 +4680,13 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
       {/* أدوات الانتقاء - لا تظهر في الطباعة */}
       <div className="no-print" style={{ background: "#F4F5F7", border: "1px solid #D9DCE2", borderRadius: 16, padding: 18, marginBottom: 16 }}>
         <div className="btn-grid g5">
-          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", <span key="c"><StIcon /> تقرير مركز</span>], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["cwa", "📱 رسالة شعبة"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", <span key="n"><VIcon /> تكميل الآليات النوعي الأسبوعي</span>], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
+          {[["vehicles", "تقارير حالة الآليات"], ["readiness", "تقرير الجاهزية الميدانية"], ["center", <span key="c"><StIcon /> تقرير مركز</span>], ["crit", "🔎 تكميل البنود والمعدات"], ["c186", "🧾 بيان أعطال الـ 186 آلية" + (c186Pending > 0 ? " 🔴" + c186Pending : "")], ["compare", "📊 مقارنة فترتين"], ["cwa", "📱 رسالة شعبة"], ["deficit", "🏚 بيان العجز بالمراكز"], ...((isOwner || ro) ? [["weekly", "📅 تقرير الأعطال الأسبوعي"], ["nawi", <span key="n"><VIcon /> تكميل الآليات النوعي الأسبوعي</span>], ["archive", "🗂 الأرشيف والمنحنى"]] : [])].map(([id, lbl]) => (
             <button key={id} onClick={() => setRepMode(id)}
               className={"grid-btn" + (repMode === id ? " act" : "")}>{lbl}</button>
           ))}
         </div>
         <h3 style={{ margin: "0 0 14px", fontSize: 16, fontWeight: 800 }}>
-          {repMode === "vehicles" ? "إعداد التقرير — اختر البيانات المطلوبة ثم اطبع" : repMode === "weekly" ? "تقرير الأعطال الأسبوعي (نموذج رقم 2) — حدد الفترة ثم اطبع" : repMode === "nawi" ? "بيان الموقف الأسبوعي للآليات النوعية — حدد الفترة ثم اطبع" : "تقرير الجاهزية الميدانية الشامل — جاهز للطباعة مباشرة من واقع تعبئتك"}
+          {repMode === "vehicles" ? "إعداد التقرير — اختر البيانات المطلوبة ثم اطبع" : repMode === "weekly" ? "تقرير الأعطال الأسبوعي (نموذج رقم 2) — حدد الفترة ثم اطبع" : repMode === "nawi" ? "بيان الموقف الأسبوعي للآليات النوعية — حدد الفترة ثم اطبع" : repMode === "deficit" ? "بيان العجز بالمراكز الميدانية — إدخال يدوي مستقل ثم اطبع" : "تقرير الجاهزية الميدانية الشامل — جاهز للطباعة مباشرة من واقع تعبئتك"}
         </h3>
         {waOpen && (
           <div className="modal-overlay no-print" style={{ position: "fixed", inset: 0, background: "rgba(15,17,26,0.62)", zIndex: 880, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setWaOpen(false)}>
@@ -4579,7 +4730,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
           <button onClick={() => {
             const LAND = ["c186", "weekly", "nawi", "tour"];
             const el = document.getElementById("print-area");
-            const titles = { c186: "بيان أعطال الـ 186 آلية", weekly: "تقرير الأعطال الأسبوعي", nawi: "تقرير التكميل النوعي",
+            const titles = { c186: "بيان أعطال الـ 186 آلية", weekly: "تقرير الأعطال الأسبوعي", nawi: "تقرير التكميل النوعي", deficit: "بيان العجز بالمراكز الميدانية",
               tour: "كشف الجولة الميدانية", crit: "بيان تكميل البنود", center: "تقرير مركز", compare: "بيان المقارنة بين فترتين" };
             printIsolated(el, { landscape: LAND.indexOf(repMode) >= 0, title: titles[repMode] || "تقرير", watermark: ro });
           }} style={{
@@ -4631,6 +4782,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} isOwner={isOwner} />}
         {repMode === "c186" && <Cohort186Report vehicles={vehicles} logo={logo} cohort={cohort} onCohort={onCohort} ro={ro} isOwner={isOwner} />}
         {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} isOwner={isOwner} />}
+        {repMode === "deficit" && <DeficitReport logo={logo} isOwner={isOwner} />}
         {repMode === "tour" && <TourSheet logo={logo} />}
         {repMode === "cwa" && <BranchWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
         {repMode === "archive" && (

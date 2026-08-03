@@ -26,7 +26,7 @@ const checks=[];const ok=(n,c)=>checks.push([n,!!c]);
   const g=D.querySelector(".btn-grid");
   ok("[التقارير] مجموعة الأزرار بشبكة موحّدة", !!g && g.className.includes("g5"));
   const btns=g?Array.from(g.querySelectorAll(".grid-btn")):[];
-  ok("[التقارير] عشرة أزرار (سطران × خمسة)", btns.length===10);
+  ok("[التقارير] أحد عشر زراً بالشبكة", btns.length===11);
   ok("[التقارير] كل الأزرار بنفس الصنف", btns.every(b=>b.className.includes("grid-btn")));
   ok("[التقارير] كشف الجولة الميدانية أُزيل", !txt().includes("كشف الجولة الميدانية"));
   ok("[التقارير] زر واحد نشط", btns.filter(b=>b.className.includes("act")).length===1);
