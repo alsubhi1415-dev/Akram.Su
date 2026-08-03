@@ -105,6 +105,7 @@ function migrateDb(d) {
   const eq = d.equipReadiness || {};
   return {
     ...d,
+    deficit: fix(d.deficit) || {},
     centerReadiness: fix(d.centerReadiness),
     priorityData: fix(d.priorityData),
     equipReadiness: { ...eq, ringCutter: fix(eq.ringCutter), elevatorKey: fix(eq.elevatorKey), elevatorKeyE: fix(eq.elevatorKeyE), animalStrap: fix(eq.animalStrap), dual: fix(eq.dual) },
@@ -1057,17 +1058,20 @@ function LogSection({ title, items, fields, onAdd, onDelete, emptyMsg, accent, s
 // ====== بيان العجز الميداني — إدخال يدوي مستقل تماماً عن الجاهزية اليومية ======
 const DEF_KEY = "fd_deficit_v1";
 const DEFICIT_OPTS = [
-  "تعمل بلا وايت",
-  "تعمل بلا إنقاذ",
-  "تعمل بإنقاذ خفيف (جيب إداري)",
-  "تعمل بلا آلية سلالم",
-  "تعمل بوايت واحد فقط",
-  "تعمل بلا وايت وبلا إنقاذ",
-  "الوايت تحت الصيانة",
-  "الإنقاذ تحت الصيانة",
-  "نقص في أطقم التشغيل",
-  "متوقف عن العمل",
+  { k: "تعمل بلا وايت", s: "بلا وايت" },
+  { k: "تعمل بلا إنقاذ", s: "بلا إنقاذ" },
+  { k: "تعمل بلا وايت وبلا إنقاذ", s: "بلا وايت وإنقاذ" },
+  { k: "يعمل بوايت فقط (بلا إنقاذ)", s: "بوايت فقط" },
+  { k: "تعمل بإنقاذ خفيف (جيب إداري)", s: "إنقاذ خفيف" },
+  { k: "يعمل بإنقاذ خفيف (جيب إداري) + وايت", s: "إنقاذ خفيف + وايت" },
+  { k: "تعمل بوايت واحد فقط", s: "وايت واحد" },
+  { k: "تعمل بلا آلية سلالم", s: "بلا سلالم" },
+  { k: "الوايت تحت الصيانة", s: "وايت بالصيانة" },
+  { k: "الإنقاذ تحت الصيانة", s: "إنقاذ بالصيانة" },
+  { k: "نقص في أطقم التشغيل", s: "نقص أطقم" },
+  { k: "متوقف عن العمل", s: "متوقف" },
 ];
+const DEF_SHORT = (k) => (DEFICIT_OPTS.find((o) => o.k === k) || { s: k }).s;
 const SUPPORT_ONE = "قسم الدعم والإسناد (الأول والثاني والثالث)";
 // الشعب الميدانية ومراكزها + قسم الدعم كوحدة واحدة
 function deficitTree() {
@@ -1077,100 +1081,120 @@ function deficitTree() {
   ];
 }
 
-function DeficitReport({ logo, isOwner }) {
-  const [data, setData] = useState(() => {
-    try { return JSON.parse(window.localStorage.getItem(DEF_KEY) || "{}") || {}; } catch (e) { return {}; }
-  });
+function DeficitReport({ logo, isOwner, ro, value, onChange }) {
+  const data = value || {};
   const [openBr, setOpenBr] = useState("");
-  const save = (next) => {
-    setData(next);
-    try { window.localStorage.setItem(DEF_KEY, JSON.stringify(next)); } catch (e) {}
-  };
+  const [q, setQ] = useState("");
+  const [onlyPicked, setOnlyPicked] = useState(false);
   const tree = deficitTree();
   const rec = (c) => data[c] || { on: false, opts: [], notes: [] };
-  const setRec = (c, patch) => save({ ...data, [c]: { ...rec(c), ...patch } });
+  const setRec = (c, patch) => { if (ro) return; onChange({ ...data, [c]: { ...rec(c), ...patch } }); };
   const toggleCenter = (c) => setRec(c, { on: !rec(c).on });
   const toggleOpt = (c, o) => {
     const r = rec(c); const has = (r.opts || []).includes(o);
     setRec(c, { on: true, opts: has ? r.opts.filter((x) => x !== o) : [...(r.opts || []), o] });
   };
-  const setNote = (c, i, v) => {
-    const r = rec(c); const ns = [...(r.notes || [])]; ns[i] = v;
-    setRec(c, { on: true, notes: ns });
-  };
+  const setNote = (c, i, v) => { const r = rec(c); const ns = [...(r.notes || [])]; ns[i] = v; setRec(c, { on: true, notes: ns }); };
   const addNote = (c) => { const r = rec(c); if ((r.notes || []).length >= 3) return; setRec(c, { on: true, notes: [...(r.notes || []), ""] }); };
   const delNote = (c, i) => { const r = rec(c); setRec(c, { notes: (r.notes || []).filter((_, k) => k !== i) }); };
+  const clearCenter = (c) => { if (ro) return; const n = { ...data }; delete n[c]; onChange(n); };
 
-  // صفوف الطباعة: مركز مختار وله بند عجز واحد على الأقل
+  // صفوف البيان: مركز مختار وله بند عجز واحد على الأقل
   const rows = [];
   tree.forEach((b) => b.centers.forEach((c) => {
     const r = rec(c);
     if (!r.on) return;
-    const items = [...(r.opts || []), ...((r.notes || []).map((x) => (x || "").trim()).filter(Boolean))];
-    if (!items.length) return;
-    rows.push({ branch: b.branch, center: c, txt: items.join(" · ") });
+    const notes = (r.notes || []).map((x) => (x || "").trim()).filter(Boolean);
+    if (!(r.opts || []).length && !notes.length) return;
+    rows.push({ branch: b.branch, center: c, opts: r.opts || [], notes });
   }));
+  // الأعمدة المستعملة فقط — فيتمدد الجدول على عرض الصفحة بلا أعمدة فارغة
+  const usedOpts = DEFICIT_OPTS.filter((o) => rows.some((r) => r.opts.includes(o.k)));
+  const anyNotes = rows.some((r) => r.notes.length);
   const chosen = tree.reduce((n, b) => n + b.centers.filter((c) => rec(c).on).length, 0);
 
   const chip = (on) => ({
-    display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 999,
-    border: "1.5px solid " + (on ? "#9E1B22" : "#D3D8E2"), background: on ? "#FDF1F2" : "#fff",
-    color: on ? "#9E1B22" : "#3A4152", fontSize: 11.5, fontWeight: 800, cursor: "pointer", userSelect: "none",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "6px 4px", borderRadius: 9,
+    border: "1.5px solid " + (on ? "#9E1B22" : "#DFE3EA"), background: on ? "#9E1B22" : "#fff",
+    color: on ? "#fff" : "#4A5164", fontSize: 11, fontWeight: 800, cursor: ro ? "default" : "pointer",
+    userSelect: "none", textAlign: "center", lineHeight: 1.35, minHeight: 34,
   });
+
+  const matches = (c) => !q || normText(c).includes(normText(q));
 
   return (
     <>
       <div className="no-print" style={{ background: "#fff", border: "1px solid #E4E7F0", borderRadius: 16, padding: 14, marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 800, color: "#141A28" }}>اختر المراكز التي بها عجز ثم حدّد نوعه</div>
-          <span style={{ background: "#EEF1F7", border: "1px solid #D7DCE6", borderRadius: 999, padding: "3px 10px", fontSize: 11.5, fontWeight: 800, color: "#3A4152" }}>
-            المختار {chosen} · بالبيان {rows.length}
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", marginBottom: 10 }}>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 ابحث عن مركز أو شعبة…"
+            style={{ ...inputStyle, flex: "1 1 220px", padding: "9px 12px", fontSize: 13 }} />
+          <span onClick={() => setOnlyPicked(!onlyPicked)} style={{
+            padding: "8px 14px", borderRadius: 10, cursor: "pointer", fontSize: 12.5, fontWeight: 800,
+            border: "1.5px solid " + (onlyPicked ? "#0E7A5F" : "#D3D8E2"),
+            background: onlyPicked ? "#E9F6F0" : "#fff", color: onlyPicked ? "#0E7A5F" : "#3A4152",
+          }}>{onlyPicked ? "✓ المختارة فقط" : "المختارة فقط"}</span>
+          <span style={{ background: "#EEF1F7", border: "1px solid #D7DCE6", borderRadius: 999, padding: "5px 12px", fontSize: 12, fontWeight: 800, color: "#3A4152" }}>
+            {chosen} مركزاً مختاراً · {rows.length} بالبيان
           </span>
-          <button onClick={() => save({})} style={{ marginRight: "auto", background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>مسح الكل</button>
+          {!ro && chosen > 0 && (
+            <button onClick={() => onChange({})} style={{ marginRight: "auto", background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>مسح الكل</button>
+          )}
         </div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8B93A8", lineHeight: 1.9, marginBottom: 10 }}>
-          إدخال يدوي مستقل — لا يقرأ من الجاهزية اليومية ولا يكتب فيها. يُحفظ على هذا الجهاز فقط.
+          إدخال يدوي مستقل — لا يقرأ من الجاهزية اليومية ولا يكتب فيها. ويُحفظ مع بيانات السجل فيصلك على كل أجهزتك.
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {tree.map((b) => {
+            const cs = b.centers.filter((c) => matches(c) || normText(b.branch).includes(normText(q)));
+            const list = onlyPicked ? cs.filter((c) => rec(c).on) : cs;
+            if (!list.length) return null;
             const n = b.centers.filter((c) => rec(c).on).length;
-            const isOpen = openBr === b.branch;
+            const isOpen = openBr === b.branch || (!!q && list.length > 0) || (onlyPicked && n > 0);
             return (
-              <div key={b.branch} style={{ border: "1px solid " + (n ? "#E5C3C6" : "#E4E7F0"), borderRadius: 12, overflow: "hidden" }}>
-                <div onClick={() => setOpenBr(isOpen ? "" : b.branch)}
-                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", cursor: "pointer", background: n ? "#FDF6F6" : "#F7F8FB" }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "#1B2440", flex: 1, minWidth: 0 }}>{b.branch}</span>
-                  {n > 0 && <span style={{ background: "#9E1B22", color: "#fff", borderRadius: 999, padding: "1px 9px", fontSize: 10.5, fontWeight: 800 }}>{n}</span>}
-                  <span style={{ fontSize: 11, color: "#8B93A8" }}>{b.centers.length} مركزاً</span>
+              <div key={b.branch} style={{ border: "1.5px solid " + (n ? "#E5C3C6" : "#E9ECF2"), borderRadius: 14, overflow: "hidden", background: "#fff" }}>
+                <div onClick={() => setOpenBr(openBr === b.branch ? "" : b.branch)}
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", cursor: "pointer", background: n ? "linear-gradient(90deg,#FDF6F6,#fff)" : "#F7F8FB" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 99, background: n ? "#9E1B22" : "#CFD5E0", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: "#1B2440", flex: 1, minWidth: 0 }}>{b.branch}</span>
+                  {n > 0 && <span style={{ background: "#9E1B22", color: "#fff", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 800 }}>{n}</span>}
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#8B93A8" }}>{b.centers.length} مركزاً</span>
                   <span style={{ fontSize: 10, color: "#8B93A8" }}>{isOpen ? "▲" : "▼"}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ padding: "6px 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-                    {b.centers.map((c) => {
+                  <div style={{ padding: "4px 12px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
+                    {list.map((c) => {
                       const r = rec(c);
+                      const cnt = (r.opts || []).length + (r.notes || []).filter((x) => (x || "").trim()).length;
                       return (
-                        <div key={c} style={{ border: "1px solid " + (r.on ? "#E5C3C6" : "#EDF0F5"), borderRadius: 10, padding: "8px 10px", background: r.on ? "#FFFDFD" : "#fff" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                            <input type="checkbox" checked={!!r.on} onChange={() => toggleCenter(c)} style={{ accentColor: "#9E1B22", width: 15, height: 15 }} />
-                            <span style={{ fontSize: 12.5, fontWeight: 800, color: r.on ? "#9E1B22" : "#3A4152" }}>{c}</span>
-                          </label>
+                        <div key={c} style={{ border: "1.5px solid " + (r.on ? "#E5C3C6" : "#EFF1F5"), borderRadius: 12, background: r.on ? "#FFFCFC" : "#FBFCFE" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px" }}>
+                            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: ro ? "default" : "pointer", flex: 1, minWidth: 0 }}>
+                              <input type="checkbox" checked={!!r.on} disabled={ro} onChange={() => toggleCenter(c)} style={{ accentColor: "#9E1B22", width: 16, height: 16 }} />
+                              <span style={{ fontSize: 13, fontWeight: 800, color: r.on ? "#9E1B22" : "#3A4152", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c}</span>
+                            </label>
+                            {cnt > 0 && <span style={{ background: "#F1F3F7", color: "#5B6478", borderRadius: 999, padding: "2px 9px", fontSize: 10.5, fontWeight: 800 }}>{cnt} بند</span>}
+                            {!ro && r.on && (
+                              <button onClick={() => clearCenter(c)} title="إلغاء هذا المركز"
+                                style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 8, width: 28, height: 28, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>✕</button>
+                            )}
+                          </div>
                           {r.on && (
-                            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <div style={{ padding: "0 11px 11px", display: "flex", flexDirection: "column", gap: 9 }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(122px, 1fr))", gap: 6 }}>
                                 {DEFICIT_OPTS.map((o) => (
-                                  <span key={o} onClick={() => toggleOpt(c, o)} style={chip((r.opts || []).includes(o))}>{o}</span>
+                                  <span key={o.k} title={o.k} onClick={() => !ro && toggleOpt(c, o.k)} style={chip((r.opts || []).includes(o.k))}>{o.s}</span>
                                 ))}
                               </div>
                               {(r.notes || []).map((v, i) => (
                                 <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                  <input value={v} onChange={(e) => setNote(c, i, e.target.value)} placeholder={"بيان عجز إضافي " + (i + 1)}
+                                  <input value={v} readOnly={ro} onChange={(e) => setNote(c, i, e.target.value)} placeholder={"بيان عجز إضافي " + (i + 1)}
                                     style={{ ...inputStyle, flex: 1, padding: "8px 10px", fontSize: 12.5 }} />
-                                  <button onClick={() => delNote(c, i)} title="حذف" style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 9, width: 32, height: 32, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕</button>
+                                  {!ro && <button onClick={() => delNote(c, i)} title="حذف" style={{ background: "#fff", color: "#9E1B22", border: "1.5px solid #E5C3C6", borderRadius: 9, width: 32, height: 32, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✕</button>}
                                 </div>
                               ))}
-                              {(r.notes || []).length < 3 && (
+                              {!ro && (r.notes || []).length < 3 && (
                                 <button onClick={() => addNote(c)} style={{ alignSelf: "flex-start", background: "#F4F5F7", color: "#1B2440", border: "1.5px solid #D3D8E2", borderRadius: 10, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                                  + إضافة بيان نصي ({(r.notes || []).length}/3)
+                                  + بيان نصي ({(r.notes || []).length}/3)
                                 </button>
                               )}
                             </div>
@@ -1193,9 +1217,14 @@ function DeficitReport({ logo, isOwner }) {
         <>
           <RepTable
             cols={[
-              { k: "branch", t: "الشعبة / الجهة", w: "24%", get: (r) => r.branch },
-              { k: "center", t: "المركز", w: "28%", get: (r) => r.center },
-              { k: "txt", t: "بيان العجز", w: "44.5%", a: "right", get: (r) => r.txt },
+              { k: "branch", t: "الشعبة / الجهة", w: (anyNotes ? 15 : 17) + "%", a: "right", get: (r) => r.branch },
+              { k: "center", t: "المركز", w: (anyNotes ? 17 : 20) + "%", a: "right", get: (r) => r.center },
+              ...usedOpts.map((o) => ({
+                k: o.k, t: o.s, w: (100 - (anyNotes ? 51.5 : 40.5)) / Math.max(1, usedOpts.length) + "%",
+                get: (r) => (r.opts.includes(o.k) ? "✓" : ""),
+                style: (r) => (r.opts.includes(o.k) ? { background: "#FBEDEE", fontWeight: 800, color: "#9E1B22" } : {}),
+              })),
+              ...(anyNotes ? [{ k: "notes", t: "بيانات أخرى", w: "16%", a: "right", get: (r) => r.notes.join(" · ") }] : []),
             ]}
             rows={rows} />
           <RepSign isOwner={isOwner} />
@@ -1864,7 +1893,7 @@ const tick = { fontFamily: "'Tajawal',sans-serif", fontSize: 11.5, fontWeight: 7
 
 
 // ====== صفحة الإحصائيات والمؤشرات العملياتية: سجل الحوادث المباشرة ومؤشراتها ======
-const APP_BUILD = "الإصدار 19.9 · 1448/02/09هـ";
+const APP_BUILD = "الإصدار 20.0 · 1448/02/09هـ";
 const CMD_TABS = [
   ["overview", TAB_OV_ICON, "نظرة عامة"],
   ["dashboard", TAB_DASH_ICON, "لوحة المعلومات"],
@@ -4391,7 +4420,7 @@ function Cohort186Report({ vehicles, logo, cohort, onCohort, ro, isOwner }) {
   );
 }
 
-function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents, cohort, onCohort }) {
+function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, prio, prioWeights, initialMode, ro, isOwner, archive, onArchive, incidents, cohort, onCohort, deficit, onDeficit }) {
   // عدد تغييرات بيان الـ186 التي تنتظر مراجعة — يُعرض كشارة على التبويب
   const c186Pending = useMemo(() => {
     const items = (cohort && cohort.items) || null;
@@ -4728,7 +4757,7 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <button onClick={() => {
-            const LAND = ["c186", "weekly", "nawi", "tour"];
+            const LAND = ["c186", "weekly", "nawi", "tour", "deficit"];
             const el = document.getElementById("print-area");
             const titles = { c186: "بيان أعطال الـ 186 آلية", weekly: "تقرير الأعطال الأسبوعي", nawi: "تقرير التكميل النوعي", deficit: "بيان العجز بالمراكز الميدانية",
               tour: "كشف الجولة الميدانية", crit: "بيان تكميل البنود", center: "تقرير مركز", compare: "بيان المقارنة بين فترتين" };
@@ -4782,7 +4811,11 @@ function ReportsPage({ vehicles, logo, centerReadiness, equip, supportCounts, pr
         {repMode === "crit" && <CritReport centerReadiness={centerReadiness} equip={equip} logo={logo} isOwner={isOwner} />}
         {repMode === "c186" && <Cohort186Report vehicles={vehicles} logo={logo} cohort={cohort} onCohort={onCohort} ro={ro} isOwner={isOwner} />}
         {repMode === "compare" && <CompareReport archive={archive} vehicles={vehicles} logo={logo} isOwner={isOwner} />}
-        {repMode === "deficit" && <DeficitReport logo={logo} isOwner={isOwner} />}
+        {repMode === "deficit" && (
+          <DeficitReport logo={logo} isOwner={isOwner} ro={ro}
+            value={deficit}
+            onChange={(next) => onDeficit(next)} />
+        )}
         {repMode === "tour" && <TourSheet logo={logo} />}
         {repMode === "cwa" && <BranchWa vehicles={vehicles} centerReadiness={centerReadiness} equip={equip} />}
         {repMode === "archive" && (
@@ -7386,6 +7419,20 @@ export default function FleetApp() {
   const dbRef = useRef(db);
   useEffect(() => { dbRef.current = db; }, [db]);
   useEffect(() => { const md = migrateDb(db); if (md !== db) { setDb(md); saveDB(md); } }, []);
+  // ترحيل بيان العجز المحفوظ محلياً بالإصدار 19.9 إلى قاعدة البيانات ليتزامن — مرة واحدة
+  useEffect(() => {
+    if (ro) return;
+    try {
+      const raw = window.localStorage.getItem(DEF_KEY);
+      if (!raw) return;
+      const old = JSON.parse(raw) || {};
+      if (!Object.keys(old).length) { window.localStorage.removeItem(DEF_KEY); return; }
+      if (!db) return;
+      if (Object.keys(db.deficit || {}).length) { window.localStorage.removeItem(DEF_KEY); return; }
+      persist({ ...db, deficit: old }, "ترحيل بيان العجز إلى السحابة");
+      window.localStorage.removeItem(DEF_KEY);
+    } catch (e) {}
+  }, [db && db.deficit, ro]);
   const shaDataRef = useRef(undefined); // undefined = لم يُجلب بعد
   const shaVerRef = useRef(undefined);
   const lastRevRef = useRef(null);
@@ -9317,6 +9364,8 @@ export default function FleetApp() {
             incidents={db.incidents || []}
             cohort={db.cohort186 || null}
             onCohort={(c) => persist({ ...db, cohort186: c }, "بيان أعطال الـ186 آلية")}
+            deficit={db.deficit || {}}
+            onDeficit={(d) => persist({ ...db, deficit: d }, "تحديث بيان العجز بالمراكز")}
             onArchive={(entry) => persist({ ...db, archive: [...(db.archive || []), entry].map((x, i, a) => i < a.length - 8 ? { ...x, html: undefined } : x).slice(-52) }, "اعتماد وأرشفة التقرير الأسبوعي")}
             centerReadiness={db.centerReadiness || {}}
             equip={db.equipReadiness || {}}
