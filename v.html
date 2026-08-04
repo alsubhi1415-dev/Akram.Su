@@ -63,6 +63,33 @@ function param(){
   return m ? { c: m[1] } : null;
 }
 function row(k,val){ return "<tr><th>"+esc(k)+"</th><td>"+(esc(val)||"—")+"</td></tr>"; }
+// التاريخ الميلادي المخزن يُعرض هجرياً وميلادياً معاً (تقويم أم القرى)
+function dualDate(s){
+  if (!s) return "";
+  var d = new Date(String(s).slice(0,10) + "T12:00:00");
+  if (isNaN(d)) return String(s);
+  var g = d.getFullYear() + "/" + ("0"+(d.getMonth()+1)).slice(-2) + "/" + ("0"+d.getDate()).slice(-2) + "م";
+  try {
+    var p = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura",{day:"numeric",month:"numeric",year:"numeric"}).formatToParts(d);
+    var o = {}; p.forEach(function(x){ o[x.type]=x.value; });
+    var y = String(o.year||"").replace(/[^0-9]/g,"");
+    if (y) return y + "/" + ("0"+o.month).slice(-2) + "/" + ("0"+o.day).slice(-2) + "هـ — " + g;
+  } catch(e){}
+  return g;
+}
+// حارس الشمول: أي حقل يُستحدث بالقاعدة مستقبلاً يظهر تلقائياً بلا تعديل هذه الصفحة
+var KNOWN = ["id","_ts","plate","type","status","unit","location","itemNo","chassis","model","color","notes","createdAt","faults","transfers","log"];
+function extraRows(v){
+  var h = "";
+  for (var k in v) {
+    if (!Object.prototype.hasOwnProperty.call(v,k)) continue;
+    if (KNOWN.indexOf(k) >= 0) continue;
+    var val = v[k];
+    if (val == null || typeof val === "object") continue;
+    h += row(k, val);
+  }
+  return h;
+}
 function render(v){
   var col = ST[(v.status||"").trim()] || "#5A6172";
   var h = "";
@@ -76,7 +103,8 @@ function render(v){
      + row("جهة الآلية", v.unit) + row("الموقع الحالي", v.location)
      + row("رقم الصنف", v.itemNo) + row("رقم الشاصية", v.chassis)
      + row("الموديل", v.model) + row("اللون", v.color)
-     + row("ملاحظات", v.notes) + row("تاريخ الإضافة", v.createdAt)
+     + row("ملاحظات", v.notes) + row("تاريخ إضافة السجل بالبرنامج", dualDate(v.createdAt))
+     + extraRows(v)
      + '</table></div>';
 
   var f = (v.faults||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
@@ -107,7 +135,7 @@ function render(v){
   h += '</div>';
 
   h += '<div class="noprint" style="text-align:center;margin-bottom:10px"><button onclick="window.print()">🖨 طباعة البطاقة</button></div>';
-  h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v1</div>';
+  h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v2</div>';
   document.getElementById("app").innerHTML = h;
   document.title = "بطاقة " + (v.plate||"آلية");
 }
