@@ -31,11 +31,10 @@
   .ft { text-align:center; font-size:11px; font-weight:700; color:var(--mut); padding:8px 0 20px; line-height:1.9; }
   button { font-family:inherit; font-weight:800; font-size:13px; border:none; border-radius:10px;
     padding:10px 18px; cursor:pointer; background:var(--ink); color:#fff; }
-  .logo { height:64px; margin-bottom:6px; }
-  .vname { font-size:20px; font-weight:800; margin-top:10px; line-height:1.5; }
-  .pl { margin-top:7px; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.25); border-radius:10px; padding:5px 12px; }
-  .pk { font-size:11px; font-weight:800; color:#C7CEDD; }
-  .pv { font-size:21px; font-weight:800; letter-spacing:1px; }
+  .hdr { display:flex; align-items:center; gap:14px; margin-bottom:10px; text-align:right; }
+  .lgb { background:#fff; border-radius:14px; padding:7px 9px; flex-shrink:0; box-shadow:0 2px 10px rgba(0,0,0,0.25); }
+  .logo { height:58px; display:block; }
+  .hdt { flex:1; min-width:0; }
   .cnt { margin-top:11px; background:rgba(255,255,255,0.10); border:1px dashed rgba(255,255,255,0.35); border-radius:12px; padding:8px 12px; display:inline-block; }
   .cn { font-size:26px; font-weight:800; line-height:1.2; }
   .cl { font-size:11.5px; font-weight:800; color:#E0B4BE; }
@@ -46,18 +45,33 @@
   .mbox { flex:1 1 130px; background:#fff; border:1px solid #E9E2CC; border-radius:10px; padding:7px 10px; text-align:center; }
   .mk { font-size:10.5px; font-weight:800; color:#8A5D0B; }
   .mv { font-size:13px; font-weight:800; margin-top:3px; }
+  /* الطباعة مستند مصمَّم لا تصوير شاشة: تُخفى بطاقة العرض ويُطبع #printdoc وحده */
+  #printdoc { display:none; }
   @media print {
-    body{background:#fff; zoom:0.62;}
-    .card,.hd{break-inside:avoid; margin-bottom:8px; padding:10px;}
-    .noprint{display:none!important}
-    .logo{height:50px} .vname{font-size:17px}
-    th,td{padding:4px 7px; font-size:11px;}
-    .lst{padding:6px 9px; margin-bottom:6px;}
-    @page{size:A4 portrait; margin:8mm}
+    @page { size:A4 portrait; margin:9mm; }
+    body { background:#fff; }
+    .wrap, .noprint { display:none !important; }
+    #printdoc { display:block; font-size:12px; color:#141A28; }
+    #printdoc .ph { display:flex; align-items:center; gap:12px; border-bottom:2.5px solid #141A28; padding-bottom:4mm; margin-bottom:4mm; }
+    #printdoc .ph img { height:22mm; }
+    #printdoc .ph .pt { flex:1; text-align:right; }
+    #printdoc .ph .p1 { font-size:14.5px; font-weight:800; }
+    #printdoc .ph .p2 { font-size:11.5px; font-weight:800; color:#7E1A2F; margin-top:1mm; }
+    #printdoc .ph .p3 { font-size:13px; font-weight:800; margin-top:2mm; }
+    #printdoc h3 { font-size:13px; font-weight:800; margin:4mm 0 2mm; }
+    #printdoc table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    #printdoc th, #printdoc td { border:1px solid #141A28; padding:1.8mm 2mm; font-size:11.5px; text-align:right; vertical-align:middle; line-height:1.6; word-wrap:break-word; }
+    #printdoc th { background:#E7EAF0; font-weight:800; }
+    #printdoc .kv th { width:16%; }
+    #printdoc .kv td { width:34%; }
+    #printdoc .num { text-align:center; }
+    #printdoc tr, #printdoc table { break-inside:avoid; }
+    #printdoc .pf { text-align:center; font-size:10px; font-weight:700; color:#444; margin-top:4mm; }
   }
 </style>
 </head>
 <body>
+<div id="printdoc"></div>
 <div class="wrap" id="app"><div class="card none">…جارٍ تحميل بطاقة الآلية</div></div>
 <script>
 // رمز الآلية القصير — نسخة مطابقة تماماً لما في البرنامج، وإلا لم يتطابق أي رمز
@@ -163,14 +177,70 @@ function extraRows(v){
   }
   return h;
 }
+// مستند الطباعة: جداول مصممة للورقة بكامل عرضها — لا التقاط لشاشة البطاقة
+function printDoc(v, col){
+  var kv = function(k1,v1,k2,v2){
+    return "<tr><th>"+esc(k1)+"</th><td>"+(esc(v1)||"—")+"</td><th>"+esc(k2)+"</th><td>"+(esc(v2)||"—")+"</td></tr>";
+  };
+  var f=(v.faults||[]).slice().sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""));});
+  var tr=v.transfers||[];
+  var mt=(v.maintenance||[]).slice().sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""));});
+  var lg=(v.log||[]).slice().reverse();
+  // العدّاد سطراً ضمن الجدول لا بطاقة زخرفية
+  var cEl=(function(){var d=document.createElement("div");d.innerHTML=counterHtml(v);return d;})();
+  var cNum=(cEl.querySelector(".cn")||{}).textContent||"";
+  var cLbl=(cEl.querySelector(".cl")||{}).textContent||"";
+  var h='<div class="ph"><div class="pt">'
+    + '<div class="p1">الإدارة العامة للدفاع المدني بمحافظة جدة</div>'
+    + '<div class="p2">شعبة الاطفاء والانقاذ — سجل متابعة الآليات</div>'
+    + '<div class="p3">بطاقة بيانات آلية — رقم اللوحة: '+esc(v.plate||"—")+'</div>'
+    + '</div><img src="'+LOGO+'" alt=""/></div>';
+  h+='<h3>أولاً — البيانات الأساسية</h3><table class="kv">'
+    + kv("مسمى الآلية", v.type, "رقم اللوحة", v.plate)
+    + kv("الحالة الفنية", v.status, "الموديل", v.model)
+    + kv("جهة الآلية", v.unit, "الموقع الحالي", v.location)
+    + kv("رقم الصنف", v.itemNo, "رقم الشاصية", v.chassis)
+    + kv("اللون", v.color, "تاريخ إضافة السجل", dualDate(v.createdAt))
+    + '<tr><th>ملاحظات</th><td colspan="3">'+(esc(v.notes)||"—")+'</td></tr>'
+    + (cNum!=="" ? '<tr><th>'+esc(cLbl)+'</th><td colspan="3"><b>'+esc(cNum)+' يوماً</b></td></tr>' : "")
+    + '</table>';
+  h+='<h3>ثانياً — سجل الأعطال والإصلاحات ('+f.length+')</h3>';
+  h+= f.length
+    ? '<table><tr><th class="num" style="width:6%">م</th><th style="width:15%">نوع العطل</th><th style="width:13%">تاريخ العطل</th><th style="width:13%">تاريخ الإصلاح</th><th style="width:31%">الوصف</th><th style="width:22%">الجهة المتسببة</th></tr>'
+      + f.map(function(x,i){return '<tr><td class="num">'+(i+1)+'</td><td>'+(esc(x.faultType)||"—")+'</td><td class="num">'+(esc(x.date)||"—")+'</td><td class="num">'+(esc(x.repairDate)||"لم يُصلح بعد")+'</td><td>'+(esc(x.desc)||"—")+'</td><td>'+(esc(x.causedBy)||"—")+'</td></tr>';}).join("")
+      + '</table>'
+    : '<table><tr><td>لا أعطال مسجلة لهذه الآلية</td></tr></table>';
+  h+='<h3>ثالثاً — مسار التنقل بين الجهات ('+tr.length+')</h3>';
+  h+= tr.length
+    ? '<table><tr><th class="num" style="width:6%">م</th><th style="width:30%">من</th><th style="width:30%">إلى</th><th style="width:14%">التاريخ</th><th style="width:20%">السبب</th></tr>'
+      + tr.map(function(x,i){return '<tr><td class="num">'+(i+1)+'</td><td>'+(esc(x.from)||"—")+'</td><td>'+(esc(x.to)||"—")+'</td><td class="num">'+(esc(x.date)||"—")+'</td><td>'+(esc(x.reason)||"—")+'</td></tr>';}).join("")
+      + '</table>'
+    : '<table><tr><td>لم تُنقل هذه الآلية بين الجهات</td></tr></table>';
+  h+='<h3>رابعاً — سجل الصيانات الدورية ('+mt.length+')</h3>';
+  h+= mt.length
+    ? '<table><tr><th class="num" style="width:6%">م</th><th style="width:28%">نوع الصيانة</th><th style="width:16%">تاريخها</th><th style="width:50%">البيان</th></tr>'
+      + mt.map(function(x,i){return '<tr><td class="num">'+(i+1)+'</td><td>'+(esc(x.type)||"صيانة دورية")+'</td><td class="num">'+(esc(x.date)||"—")+'</td><td>'+(esc(x.desc)||"—")+'</td></tr>';}).join("")
+      + '</table>'
+    : '<table><tr><td>لا صيانات دورية مسجلة بعد — ستُدرج فور اعتماد تسجيلها</td></tr></table>';
+  h+='<h3>خامساً — أرشيف التعديلات ('+lg.length+')</h3>';
+  h+= lg.length
+    ? '<table><tr><th class="num" style="width:6%">م</th><th style="width:14%">التاريخ</th><th style="width:20%">الحقل</th><th style="width:30%">القيمة السابقة</th><th style="width:30%">القيمة الجديدة</th></tr>'
+      + lg.map(function(x,i){return '<tr><td class="num">'+(i+1)+'</td><td class="num">'+(esc(x.at)||"—")+'</td><td>'+(esc(x.f)||"—")+'</td><td>'+(esc(x.from)||"—")+'</td><td>'+(esc(x.to)||"—")+'</td></tr>';}).join("")
+      + '</table>'
+    : '<table><tr><td>لم تُعدَّل بيانات هذه الآلية بعد</td></tr></table>';
+  h+='<div class="pf">بطاقة عرض فقط — لا تتيح تعديل السجل · الإدارة العامة للدفاع المدني بمحافظة جدة</div>';
+  return h;
+}
 function render(v){
   var col = ST[(v.status||"").trim()] || "#5A6172";
   var h = "";
-  h += '<div class="hd"><img class="logo" src="'+LOGO+'" alt="شعار الدفاع المدني"/>'
-     + '<div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة</div>'
-     + '<div class="s">شعبة الاطفاء والانقاذ — سجل متابعة الآليات</div>'
-     + '<div class="vname">'+esc(v.type||"—")+'</div>'
-     + '<div class="pl"><span class="pk">رقم اللوحة</span><span class="pv">'+esc(v.plate||"—")+'</span></div>'
+  h += '<div class="hd"><div class="hdr">'
+     + '<span class="lgb"><img class="logo" src="'+LOGO+'" alt="شعار الدفاع المدني"/></span>'
+     + '<div class="hdt"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة</div>'
+     + '<div class="s">شعبة الاطفاء والانقاذ — سجل متابعة الآليات</div></div>'
+     + '</div>'
+     + '<div class="plate">'+esc(v.plate||"—")+'</div>'
+     + '<div class="type">'+esc(v.type||"")+'</div>'
      + '<span class="badge" style="background:'+col+';color:#fff">'+esc(v.status||"—")+'</span>'
      + counterHtml(v) + '</div>';
 
@@ -224,8 +294,9 @@ function render(v){
   h += '</div>';
 
   h += '<div class="noprint" style="text-align:center;margin-bottom:10px"><button onclick="window.print()">🖨 طباعة البطاقة</button></div>';
-  h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v3</div>';
+  h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v4</div>';
   document.getElementById("app").innerHTML = h;
+  document.getElementById("printdoc").innerHTML = printDoc(v, col);
   document.title = "بطاقة " + (v.plate||"آلية");
 }
 function fail(msg){
