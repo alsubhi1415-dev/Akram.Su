@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>بطاقة الآلية — الدفاع المدني بجدة</title>
+<style>
+  :root { --ink:#141A28; --mut:#6C748A; --ln:#E1E4EA; --crim:#7E1A2F; }
+  * { box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body { margin:0; background:#EEF0F4; color:var(--ink);
+    font-family:"Tajawal","Segoe UI",Tahoma,Arial,sans-serif; font-size:14px; line-height:1.7; }
+  .wrap { max-width:640px; margin:0 auto; padding:12px; }
+  .card { background:#fff; border:1px solid var(--ln); border-radius:16px; padding:16px; margin-bottom:12px; }
+  .hd { background:linear-gradient(120deg,#141A28,#1B2440); color:#fff; border-radius:16px; padding:16px; margin-bottom:12px; text-align:center; }
+  .hd .o { font-size:13px; font-weight:800; }
+  .hd .s { font-size:11.5px; font-weight:800; color:#E0B4BE; margin-top:3px; }
+  .plate { font-size:26px; font-weight:800; letter-spacing:1px; margin-top:10px; }
+  .type { font-size:14px; font-weight:800; color:#C7CEDD; }
+  .badge { display:inline-block; border-radius:999px; padding:4px 14px; font-size:12.5px; font-weight:800; margin-top:9px; }
+  h2 { font-size:14px; font-weight:800; margin:0 0 10px; padding-bottom:7px; border-bottom:2px solid var(--ink); }
+  table { width:100%; border-collapse:collapse; }
+  th,td { border:1px solid var(--ln); padding:7px 9px; font-size:12.5px; text-align:right; vertical-align:top; }
+  th { background:#F3F5F9; font-weight:800; width:38%; }
+  .lst { border:1px solid var(--ln); border-radius:12px; padding:10px 12px; margin-bottom:9px; }
+  .lst .t { font-size:13px; font-weight:800; }
+  .lst .m { font-size:11.5px; font-weight:700; color:var(--mut); margin-top:3px; }
+  .lst .d { font-size:12.5px; font-weight:700; margin-top:5px; }
+  .none { color:var(--mut); font-size:12.5px; font-weight:700; text-align:center; padding:12px 0; }
+  .old { background:#FBEDEE; color:#9E1B22; border-radius:7px; padding:2px 8px; text-decoration:line-through; }
+  .new { background:#EAF5E2; color:#1B6E42; border-radius:7px; padding:2px 8px; }
+  .ft { text-align:center; font-size:11px; font-weight:700; color:var(--mut); padding:8px 0 20px; line-height:1.9; }
+  button { font-family:inherit; font-weight:800; font-size:13px; border:none; border-radius:10px;
+    padding:10px 18px; cursor:pointer; background:var(--ink); color:#fff; }
+  @media print { body{background:#fff} .card,.hd{break-inside:avoid} .noprint{display:none!important} @page{size:A4 portrait;margin:10mm} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="card none">…جارٍ تحميل بطاقة الآلية</div></div>
+<script>
+// رمز الآلية القصير — نسخة مطابقة تماماً لما في البرنامج، وإلا لم يتطابق أي رمز
+function vehCode(v) {
+  var s = String((v && (v.id || v.plate)) || "");
+  var h1 = 0x811c9dc5 >>> 0, h2 = 0x1000193 >>> 0;
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    h1 = (((h1 ^ c) >>> 0) * 16777619) >>> 0;
+    h2 = (((h2 + c * (i + 1)) >>> 0) * 31) >>> 0;
+  }
+  return (h1.toString(36) + h2.toString(36)).replace(/[^a-z0-9]/g, "").slice(0, 10);
+}
+var ST = {
+  "تعمل": "#1B6E42", "عطلانة": "#9E1B22", "تم الإصلاح": "#1F6FB8",
+  "تعمل بوجود ملاحظات": "#8A5D0B", "تحت التجهيز والتسليم": "#12796E",
+  "تحت إجراءات الرجيع": "#5B4B9E", "صدر قرار الرجيع": "#5A6172"
+};
+function esc(s){ return String(s==null?"":s).replace(/[<>&]/g,function(c){return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c];}); }
+function param(){
+  var m = location.search.match(/[?&]c=([A-Za-z0-9]+)/);
+  if (m) return { c: m[1] };
+  m = location.search.match(/[?&]p=([^&]+)/);
+  if (m) { try { return { p: decodeURIComponent(m[1]) }; } catch(e) { return { p: m[1] }; } }
+  m = (location.hash||"").match(/[#&]?v=([A-Za-z0-9]+)/);
+  return m ? { c: m[1] } : null;
+}
+function row(k,val){ return "<tr><th>"+esc(k)+"</th><td>"+(esc(val)||"—")+"</td></tr>"; }
+function render(v){
+  var col = ST[(v.status||"").trim()] || "#5A6172";
+  var h = "";
+  h += '<div class="hd"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة</div>'
+     + '<div class="s">شعبة الاطفاء والانقاذ — سجل متابعة الآليات</div>'
+     + '<div class="plate">'+esc(v.plate||"—")+'</div>'
+     + '<div class="type">'+esc(v.type||"")+'</div>'
+     + '<span class="badge" style="background:'+col+';color:#fff">'+esc(v.status||"—")+'</span></div>';
+
+  h += '<div class="card"><h2>البيانات الأساسية</h2><table>'
+     + row("جهة الآلية", v.unit) + row("الموقع الحالي", v.location)
+     + row("رقم الصنف", v.itemNo) + row("رقم الشاصية", v.chassis)
+     + row("الموديل", v.model) + row("اللون", v.color)
+     + row("ملاحظات", v.notes) + row("تاريخ الإضافة", v.createdAt)
+     + '</table></div>';
+
+  var f = (v.faults||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
+  h += '<div class="card"><h2>سجل الأعطال والإصلاحات ('+f.length+')</h2>';
+  h += f.length ? f.map(function(x){
+    return '<div class="lst"><div class="t">'+esc(x.faultType||"عطل")+'</div>'
+      + '<div class="m">تاريخ العطل: '+(esc(x.date)||"—")+' · تاريخ الإصلاح: '+(esc(x.repairDate)||"لم يُصلح بعد")+'</div>'
+      + (x.desc ? '<div class="d">'+esc(x.desc)+'</div>' : "")
+      + (x.causedBy ? '<div class="m">الجهة المتسببة: '+esc(x.causedBy)+'</div>' : "")
+      + '</div>';
+  }).join("") : '<div class="none">لا أعطال مسجلة لهذه الآلية</div>';
+  h += '</div>';
+
+  var t = v.transfers||[];
+  h += '<div class="card"><h2>مسار التنقل بين الجهات ('+t.length+')</h2>';
+  h += t.length ? t.map(function(x){
+    return '<div class="lst"><div class="t">'+(esc(x.from)||"—")+' ← '+(esc(x.to)||"—")+'</div>'
+      + '<div class="m">'+(esc(x.date)||"—")+(x.reason?' · '+esc(x.reason):"")+'</div></div>';
+  }).join("") : '<div class="none">لم تُنقل هذه الآلية بين الجهات</div>';
+  h += '</div>';
+
+  var lg = (v.log||[]).slice().reverse();
+  h += '<div class="card"><h2>أرشيف التعديلات ('+lg.length+')</h2>';
+  h += lg.length ? lg.map(function(x){
+    return '<div class="lst"><div class="t">'+esc(x.f)+' <span class="m">'+esc(x.at)+'</span></div>'
+      + '<div class="d"><span class="old">'+(esc(x.from)||"—")+'</span> ← <span class="new">'+(esc(x.to)||"—")+'</span></div></div>';
+  }).join("") : '<div class="none">لم تُعدَّل بيانات هذه الآلية بعد</div>';
+  h += '</div>';
+
+  h += '<div class="noprint" style="text-align:center;margin-bottom:10px"><button onclick="window.print()">🖨 طباعة البطاقة</button></div>';
+  h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v1</div>';
+  document.getElementById("app").innerHTML = h;
+  document.title = "بطاقة " + (v.plate||"آلية");
+}
+function fail(msg){
+  document.getElementById("app").innerHTML =
+    '<div class="hd"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة</div>'
+    + '<div class="s">شعبة الاطفاء والانقاذ</div></div>'
+    + '<div class="card none">'+esc(msg)+'</div>';
+}
+(function(){
+  var q = param();
+  if (!q) { fail("الرابط لا يحمل رمز آلية صالحاً"); return; }
+  fetch("data.json", { cache: "no-store" })
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(d){
+      var db = d && (d.db || d);
+      var list = (db && db.vehicles) || [];
+      var nz = function(s){ return String(s||"").replace(/\s+/g,""); };
+      var v = null;
+      for (var i=0;i<list.length;i++){
+        var x = list[i];
+        if (q.c && vehCode(x) === q.c) { v = x; break; }
+        if (q.p && (nz(x.plate) === nz(q.p) || String(x.id) === q.p)) { v = x; break; }
+      }
+      if (!v) { fail("لم يُعثر على آلية بهذا الرمز — قد يكون الملصق قديماً"); return; }
+      render(v);
+    })
+    .catch(function(){ fail("تعذّر تحميل بيانات الآليات — تحقق من الاتصال ثم أعد المحاولة"); });
+})();
+</script>
+</body>
+</html>
