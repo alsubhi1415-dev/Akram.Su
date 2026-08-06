@@ -62,6 +62,23 @@
   #rep-btn { color:#fff; }
   #rep-btn:disabled { cursor:default; }
   #printdoc { display:none; }
+  /* ===== الوضع الداكن للمستعرض (لا يمسّ الطباعة) ===== */
+  #thm-moon { position:fixed; top:12px; left:12px; z-index:80; width:40px; height:40px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+    background:rgba(20,26,40,0.88); color:#FCD34D; border:1px solid rgba(255,255,255,0.22);
+    box-shadow:0 4px 14px rgba(10,14,26,0.35); transition:transform .15s, background .2s; }
+  #thm-moon:hover { transform:translateY(-1px); }
+  body.dark { background:#0E1320; color:#E7EAF1; }
+  body.dark .card { background:#1A2033; border-color:rgba(255,255,255,0.09); color:#E7EAF1; }
+  body.dark th { background:#232B40; color:#E7EAF1; }
+  body.dark td { border-color:rgba(255,255,255,0.09); }
+  body.dark table, body.dark tr { border-color:rgba(255,255,255,0.09); }
+  body.dark .mx { background:linear-gradient(135deg,#221E14,#1A2033); border-color:rgba(212,175,55,0.35); }
+  body.dark .mbox { background:#232B40; border-color:rgba(255,255,255,0.10); color:#E7EAF1; }
+  body.dark .old { background:rgba(158,27,34,0.22); color:#FFB4A2; }
+  body.dark .new { background:rgba(27,110,66,0.25); color:#9FE3C4; }
+  body.dark #thm-moon { background:rgba(212,175,55,0.20); color:#FFE08A; border-color:rgba(212,175,55,0.4); }
+  @media print { #thm-moon { display:none !important; } body.dark { background:#fff !important; color:#141A28 !important; } }
   @media print {
     @page { size:A4 portrait; margin:9mm; }
     body { background:#fff; }
@@ -86,6 +103,10 @@
 </style>
 </head>
 <body>
+<button id="thm-moon" title="الوضع الداكن" aria-label="تبديل الوضع الداكن" onclick="(function(){var d=document.body.classList.toggle('dark');try{localStorage.setItem('vh_theme',d?'dark':'light');}catch(e){}})()">
+  <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+</button>
+<script>try{if(localStorage.getItem('vh_theme')==='dark')document.body.classList.add('dark');}catch(e){}</script>
 <div id="printdoc"></div>
 <div class="wrap" id="app"><div class="card none">…جارٍ تحميل بطاقة الآلية</div></div>
 <script>
@@ -159,7 +180,7 @@ function counterHtml(v){
 // تنبيه صريح: هذا اجتياز لحاجز الرفع لا إخفاء أمني — الرمز يبقى قابلاً
 // للاستخراج من صفحة عامة، وهي المقايضة التي قبلتها لهذه القناة،
 // وإلغاؤه من GitHub يقطعها فوراً دون أثر على البرنامج.
-var RT_TAIL = "11CI5Z4MA00P26kutxNzrD_5tyI1N7Tfd1FEhmzu8Q9TNq5LPkJxnlvfViRQASjTuq4PA4WNJQnAW1s642";
+var RT_TAIL = "";
 var RT = RT_TAIL ? ((RT_TAIL.indexOf("github_pat_") === 0 ? "" : "github_pat_") + RT_TAIL) : "";
 var REPORTS_PATH = "reports.json";
 var GH_REPORTS = "https://api.github.com/repos/alsubhi1415-dev/Akram.Su/contents/" + REPORTS_PATH;
