@@ -180,7 +180,7 @@ function counterHtml(v){
 // تنبيه صريح: هذا اجتياز لحاجز الرفع لا إخفاء أمني — الرمز يبقى قابلاً
 // للاستخراج من صفحة عامة، وهي المقايضة التي قبلتها لهذه القناة،
 // وإلغاؤه من GitHub يقطعها فوراً دون أثر على البرنامج.
-var RT_TAIL = "11CI5Z4MA0FoXs2E61B5FL_KfuHE5dHmCgsQJZHzz4peU9a9qMtooDhTxhCHUmjvWm2CSYYO7FcscONcwC";
+var RT_TAIL = "";
 var GH_PREFIX = "github_" + "pat_";
 var RT = RT_TAIL ? ((RT_TAIL.indexOf(GH_PREFIX) === 0 ? "" : GH_PREFIX) + RT_TAIL) : "";
 var REPORTS_PATH = "reports.json";
@@ -296,23 +296,28 @@ function printDoc(v, col){
   return h;
 }
 // ====== نافذة الإبلاغ وإرساله ======
+function repMeta(kind){
+  if (kind === "fault") return { title: "🔧 الإبلاغ عن عطل جديد", ph: "صف العطل باختصار (إلزامي)…", color: "#7E1A2F", req: true };
+  if (kind === "note") return { title: "📝 الإبلاغ عن ملاحظة على الآلية", ph: "صف الملاحظة على الآلية (إلزامي)…", color: "#B45309", req: true };
+  return { title: "✅ الإبلاغ عن إصلاح الآلية", ph: "ملاحظة عن الإصلاح (اختياري)…", color: "#1B6E42", req: false };
+}
 function openReport(v, kind){
   var old = document.getElementById("rep-ovl"); if (old) old.remove();
-  var isF = kind === "fault";
+  var mt = repMeta(kind);
   var ov = document.createElement("div");
   ov.id = "rep-ovl";
   ov.innerHTML = ''
     + '<div class="rp-card">'
-    + '<div class="rp-t">' + (isF ? "🔧 الإبلاغ عن عطل جديد" : "✅ الإبلاغ عن إصلاح الآلية") + '</div>'
+    + '<div class="rp-t">' + mt.title + '</div>'
     + '<div class="rp-v">' + esc(v.plate||"") + ' — ' + esc(v.type||"") + '</div>'
     + '<div class="rp-n">إشعار أولي للمشرف فقط — لا يغيّر حالة الآلية في السجل حتى يعتمده، والطريقة المعتمدة للإبلاغ تبقى كما هي.</div>'
-    + '<textarea id="rp-desc" maxlength="' + MAX_DESC + '" rows="4" placeholder="' + (isF ? "صف العطل باختصار (إلزامي)…" : "ملاحظة عن الإصلاح (اختياري)…") + '"></textarea>'
+    + '<textarea id="rp-desc" maxlength="' + MAX_DESC + '" rows="4" placeholder="' + mt.ph + '"></textarea>'
     + '<input id="rp-by" maxlength="60" placeholder="اسم المبلّغ (اختياري — يساعد المشرف)" '
     + 'style="width:100%;border:1.5px solid #C9CDD6;border-radius:11px;padding:9px 12px;font-family:inherit;font-size:12.5px;font-weight:700;box-sizing:border-box;margin-top:8px">'
     + '<div class="rp-d">تاريخ البلاغ يُسجل تلقائياً: <b>' + esc(todayDual()) + '</b></div>'
     + '<div class="rp-btns">'
     + '<button id="rp-x" class="rp-b rp-gray">إلغاء</button>'
-    + '<button id="rp-go" class="rp-b" style="background:' + (isF ? "#7E1A2F" : "#1B6E42") + '">📨 إرسال البلاغ</button>'
+    + '<button id="rp-go" class="rp-b" style="background:' + mt.color + '">📨 إرسال البلاغ</button>'
     + '</div>'
     + '<div id="rp-msg" class="rp-m"></div>'
     + '</div>';
@@ -337,10 +342,10 @@ function rpSay(msg, okState){
   if (m) { m.textContent = msg; m.style.color = okState ? "#1B6E42" : "#9E1B22"; }
 }
 function sendReport(v, kind){
-  var isF = kind === "fault";
+  var mt = repMeta(kind);
   var desc = (document.getElementById("rp-desc")||{value:""}).value.trim();
   var by = (document.getElementById("rp-by")||{value:""}).value.trim().slice(0,60);
-  if (isF && !desc) { rpSay("وصف العطل إلزامي", false); return; }
+  if (mt.req && !desc) { rpSay(kind === "note" ? "وصف الملاحظة إلزامي" : "وصف العطل إلزامي", false); return; }
   if (!RT) { rpSay("قناة البلاغات لم تُفعَّل بعد — أبلغ بالطريقة المعتمدة", false); return; }
   var go = document.getElementById("rp-go");
   go.disabled = true; go.textContent = "⏳ جارٍ الإرسال…";
@@ -463,10 +468,13 @@ function render(v){
   var stopped = ["عطلانة","تحت إجراءات الرجيع","صدر قرار الرجيع"].indexOf((v.status||"").trim()) >= 0;
   var kind = stopped ? "repair" : "fault";
   var pend = pendingFor(v, kind);
+  var pendNote = pendingFor(v, "note");
   h += '<div class="noprint" style="text-align:center;margin-bottom:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
      + '<button onclick="window.print()">🖨 طباعة البطاقة</button>'
      + '<button id="rep-btn"' + (pend ? ' disabled' : '') + ' style="background:' + (pend ? "#5A6172" : (stopped ? "#1B6E42" : "#7E1A2F")) + '">'
      + (pend ? ("⏳ بلاغ قيد المراجعة — " + esc(pend.ref||"")) : (stopped ? "✅ الإبلاغ عن إصلاح الآلية" : "🔧 الإبلاغ عن عطل جديد")) + '</button>'
+     + '<button id="rep-note"' + (pendNote ? ' disabled' : '') + ' style="background:' + (pendNote ? "#5A6172" : "#B45309") + '">'
+     + (pendNote ? ("⏳ بلاغ قيد المراجعة — " + esc(pendNote.ref||"")) : "📝 الإبلاغ عن ملاحظة على الآلية") + '</button>'
      + '</div>';
   h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v7</div>';
   document.getElementById("app").innerHTML = h;
@@ -474,6 +482,8 @@ function render(v){
   document.title = "بطاقة " + (v.plate||"آلية");
   var rb = document.getElementById("rep-btn");
   if (rb && !rb.disabled) rb.onclick = function(){ openReport(v, kind); };
+  var rn = document.getElementById("rep-note");
+  if (rn && !rn.disabled) rn.onclick = function(){ openReport(v, "note"); };
 }
 function fail(msg){
   document.getElementById("app").innerHTML =
