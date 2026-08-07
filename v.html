@@ -59,6 +59,13 @@
   .rp-gray { background:#EEF1F8; color:#5B6478; }
   .rp-m { font-size:12px; font-weight:800; margin-top:9px; min-height:16px; }
   .rp-ok { font-size:44px; line-height:1; margin-bottom:6px; }
+  .rp-cur { font-size:11.5px; font-weight:700; color:#5A6172; margin-top:4px; }
+  .rp-lbl { font-size:12px; font-weight:800; color:#3A4152; text-align:right; margin:13px 2px 5px; }
+  .rp-sel { width:100%; border:1.5px solid #C9CDD6; border-radius:11px; padding:10px 12px; font-family:inherit; font-size:13px; font-weight:800; color:#141A28; background:#fff; box-sizing:border-box; margin-bottom:9px; cursor:pointer; }
+  .rp-sel:focus { outline:none; border-color:#141A28; }
+  .rp-needs { display:flex; flex-wrap:wrap; gap:7px; margin:2px 0 10px; }
+  .rp-need { display:inline-flex; align-items:center; gap:5px; background:#F4F6FA; border:1.5px solid #E2E6EE; border-radius:9px; padding:7px 11px; font-size:12px; font-weight:800; color:#2B3242; cursor:pointer; }
+  .rp-need input { accent-color:#0E7A5F; width:15px; height:15px; }
   #rep-btn { color:#fff; }
   #rep-btn:disabled { cursor:default; }
   #printdoc { display:none; }
@@ -180,7 +187,7 @@ function counterHtml(v){
 // تنبيه صريح: هذا اجتياز لحاجز الرفع لا إخفاء أمني — الرمز يبقى قابلاً
 // للاستخراج من صفحة عامة، وهي المقايضة التي قبلتها لهذه القناة،
 // وإلغاؤه من GitHub يقطعها فوراً دون أثر على البرنامج.
-var RT_TAIL = "11CI5Z4MA0EvWoMUB9qk3G_ixeH9EAI54GMlgUrtuvzyQThsK61zyqfZyayAvMtO7a4FEL42G64YauzGII";
+var RT_TAIL = "";
 var GH_PREFIX = "github_" + "pat_";
 var RT = RT_TAIL ? ((RT_TAIL.indexOf(GH_PREFIX) === 0 ? "" : GH_PREFIX) + RT_TAIL) : "";
 var REPORTS_PATH = "reports.json";
@@ -296,35 +303,68 @@ function printDoc(v, col){
   return h;
 }
 // ====== نافذة الإبلاغ وإرساله ======
-function repMeta(kind){
-  if (kind === "fault") return { title: "🔧 الإبلاغ عن عطل جديد", ph: "صف العطل باختصار (إلزامي)…", color: "#7E1A2F", req: true };
-  if (kind === "note") return { title: "📝 الإبلاغ عن ملاحظة على الآلية", ph: "صف الملاحظة على الآلية (إلزامي)…", color: "#B45309", req: true };
-  return { title: "✅ الإبلاغ عن إصلاح الآلية", ph: "ملاحظة عن الإصلاح (اختياري)…", color: "#1B6E42", req: false };
+// كتالوج أنواع البلاغات — لكل نوع عنوان وتلميح ولون وهل الوصف إلزامي
+var KIND_META = {
+  fault:       { label: "🔧 التبليغ عن تعطّل الآلية",        ph: "صف العطل باختصار (إلزامي)…",           color: "#7E1A2F", req: true },
+  repair:      { label: "✅ التبليغ عن إصلاح الآلية",        ph: "ملاحظة عن الإصلاح (اختياري)…",          color: "#1B6E42", req: false },
+  note:        { label: "📝 ملاحظة مع استمرار عمل الآلية",   ph: "صف الملاحظة على الآلية (إلزامي)…",       color: "#B45309", req: true },
+  rejee:       { label: "↩️ التبليغ عن إحالة الآلية للرجيع", ph: "سبب الإحالة للرجيع (إلزامي)…",           color: "#4E3D80", req: true },
+  rejee_final: { label: "📁 صدور قرار الرجيع",               ph: "تفاصيل قرار الرجيع (إلزامي)…",           color: "#3A2E63", req: true },
+  msg:         { label: "✉️ ملاحظة نصية (رسالة عن الآلية)",  ph: "اكتب رسالتك عن الآلية (إلزامي)…",        color: "#2B6CB0", req: true },
+  needs:       { label: "🛠️ احتياجات الآلية",               ph: "تفاصيل إضافية عن الاحتياج (اختياري)…",   color: "#0E7A5F", req: false },
+};
+// قائمة الاحتياجات الجاهزة (اختيار متعدد) — تُضاف لكل الآليات
+var NEEDS_LIST = ["كفرات", "بطاريات", "صيانة دورية", "تغيير زيوت وسوائل", "تجديد دهان", "تجهيزات أمنية (سفاتي)", "أخرى"];
+// الأنواع المتاحة حسب حالة الآلية الحالية
+function kindsFor(status){
+  var s = String(status||"").trim();
+  var broken = ["عطلانة","تحت التجهيز والتسليم"].indexOf(s) >= 0;
+  var rejee  = ["تحت إجراءات الرجيع","صدر قرار الرجيع"].indexOf(s) >= 0;
+  if (rejee)  return ["repair", "rejee_final", "msg", "needs"];
+  if (broken) return ["repair", "fault", "rejee", "msg", "needs"];
+  return ["fault", "note", "needs"]; // آلية عاملة: تعطّل أو ملاحظة مع استمرار العمل أو احتياجات (لا رجيع ولا رسالة نصية)
 }
-function openReport(v, kind){
+function openReport(v){
   var old = document.getElementById("rep-ovl"); if (old) old.remove();
-  var mt = repMeta(kind);
+  var kinds = kindsFor(v.status);
+  var first = kinds[0];
   var ov = document.createElement("div");
   ov.id = "rep-ovl";
+  var opts = kinds.map(function(k){ return '<option value="'+k+'">'+KIND_META[k].label+'</option>'; }).join("");
+  var needsHtml = NEEDS_LIST.map(function(n,i){
+    return '<label class="rp-need"><input type="checkbox" class="rp-need-cb" value="'+esc(n)+'"> <span>'+esc(n)+'</span></label>';
+  }).join("");
   ov.innerHTML = ''
     + '<div class="rp-card">'
-    + '<div class="rp-t">' + mt.title + '</div>'
+    + '<div class="rp-t">بلاغ عن الآلية</div>'
     + '<div class="rp-v">' + esc(v.plate||"") + ' — ' + esc(v.type||"") + '</div>'
-    + '<div class="rp-n">إشعار أولي للمشرف فقط — لا يغيّر حالة الآلية في السجل حتى يعتمده، والطريقة المعتمدة للإبلاغ تبقى كما هي.</div>'
-    + '<textarea id="rp-desc" maxlength="' + MAX_DESC + '" rows="4" placeholder="' + mt.ph + '"></textarea>'
+    + '<div class="rp-cur">الحالة الحالية: <b>' + esc(v.status||"—") + '</b></div>'
+    + '<div class="rp-lbl">نوع البلاغ</div>'
+    + '<select id="rp-kind" class="rp-sel">' + opts + '</select>'
+    + '<div id="rp-needs" class="rp-needs" style="display:none">' + needsHtml + '</div>'
+    + '<textarea id="rp-desc" maxlength="' + MAX_DESC + '" rows="4"></textarea>'
     + '<input id="rp-by" maxlength="60" placeholder="اسم المبلّغ (اختياري — يساعد المشرف)" '
     + 'style="width:100%;border:1.5px solid #C9CDD6;border-radius:11px;padding:9px 12px;font-family:inherit;font-size:12.5px;font-weight:700;box-sizing:border-box;margin-top:8px">'
     + '<div class="rp-d">تاريخ البلاغ يُسجل تلقائياً: <b>' + esc(todayDual()) + '</b></div>'
     + '<div class="rp-btns">'
     + '<button id="rp-x" class="rp-b rp-gray">إلغاء</button>'
-    + '<button id="rp-go" class="rp-b" style="background:' + mt.color + '">📨 إرسال البلاغ</button>'
+    + '<button id="rp-go" class="rp-b">📨 إرسال البلاغ</button>'
     + '</div>'
     + '<div id="rp-msg" class="rp-m"></div>'
     + '</div>';
   document.body.appendChild(ov);
+  var sel = document.getElementById("rp-kind");
+  var apply = function(){
+    var k = sel.value, mt = KIND_META[k];
+    var ta = document.getElementById("rp-desc");
+    ta.placeholder = mt.ph;
+    document.getElementById("rp-needs").style.display = (k === "needs") ? "flex" : "none";
+    var go = document.getElementById("rp-go"); go.style.background = mt.color;
+  };
+  sel.onchange = apply; apply();
   ov.onclick = function(e){ if (e.target === ov) ov.remove(); };
   document.getElementById("rp-x").onclick = function(){ ov.remove(); };
-  document.getElementById("rp-go").onclick = function(){ sendReport(v, kind); };
+  document.getElementById("rp-go").onclick = function(){ sendReport(v, sel.value); };
 }
 function todayDual(){
   var d = new Date();
@@ -342,10 +382,16 @@ function rpSay(msg, okState){
   if (m) { m.textContent = msg; m.style.color = okState ? "#1B6E42" : "#9E1B22"; }
 }
 function sendReport(v, kind){
-  var mt = repMeta(kind);
+  var mt = KIND_META[kind] || KIND_META.fault;
   var desc = (document.getElementById("rp-desc")||{value:""}).value.trim();
   var by = (document.getElementById("rp-by")||{value:""}).value.trim().slice(0,60);
-  if (mt.req && !desc) { rpSay(kind === "note" ? "وصف الملاحظة إلزامي" : "وصف العطل إلزامي", false); return; }
+  var needs = [];
+  if (kind === "needs") {
+    var cbs = document.querySelectorAll(".rp-need-cb");
+    for (var i=0;i<cbs.length;i++){ if (cbs[i].checked) needs.push(cbs[i].value); }
+    if (!needs.length) { rpSay("اختر احتياجاً واحداً على الأقل", false); return; }
+  }
+  if (mt.req && !desc) { rpSay("الوصف إلزامي لهذا النوع من البلاغ", false); return; }
   if (!RT) { rpSay("قناة البلاغات لم تُفعَّل بعد — أبلغ بالطريقة المعتمدة", false); return; }
   var go = document.getElementById("rp-go");
   go.disabled = true; go.textContent = "⏳ جارٍ الإرسال…";
@@ -365,13 +411,16 @@ function sendReport(v, kind){
       })
       .then(function(st){
         if (st.list.length >= MAX_PENDING) { throw new Error("full"); }
-        if (st.list.some(function(x){ return x && x.code === vehCode(v) && x.kind === kind; })) { throw new Error("dup"); }
+        // منع تكرار البلاغات المغيّرة للحالة فقط؛ الرسائل والاحتياجات يجوز تكرارها
+        if (kind !== "msg" && kind !== "needs" && st.list.some(function(x){ return x && x.code === vehCode(v) && x.kind === kind; })) { throw new Error("dup"); }
         var ref = "B" + Date.now().toString(36).toUpperCase().slice(-6);
-        st.list.push({
+        var entry = {
           id: Date.now(), ts: Date.now(), ref: ref, code: vehCode(v),
           plate: v.plate || "", vtype: v.type || "", unit: v.unit || "",
           kind: kind, desc: desc.slice(0, MAX_DESC), by: by, at: todayDual(),
-        });
+        };
+        if (kind === "needs") entry.needs = needs;
+        st.list.push(entry);
         var body = { message: "بلاغ ميداني " + ref + " — " + (v.plate||""), content: b64enc(JSON.stringify(st.list, null, 1)), branch: "main" };
         if (st.sha) body.sha = st.sha;
         return fetch(GH_REPORTS, {
@@ -388,8 +437,6 @@ function sendReport(v, kind){
             + '<div class="rp-v">رقمه المرجعي: <b>' + ref + '</b></div>'
             + '<div class="rp-n">سيراجعه المشرف ويقرر اعتماده — هذا إشعار أولي ولا يغيّر السجل بنفسه.</div>'
             + '<div class="rp-btns"><button class="rp-b rp-gray" onclick="document.getElementById(\'rep-ovl\').remove()">إغلاق</button></div>';
-          var rb = document.getElementById("rep-btn");
-          if (rb) { rb.disabled = true; rb.textContent = "⏳ بلاغ قيد المراجعة — " + ref; rb.style.background = "#5A6172"; }
         });
       })
       .catch(function(e){
@@ -465,25 +512,16 @@ function render(v){
   }).join("") : '<div class="none">لم تُعدَّل بيانات هذه الآلية بعد</div>';
   h += '</div>';
 
-  var stopped = ["عطلانة","تحت إجراءات الرجيع","صدر قرار الرجيع"].indexOf((v.status||"").trim()) >= 0;
-  var kind = stopped ? "repair" : "fault";
-  var pend = pendingFor(v, kind);
-  var pendNote = pendingFor(v, "note");
   h += '<div class="noprint" style="text-align:center;margin-bottom:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
      + '<button onclick="window.print()">🖨 طباعة البطاقة</button>'
-     + '<button id="rep-btn"' + (pend ? ' disabled' : '') + ' style="background:' + (pend ? "#5A6172" : (stopped ? "#1B6E42" : "#7E1A2F")) + '">'
-     + (pend ? ("⏳ بلاغ قيد المراجعة — " + esc(pend.ref||"")) : (stopped ? "✅ الإبلاغ عن إصلاح الآلية" : "🔧 الإبلاغ عن عطل جديد")) + '</button>'
-     + '<button id="rep-note"' + (pendNote ? ' disabled' : '') + ' style="background:' + (pendNote ? "#5A6172" : "#B45309") + '">'
-     + (pendNote ? ("⏳ بلاغ قيد المراجعة — " + esc(pendNote.ref||"")) : "📝 الإبلاغ عن ملاحظة على الآلية") + '</button>'
+     + '<button id="rep-btn" style="background:#7E1A2F">📨 إرسال بلاغ عن الآلية</button>'
      + '</div>';
   h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v7</div>';
   document.getElementById("app").innerHTML = h;
   document.getElementById("printdoc").innerHTML = printDoc(v, col);
   document.title = "بطاقة " + (v.plate||"آلية");
   var rb = document.getElementById("rep-btn");
-  if (rb && !rb.disabled) rb.onclick = function(){ openReport(v, kind); };
-  var rn = document.getElementById("rep-note");
-  if (rn && !rn.disabled) rn.onclick = function(){ openReport(v, "note"); };
+  if (rb) rb.onclick = function(){ openReport(v); };
 }
 function fail(msg){
   document.getElementById("app").innerHTML =
