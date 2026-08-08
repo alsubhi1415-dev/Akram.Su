@@ -1654,35 +1654,57 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
   /* ---------- طبقة البيانات ---------- */
   var DB = null, VEH = [];
   function normDb(j) { if (!j) return null; if (j.vehicles) return j; if (j.db && j.db.vehicles) return j.db; return null; }
+  // يقرأ بيانات الأساس الحيّة نفسها: الأساس يحفظ تعديلاته غير المحفوظة في fd_pending_v1
+  // وآخر حالة متزامنة في fd_mirror_v1، بينما مفتاح cdfleet::cd-fleet:db مجمّد على البذرة
+  // (يُكتب مرة واحدة عند أول تحميل ولا يُحدَّث). لذا نعتمد المرآة/المعلّق (الأحدث زمنياً) أولاً،
+  // ثم مفاتيح البذرة كاحتياط أخير — فيتطابق fd31 مع ما يعرضه الأساس تماماً.
   function readLocal() {
-    var best = null, bestN = -1;
+    var cands = [];
+    function tryKey(k, isSeed) {
+      try {
+        var raw = localStorage.getItem(k); if (!raw) return;
+        var o = JSON.parse(raw);
+        var raw_db = (o && o.db && (o.db.vehicles || o.db.length !== undefined)) ? o.db : o;
+        var db = normDb(raw_db);
+        if (db && (db.vehicles || []).length) cands.push({ db: db, at: (o && o.at) || 0, seed: !!isSeed });
+      } catch (e) { }
+    }
     try {
+      tryKey("fd_pending_v1");   // تعديلات محلية غير محفوظة (الأحدث لدى الأساس)
+      tryKey("fd_mirror_v1");    // آخر حالة متزامنة (بيانات الأساس الحيّة)
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
-        if (/^cdfleet.*db$/.test(k)) {
-          try { var d = normDb(JSON.parse(localStorage.getItem(k))); if (d && (d.vehicles || []).length > bestN) { best = d; bestN = (d.vehicles || []).length; } } catch (e2) { }
-        }
+        if (/cdfleet.*db$/.test(k) || /cd-fleet:db$/.test(k)) tryKey(k, true); // البذرة المجمّدة
       }
     } catch (e) { }
-    return best;
+    if (!cands.length) return null;
+    // غير البذرة تُفضَّل على البذرة؛ وبينها الأحدث زمنياً (at)
+    cands.sort(function (a, b) {
+      if (a.seed !== b.seed) return a.seed ? 1 : -1;
+      return (b.at || 0) - (a.at || 0);
+    });
+    return cands[0].db;
+  }
+  // إعادة مزامنة VEH من بيانات الأساس الحيّة عند كل عرض (يلتقط تعديلات/مزامنة الأساس)
+  function resyncFromBase() {
+    try { var lc = readLocal(); if (lc && (lc.vehicles || []).length) { DB = lc; VEH = lc.vehicles || []; } } catch (e) { }
   }
   function loadDB(cb) {
     if (VEH.length) { cb(true); return; }
+    // الأولوية: بيانات الأساس الحيّة (المرآة/المعلّق) — هي مصدر الحقيقة الذي يعرضه الأساس
     var local = readLocal();
+    if (local && (local.vehicles || []).length) { DB = local; VEH = DB.vehicles || []; cb(true); return; }
+    // لا مرآة بعد (تحميل أول قبل أن يزامن الأساس): جرّب data.json ثم البذرة كاحتياط أخير
     var seed = null; try { if (window.__FD31_SEED__) seed = normDb(window.__FD31_SEED__); } catch (e) { }
     var done = false, fin = function (ok) { if (done) return; done = true; cb(ok); };
-    function best(a, b) { var an = a ? (a.vehicles || []).length : -1, bn = b ? (b.vehicles || []).length : -1; return an >= bn ? a : b; }
-    // نعتمد الأكبر بين data.json والمحلي وبذرة الحزمة المضمّنة (الأخيرة تضمن العدد الصحيح حتى على file:// حين يتعذّر جلب data.json)
     try {
       fetch("data.json?fd31=" + Date.now()).then(function (r) { return r.json(); }).then(function (j) {
         var jd = normDb(j) || normDb(j && j.db) || null;
-        var pick = best(best(jd, local), seed);
-        DB = pick || local || seed || jd; VEH = DB ? (DB.vehicles || []) : [];
+        DB = jd || readLocal() || seed; VEH = DB ? (DB.vehicles || []) : [];
         fin(!!DB);
-      }).catch(function () { var pick = best(local, seed); DB = pick; VEH = DB ? (DB.vehicles || []) : []; fin(!!DB); });
-    } catch (e) { var pick = best(local, seed); DB = pick; VEH = DB ? (DB.vehicles || []) : []; fin(!!DB); }
-    // لو تأخّر الجلب، اعتمد الأكبر من المحلي/البذرة مؤقتاً
-    setTimeout(function () { if (!done) { var pick = best(local, seed); if (pick) { DB = pick; VEH = pick.vehicles || []; fin(true); } } }, 1500);
+      }).catch(function () { DB = readLocal() || seed; VEH = DB ? (DB.vehicles || []) : []; fin(!!DB); });
+    } catch (e) { DB = readLocal() || seed; VEH = DB ? (DB.vehicles || []) : []; fin(!!DB); }
+    setTimeout(function () { if (!done) { var lc = readLocal() || seed; if (lc) { DB = lc; VEH = lc.vehicles || []; fin(true); } } }, 1500);
   }
 
   /* ---------- الحالات + مجموعاتها ---------- */
@@ -2627,6 +2649,7 @@ var SPECIAL2 = [
     try { var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); go(); } }); }, { rootMargin: "200px" }); io.observe(host); } catch (e) { go(); }
   }
   function buildOpsDash(host) {
+    resyncFromBase(); // اقرأ بيانات الأساس الحيّة (المرآة) لحظة العرض ليتطابق المؤشر مع بقية التطبيق
     if (!VEH.length) { host.innerHTML = '<div class="ops-empty">جارِ تحميل بيانات غرفة العمليات…</div>'; loadDB(function () { if (document.getElementById("fd-ops-dash")) buildOpsDash(host); }); return; }
     var all = VEH, G = groupCounts(all), C = statCounts(all), d = readinessDetail(all);
     var maint = all.filter(atMaintenance).length;
