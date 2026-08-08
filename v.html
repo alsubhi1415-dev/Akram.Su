@@ -107,6 +107,48 @@
     #printdoc tr, #printdoc table { break-inside:avoid; }
     #printdoc .pf { text-align:center; font-size:10px; font-weight:700; color:#444; margin-top:4mm; }
   }
+
+  /* ===== شريط الإجراءات: بلاطات أيقونات متناسقة ===== */
+  .act-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:4px 0 12px; }
+  .act-tile { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    border:1.5px solid #E1E5EE; border-radius:14px; padding:12px 8px; background:#fff; cursor:pointer;
+    font-family:inherit; font-weight:800; color:#2B3242; transition:transform .14s, box-shadow .18s, border-color .18s; }
+  .act-tile:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(20,26,40,.10); }
+  .act-tile .ai { width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; }
+  .act-tile .ai svg { width:21px; height:21px; }
+  .act-tile .al { font-size:12px; font-weight:800; line-height:1.3; text-align:center; }
+  .act-print .ai { background:#EEF2FA; color:#2B6CB0; } .act-print:hover { border-color:#2B6CB0; }
+  .act-report .ai { background:#FBEDEF; color:#9E1B22; } .act-report:hover { border-color:#9E1B22; }
+  .act-check .ai { background:#E5F5F0; color:#0E7A5F; } .act-check:hover { border-color:#0E7A5F; }
+  /* ===== خانة فحص دور الاستلام والتسليم (مميّزة عن البلاغات) ===== */
+  .chk-box { border:1.5px solid #BFE3D6; background:linear-gradient(135deg,#F2FBF7,#EAF7F1); border-radius:16px; padding:14px 15px; margin-bottom:12px; }
+  .chk-h { display:flex; align-items:center; gap:9px; margin-bottom:9px; }
+  .chk-h .chk-ic { width:34px; height:34px; border-radius:10px; background:#0E7A5F; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .chk-h .chk-ic svg { width:19px; height:19px; }
+  .chk-h .chk-tt { font-size:13.5px; font-weight:800; color:#0B5C47; }
+  .chk-h .chk-sb { font-size:10.5px; font-weight:700; color:#3C7A67; margin-top:1px; }
+  .chk-last { background:#fff; border:1px solid #D6EBE3; border-radius:12px; padding:10px 12px; font-size:12px; font-weight:700; color:#274b40; line-height:1.85; }
+  .chk-last .cl-row { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .chk-badge { display:inline-flex; align-items:center; gap:5px; border-radius:99px; padding:3px 11px; font-size:11.5px; font-weight:800; }
+  .chk-ok { background:#E3F5EC; color:#12795A; border:1px solid #B7E3CF; }
+  .chk-note { background:#FCF3DE; color:#8A5D0B; border:1px solid #EAD9AE; }
+  .chk-none { font-size:12px; font-weight:700; color:#5B7166; }
+  .chk-go { margin-top:10px; width:100%; border:none; border-radius:11px; padding:11px; font-size:13px; font-weight:800; font-family:inherit; color:#fff; background:linear-gradient(135deg,#12A17A,#0E7A5F); cursor:pointer; }
+  .chk-go:hover { filter:brightness(1.05); }
+  /* راديو نتيجة الفحص داخل النافذة */
+  .chk-radio { display:flex; gap:8px; margin:4px 0 10px; }
+  .chk-opt { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; border:1.5px solid #D8DEE8; border-radius:11px; padding:10px; font-size:12.5px; font-weight:800; color:#3A4152; cursor:pointer; background:#fff; }
+  .chk-opt input { display:none; }
+  .chk-opt.on { border-color:#0E7A5F; background:#EAF7F1; color:#0B5C47; }
+  .chk-opt.on.warn { border-color:#B45309; background:#FCF3DE; color:#8A5D0B; }
+  .chk-confirm { display:flex; align-items:center; gap:9px; background:#F4F6FA; border:1.5px solid #E2E6EE; border-radius:12px; padding:11px 13px; margin:6px 0 12px; cursor:pointer; }
+  .chk-confirm input { width:19px; height:19px; accent-color:#0E7A5F; }
+  .chk-confirm span { font-size:12.5px; font-weight:800; color:#2B3242; text-align:right; }
+  body.dark .chk-box { background:linear-gradient(135deg,#12271F,#15241D); border-color:rgba(46,168,122,.35); }
+  body.dark .chk-h .chk-tt { color:#9FE3C4; } body.dark .chk-h .chk-sb { color:#7FC4AC; }
+  body.dark .chk-last { background:#1A2033; border-color:rgba(255,255,255,.10); color:#DCEFE7; }
+  body.dark .act-tile { background:#1A2033; border-color:rgba(255,255,255,.10); color:#E7EAF1; }
+
 </style>
 </head>
 <body>
@@ -193,6 +235,22 @@ var RT = RT_TAIL ? ((RT_TAIL.indexOf(GH_PREFIX) === 0 ? "" : GH_PREFIX) + RT_TAI
 var REPORTS_PATH = "reports.json";
 var GH_REPORTS = "https://api.github.com/repos/alsubhi1415-dev/Akram.Su/contents/" + REPORTS_PATH;
 var MAX_PENDING = 30, MAX_DESC = 300;
+// ====== قناة فحص دور الاستلام والتسليم (مستقلة عن البلاغات) ======
+var CHECKINS_PATH = "checkins.json";
+var GH_CHECKINS = "https://api.github.com/repos/alsubhi1415-dev/Akram.Su/contents/" + CHECKINS_PATH;
+var MAX_CHK = 800, MAX_CHK_NOTES = 300;
+var CHECKS = [];   // آخر فحوص الاستلام (نحتفظ بأحدث فحص لكل آلية)
+function loadChecks(cb){
+  fetch(CHECKINS_PATH + "?t=" + Date.now(), { cache: "no-store" })
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(j){ CHECKS = Array.isArray(j) ? j : []; if (cb) cb(); })
+    .catch(function(){ if (cb) cb(); });
+}
+function checkFor(v){
+  var c = vehCode(v), best = null;
+  for (var i=0;i<CHECKS.length;i++){ var x=CHECKS[i]; if (x && x.code===c && (!best || (x.ts||0) > (best.ts||0))) best = x; }
+  return best;
+}
 var PENDING = [];   // البلاغات المعلقة — تُجلب مبكراً لعرض «قيد المراجعة» قبل أي محاولة إرسال
 function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
 function loadPending(cb){
@@ -366,6 +424,109 @@ function openReport(v){
   document.getElementById("rp-x").onclick = function(){ ov.remove(); };
   document.getElementById("rp-go").onclick = function(){ sendReport(v, sel.value); };
 }
+function openCheckin(v){
+  var ov = document.createElement("div");
+  ov.id = "chk-ovl"; ov.className = ""; ov.setAttribute("style","position:fixed;inset:0;background:rgba(15,17,26,0.72);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px");
+  var last = checkFor(v);
+  ov.innerHTML = ''
+    + '<div class="rp-card" style="max-width:440px">'
+    + '<div class="chk-h" style="justify-content:center"><span class="chk-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'
+    + '<div><div class="chk-tt" style="font-size:16px">فحص دور الاستلام والتسليم</div><div class="chk-sb">يعبّئه السائق المستلم للآلية عند بداية الوردية</div></div></div>'
+    + '<div class="rp-v">' + esc(v.plate||"") + ' — ' + esc(v.type||"") + '</div>'
+    + (last ? '<div class="rp-cur">آخر فحص: <b>' + esc(last.at||"") + '</b> · ' + (last.hasNotes ? "بملاحظات" : "بدون ملاحظات") + '</div>' : '')
+    + '<label class="chk-confirm"><input type="checkbox" id="chk-done"><span>أُقرّ بأنني استلمت الآلية وأتممت التشييك والفحص عليها</span></label>'
+    + '<div class="rp-lbl">نتيجة الفحص</div>'
+    + '<div class="chk-radio">'
+    + '<label class="chk-opt on" id="chk-opt-ok"><input type="radio" name="chkres" value="ok" checked>✅ لم يُرصد أي ملاحظات</label>'
+    + '<label class="chk-opt warn" id="chk-opt-note"><input type="radio" name="chkres" value="note">⚠️ وُجدت ملاحظات</label>'
+    + '</div>'
+    + '<textarea id="chk-notes" maxlength="' + MAX_CHK_NOTES + '" rows="4" placeholder="اكتب الملاحظات المرصودة على الآلية…" style="display:none"></textarea>'
+    + '<input id="chk-driver" maxlength="60" placeholder="اسم السائق المستلم (إلزامي)" '
+    + 'style="width:100%;border:1.5px solid #C9CDD6;border-radius:11px;padding:10px 12px;font-family:inherit;font-size:12.5px;font-weight:800;box-sizing:border-box;margin-top:4px">'
+    + '<div class="rp-d">يُسجَّل تاريخ الاستلام تلقائياً: <b>' + esc(todayDual()) + '</b></div>'
+    + '<div class="rp-btns">'
+    + '<button id="chk-x" class="rp-b rp-gray">إلغاء</button>'
+    + '<button id="chk-send" class="rp-b" style="background:#0E7A5F">📋 رفع الفحص</button>'
+    + '</div>'
+    + '<div id="chk-msg" class="rp-m"></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  var optOk = document.getElementById("chk-opt-ok"), optNote = document.getElementById("chk-opt-note");
+  var notes = document.getElementById("chk-notes");
+  function refresh(){
+    var isNote = document.querySelector('input[name="chkres"]:checked').value === "note";
+    notes.style.display = isNote ? "block" : "none";
+    optOk.classList.toggle("on", !isNote); optNote.classList.toggle("on", isNote);
+  }
+  optOk.onclick = function(){ setTimeout(refresh,0); }; optNote.onclick = function(){ setTimeout(refresh,0); };
+  ov.onclick = function(e){ if (e.target === ov) ov.remove(); };
+  document.getElementById("chk-x").onclick = function(){ ov.remove(); };
+  document.getElementById("chk-send").onclick = function(){ sendCheckin(v); };
+}
+function chkSay(msg, okState){ var m = document.getElementById("chk-msg"); if (m){ m.textContent = msg; m.style.color = okState ? "#0E7A5F" : "#9E1B22"; } }
+function sendCheckin(v){
+  var done = (document.getElementById("chk-done")||{checked:false}).checked;
+  if (!done){ chkSay("يجب الإقرار بإتمام التشييك أولاً", false); return; }
+  var res = document.querySelector('input[name="chkres"]:checked').value;
+  var hasNotes = (res === "note");
+  var notes = (document.getElementById("chk-notes")||{value:""}).value.trim().slice(0, MAX_CHK_NOTES);
+  var driver = (document.getElementById("chk-driver")||{value:""}).value.trim().slice(0,60);
+  if (hasNotes && !notes){ chkSay("اكتب الملاحظات المرصودة", false); return; }
+  if (!driver){ chkSay("اسم السائق المستلم إلزامي", false); return; }
+  if (!RT){ chkSay("قناة الفحص لم تُفعَّل بعد", false); return; }
+  var btn = document.getElementById("chk-send");
+  btn.disabled = true; btn.textContent = "⏳ جارٍ الرفع…";
+  var attempt = function(tries){
+    fetch(GH_CHECKINS + "?ref=main", { headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + RT }, cache: "no-store" })
+      .then(function(r){
+        if (r.status === 404) return { sha: null, list: [] };
+        if (!r.ok) throw new Error("net");
+        return r.json().then(function(j){
+          var txt = ""; try { txt = decodeURIComponent(escape(atob(String(j.content||"").replace(/\n/g,"")))); } catch(e){}
+          var list = []; try { list = JSON.parse(txt); } catch(e){ list = []; }
+          if (!Array.isArray(list)) list = [];
+          return { sha: j.sha, list: list };
+        });
+      })
+      .then(function(st){
+        var code = vehCode(v);
+        // نحتفظ بأحدث فحص لكل آلية: نزيل أي فحص سابق لنفس الآلية
+        var list = st.list.filter(function(x){ return !(x && x.code === code); });
+        var ref = "C" + Date.now().toString(36).toUpperCase().slice(-6);
+        var entry = {
+          id: Date.now(), ts: Date.now(), ref: ref, code: code,
+          plate: v.plate || "", vtype: v.type || "", unit: v.unit || "",
+          done: true, hasNotes: hasNotes, notes: hasNotes ? notes : "",
+          driver: driver, at: todayDual()
+        };
+        list.push(entry);
+        if (list.length > MAX_CHK) list = list.slice(list.length - MAX_CHK);
+        var body = { message: "فحص استلام " + ref + " — " + (v.plate||""), content: b64enc(JSON.stringify(list, null, 1)), branch: "main" };
+        if (st.sha) body.sha = st.sha;
+        return fetch(GH_CHECKINS, {
+          method: "PUT",
+          headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + RT, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }).then(function(r){
+          if (r.status === 409 || r.status === 422) { if (tries > 0) return attempt(tries - 1); throw new Error("race"); }
+          if (!r.ok) throw new Error("auth");
+          CHECKS = CHECKS.filter(function(x){ return !(x && x.code === code); }); CHECKS.push(entry);
+          var card = document.querySelector("#chk-ovl .rp-card");
+          if (card) card.innerHTML = '<div class="rp-ok">✅</div>'
+            + '<div class="rp-t">تم رفع الفحص</div>'
+            + '<div class="rp-v">رقمه المرجعي: <b>' + ref + '</b></div>'
+            + '<div class="rp-n">سُجّل فحص دور الاستلام والتسليم لهذه الآلية' + (hasNotes ? " مع ملاحظات" : " بدون ملاحظات") + ' باسم: ' + esc(driver) + '</div>'
+            + '<div class="rp-btns"><button class="rp-b rp-gray" onclick="document.getElementById(\'chk-ovl\').remove(); render(window.__V);">إغلاق</button></div>';
+        });
+      })
+      .catch(function(e){
+        btn.disabled = false; btn.textContent = "📋 رفع الفحص";
+        var m = String(e && e.message || "");
+        chkSay(m === "race" ? "تزاحم على الرفع — أعد المحاولة" : "تعذّر الرفع — تحقق من الاتصال", false);
+      });
+  };
+  attempt(2);
+}
 function todayDual(){
   var d = new Date();
   var g = d.getFullYear() + "/" + ("0"+(d.getMonth()+1)).slice(-2) + "/" + ("0"+d.getDate()).slice(-2) + "م";
@@ -512,16 +673,40 @@ function render(v){
   }).join("") : '<div class="none">لم تُعدَّل بيانات هذه الآلية بعد</div>';
   h += '</div>';
 
-  h += '<div class="noprint" style="text-align:center;margin-bottom:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
-     + '<button onclick="window.print()">🖨 طباعة البطاقة</button>'
-     + '<button id="rep-btn" style="background:#7E1A2F">📨 إرسال بلاغ عن الآلية</button>'
+  // خانة فحص دور الاستلام والتسليم (مميّزة عن البلاغات)
+  var lastChk = checkFor(v);
+  h += '<div class="chk-box noprint">'
+     + '<div class="chk-h"><span class="chk-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>'
+     + '<div><div class="chk-tt">فحص دور الاستلام والتسليم</div><div class="chk-sb">يرفعه السائق المستلم عند تبديل الوردية (24 ساعة)</div></div></div>';
+  if (lastChk) {
+    h += '<div class="chk-last"><div class="cl-row"><span>آخر فحص استلام</span>'
+       + (lastChk.hasNotes
+          ? '<span class="chk-badge chk-note">⚠️ بملاحظات</span>'
+          : '<span class="chk-badge chk-ok">✅ تم دون ملاحظات</span>')
+       + '</div>'
+       + '<div class="cl-row"><span>السائق المستلم: <b>' + esc(lastChk.driver||"—") + '</b></span><span>' + esc(lastChk.at||"") + '</span></div>'
+       + (lastChk.hasNotes && lastChk.notes ? '<div style="margin-top:6px;color:#8A5D0B">الملاحظات: ' + esc(lastChk.notes) + '</div>' : '')
+       + '</div>';
+  } else {
+    h += '<div class="chk-none">لم يُسجَّل فحص استلام لهذه الآلية بعد.</div>';
+  }
+  h += '<button class="chk-go" id="chk-btn">📋 تسجيل فحص الاستلام والتسليم</button></div>';
+
+  // شريط الإجراءات — بلاطات أيقونات متناسقة
+  h += '<div class="act-bar noprint">'
+     + '<button class="act-tile act-print" id="act-print"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg></span><span class="al">طباعة البطاقة</span></button>'
+     + '<button class="act-tile act-report" id="act-report"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span><span class="al">إرسال بلاغ</span></button>'
+     + '<button class="act-tile act-check" id="act-check"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="al">فحص الاستلام</span></button>'
      + '</div>';
   h += '<div class="ft">بطاقة عرض فقط — لا تتيح تعديل السجل<br>الإدارة العامة للدفاع المدني بمحافظة جدة · صفحة العرض v7</div>';
   document.getElementById("app").innerHTML = h;
   document.getElementById("printdoc").innerHTML = printDoc(v, col);
   document.title = "بطاقة " + (v.plate||"آلية");
-  var rb = document.getElementById("rep-btn");
-  if (rb) rb.onclick = function(){ openReport(v); };
+  window.__V = v;
+  var ap = document.getElementById("act-print"); if (ap) ap.onclick = function(){ window.print(); };
+  var ar = document.getElementById("act-report"); if (ar) ar.onclick = function(){ openReport(v); };
+  var ac = document.getElementById("act-check"); if (ac) ac.onclick = function(){ openCheckin(v); };
+  var cb = document.getElementById("chk-btn"); if (cb) cb.onclick = function(){ openCheckin(v); };
 }
 function fail(msg){
   document.getElementById("app").innerHTML =
@@ -561,7 +746,7 @@ function fail(msg){
         if (q.p && (nz(x.plate) === nz(q.p) || String(x.id) === q.p)) { v = x; break; }
       }
       if (!v) { fail("لم يُعثر على آلية بهذا الرمز — قد يكون الملصق قديماً"); return; }
-      loadPending(function(){ render(v); });
+      loadPending(function(){ loadChecks(function(){ render(v); }); });
     })
     .catch(function(){ fail("تعذّر تحميل بيانات الآليات — تحقق من الاتصال ثم أعد المحاولة"); });
 })();
