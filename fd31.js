@@ -1,5 +1,5 @@
 /* ============================================================
-   FD31 · الإصدار 33.0 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 33.4 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -46,7 +46,7 @@
   var esc = function (s) { return String(s == null ? "" : s).replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
   var norm = function (s) {
     return String(s == null ? "" : s)
-      .replace(/[\u0640\u064B-\u0652]/g, "")
+      .replace(/[ـً-ْ]/g, "")
       .replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/ؤ/g, "و").replace(/ئ/g, "ي")
       .replace(/شفروليه/g, "شفرليت").replace(/شيفروليه/g, "شفرليت").replace(/دايهاتسو/g, "ديهاتسو").replace(/تليسكوب/g, "تلسكوب")
       .replace(/[٠-٩]/g, function (c) { return "٠١٢٣٤٥٦٧٨٩".indexOf(c); })
@@ -207,7 +207,7 @@
   ];
   function typeMatch(v, T) { var s = norm(v.type); return T.m.some(function (mm) { return s.indexOf(mm) >= 0; }); }
 
-  function normPlate(s){ s=String(s==null?"":s); s=s.replace(/[\u0640\u064B-\u0652]/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/[٠-٩]/g,function(c){return "٠١٢٣٤٥٦٧٨٩".indexOf(c);}); return s.replace(/\s+/g,"").toLowerCase().trim(); }
+  function normPlate(s){ s=String(s==null?"":s); s=s.replace(/[ـً-ْ]/g,"").replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/[٠-٩]/g,function(c){return "٠١٢٣٤٥٦٧٨٩".indexOf(c);}); return s.replace(/\s+/g,"").toLowerCase().trim(); }
 
 var SPECIAL = [
     { name: "البروبلين", kws: ["بروبلين","روزنباور"], set: ["اكي1592","اكي1593","اكي1595","اكي1598","اكي8250","اكي8251","اكي8255","اكي8454","الط1977","الط1995","امب1241","امب1858","امب1859","امب1872","امب5814","امط4146","امط4147","امك4421","انب3885","انب3894","انب3896","انب3911","انط2479","انط2482","انط2483","انط2496","انط2497","انط2502","انط2503","انط2504","انع7207","انع8479","انع8482","انع8503","اهس2260","اهس6583","اهس8336","اهس8359","اهس8367","اهس8369","اهس8371","اهم1420","اهم1425","اوس7019","اوس7036","اوس7038","اوس7042","اوع4791","اوم2858","اوم2866","اوم2872","اوم2878","اوم4089","اوم7670","اوم7674","اين2709","اين2713","اين2715","اين2716","اين6642","اين6670","اين6676","باد8319","باد8343","باد8349","باد8359","باد8362","باق1436","باق1438","باق1443","باق5850","باق5860","ببا2185","ببا2192","ببا5669","بحح6276","بحق7138","بحق7141","بحل3070","بحل3085","بحل3087","بحل3138","بحل3161"] },
@@ -373,7 +373,7 @@ var SPECIAL2 = [
   function locBreakdownHtml(pool) {
     var arr = locBreakdown(pool);
     if (!arr.length) return "";
-    return "<div style='font-size:11.5px;color:#AEC2DA;margin-top:6px;line-height:1.9'>📍 المواقع: " + arr.slice(0, 8).map(function (x) { return esc(x[0]) + " <b style='color:#DCE7F5'>" + x[1] + "</b>"; }).join(" · ") + (arr.length > 8 ? " …" : "") + "</div>";
+    return "<div style='font-size:11.5px;color:#AEC2DA;margin-top:6px;line-height:1.9'>" + ICO.pin + " المواقع: " + arr.slice(0, 8).map(function (x) { return esc(x[0]) + " <b style='color:#DCE7F5'>" + x[1] + "</b>"; }).join(" · ") + (arr.length > 8 ? " …" : "") + "</div>";
   }
 
 
@@ -398,7 +398,7 @@ var SPECIAL2 = [
     else parts.push("<span style='color:#7FE0BC'>لا توجد عطلانة تخفضها</span>");
     if (d.notes.length) parts.push(d.notes.length + " بملاحظات (تُحتسب جاهزة)");
     if (d.rej || d.prep) parts.push("مستبعد: " + d.rej + " رجيع + " + d.prep + " تجهيز");
-    return "<div style='font-size:11.5px;color:#AEC2DA;line-height:1.9;margin-top:6px;border-top:1px dashed rgba(255,255,255,.14);padding-top:6px'>📌 التبرير: " + parts.join(" · ") + "</div>";
+    return "<div style='font-size:11.5px;color:#AEC2DA;line-height:1.9;margin-top:6px;border-top:1px dashed rgba(255,255,255,.14);padding-top:6px'>" + ICO.target + " التبرير: " + parts.join(" · ") + "</div>";
   }
   function justifySay(pool) {
     var d = readinessDetail(pool);
@@ -439,7 +439,7 @@ var SPECIAL2 = [
       return "<div style='display:flex;align-items:center;gap:8px;margin:3px 0'><span style='flex:0 0 150px;font-size:12px;color:#DCE7F5'>" + esc(x[0]) + "</span><span class='fd31-bar' style='flex:1'><i style='width:" + w + "%'></i></span><b style='flex:0 0 30px;text-align:left;color:#F5D77A'>" + x[1] + "</b></div>";
     }).join("");
     var g = distGaps(pool);
-    var gapLine = g.miss.length ? "<div style='font-size:11.5px;color:#FF9AA0;margin-top:7px;line-height:1.9'>🚫 شُعب ميدانية بلا «" + esc(subjName) + "»: " + g.miss.map(esc).join("، ") + "</div>" : "<div style='font-size:11.5px;color:#7FE0BC;margin-top:7px'>✅ كل الشُّعب الميدانية الـ12 لديها «" + esc(subjName) + "»</div>";
+    var gapLine = g.miss.length ? "<div style='font-size:11.5px;color:#FF9AA0;margin-top:7px;line-height:1.9'>" + ICO.ban + " شُعب ميدانية بلا «" + esc(subjName) + "»: " + g.miss.map(esc).join("، ") + "</div>" : "<div style='font-size:11.5px;color:#7FE0BC;margin-top:7px'>" + ICO.check + " كل الشُّعب الميدانية الـ12 لديها «" + esc(subjName) + "»</div>";
     return "<div style='margin-top:8px'>" + rows + gapLine + "</div>";
   }
 
@@ -452,7 +452,7 @@ var SPECIAL2 = [
 
     // بند معدة نوعية (تُشرح ولا تُعدّ كآليات)
     if (F.equip && !F.special && !F.type) {
-      return { say: F.equip.name + ": " + F.equip.note, html: "<div><b style='color:#F5D77A'>" + esc(F.equip.name) + "</b><div style='font-size:12.5px;color:#AEC2DA;line-height:1.9;margin-top:6px'>ℹ️ " + esc(F.equip.note) + "</div></div>" };
+      return { say: F.equip.name + ": " + F.equip.note, html: "<div><b style='color:#F5D77A'>" + esc(F.equip.name) + "</b><div style='font-size:12.5px;color:#AEC2DA;line-height:1.9;margin-top:6px'>ℹ " + esc(F.equip.note) + "</div></div>" };
     }
 
     // اشتقاق التوزيع على الشُّعب / كشف النقص (تكميل نوعي)
@@ -563,7 +563,7 @@ var SPECIAL2 = [
 
     return {
       say: "لم أتبيّن المطلوب، جرّب صياغة أخرى.",
-      html: "<div>لم أتبيّن المطلوب بدقة 🤔 — جرّب مثلاً:<div style='font-size:12.5px;line-height:2.2;margin-top:6px'>• كم سلالم تعمل وكم متعطلة؟<br>• نسبة جاهزية شعبة أبحر (مع التبرير)<br>• كم آلية في مركز الروضة؟<br>• أفضل الشُّعب الميدانية<br>• كم البروبلين وكم منها عطلانة؟<br>• أين الآلية 2362؟</div></div>"
+      html: "<div>لم أتبيّن المطلوب بدقة — جرّب مثلاً:<div style='font-size:12.5px;line-height:2.2;margin-top:6px'>• كم سلالم تعمل وكم متعطلة؟<br>• نسبة جاهزية شعبة أبحر (مع التبرير)<br>• كم آلية في مركز الروضة؟<br>• أفضل الشُّعب الميدانية<br>• كم البروبلين وكم منها عطلانة؟<br>• أين الآلية 2362؟</div></div>"
     };
   }
 
@@ -616,7 +616,7 @@ var SPECIAL2 = [
       var r = clauseResult((i === 0 && sp.prefix ? sp.prefix + " " : "") + sp.parts[i], prevSubj);
       prevSubj = r.subj || prevSubj; rows.push(r); says.push(r.say);
     }
-    var html = "<div><div style='font-size:12px;color:#F5D77A;font-weight:800;margin-bottom:8px'>🧠 إجابة مركّبة (" + rows.length + " بنود)</div><div class='fd31-multi'>" +
+    var html = "<div><div style='font-size:12px;color:#F5D77A;font-weight:800;margin-bottom:8px'>" + ICO.layers + " إجابة مركّبة (" + rows.length + " بنود)</div><div class='fd31-multi'>" +
       rows.map(function (r, i) {
         var chips = r.feats.map(function (f) {
           var cls = f.label === "يعمل" ? "up" : ((f.label === "متعطل" || f.label === "عطلانة") ? "down" : (f.label === "رجيع" ? "rej" : "neu"));
@@ -693,7 +693,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 33.0</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 33.4</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
@@ -706,7 +706,7 @@ var SPECIAL2 = [
   function fd31DocExport(title, bodyHtml, opts, filename) {
     try {
       var html = buildReportHtml(title, bodyHtml, opts);
-      var blob = new Blob(["\uFEFF", html], { type: "application/msword;charset=utf-8" });
+      var blob = new Blob(["﻿", html], { type: "application/msword;charset=utf-8" });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = String(filename || title).replace(/[\\\/:*?"<>|]/g, "_").slice(0, 80) + ".doc";
@@ -729,19 +729,19 @@ var SPECIAL2 = [
   function buildAI() {
     if (aiOv) return aiOv;
     aiOv = overlay("fd31-ai");
-    aiOv.appendChild(head("🤖", "المساعد الذكي", "يميّز الشُّعب عن مراكزها ويجيب بالتصنيف والتبرير", function () { closeOv(aiOv); }));
+    aiOv.appendChild(head(ICO.bot, "المساعد الذكي", "يميّز الشُّعب عن مراكزها ويجيب بالتصنيف والتبرير", function () { closeOv(aiOv); }));
     var body = el("div", "fd31-body"); aiOv.appendChild(body);
     body.innerHTML = '<div class="fd31-wrap"><div id="fd31-chat"><div id="fd31-msgs"></div>' +
       '<div id="fd31-hint">اكتب سؤالك بأي صيغة. أمثلة: <span>كم سلالم تعمل وكم متعطلة؟</span> · <span>نسبة جاهزية شعبة أبحر</span> · <span>كم آلية في مركز الروضة؟</span> · <span>كم البروبلين؟</span> · <span>أفضل الشُّعب الميدانية</span></div>' +
       '<div id="fd31-ask"><input id="fd31-q" class="fd31-input" placeholder="مثال: كم آلية تعمل وكم متعطلة في شعبة العزيزية؟">' +
-      '<button id="fd31-mic" class="fd31-btn ghost" title="سؤال صوتي">🎙️</button><button id="fd31-send" class="fd31-btn gold">إرسال</button></div></div></div>';
+      '<button id="fd31-mic" class="fd31-btn ghost" title="سؤال صوتي">' + ICO.mic + '</button><button id="fd31-send" class="fd31-btn gold">إرسال</button></div></div></div>';
     wireChat();
     return aiOv;
   }
   function wireChat() {
     var msgs = $("#fd31-msgs");
     function push(cls, html) { var m = el("div", "fd31-msg " + cls, html); msgs.appendChild(m); msgs.scrollTop = msgs.scrollHeight; return m; }
-    push("bot", "<div>مرحباً 👋 — أجيبك فوراً من بيانات <b style='color:#F5D77A'>" + VEH.length + "</b> آلية. أُميّز الشُّعب الميدانية عن المراكز التابعة لها، وأصنّف الحالات إلى <b>يعمل</b> و<b>متعطل</b> و<b>رجيع</b>، وأعرف <b>التصنيف الخاص</b> لصفحة التقارير (البروبلين، المزدوجات، النوعية، الديهاتسو المسحوب، بيان 186…). اسألني بأي صيغة.</div>");
+    push("bot", "<div>مرحباً — أجيبك فوراً من بيانات <b style='color:#F5D77A'>" + VEH.length + "</b> آلية. أُميّز الشُّعب الميدانية عن المراكز التابعة لها، وأصنّف الحالات إلى <b>يعمل</b> و<b>متعطل</b> و<b>رجيع</b>، وأعرف <b>التصنيف الخاص</b> لصفحة التقارير (البروبلين، المزدوجات، النوعية، الديهاتسو المسحوب، بيان 186…). اسألني بأي صيغة.</div>");
     function go(qtext) {
       var qv = (qtext != null ? qtext : $("#fd31-q").value || "").trim(); if (!qv) return;
       $("#fd31-q").value = ""; push("user", esc(qv));
@@ -767,7 +767,7 @@ var SPECIAL2 = [
       if (REJ[v.status]) return;
       var base = baselineSer(v), age = parseInt(v.model, 10) > 1980 ? (2026 - parseInt(v.model, 10)) : null;
       var tireM = (age != null && age > 10) ? Math.max(6, Math.round(C.tire / 2)) : C.tire;
-      [["تغيير زيوت وسوائل", C.oil, "🛢️"], ["فحص وصيانة البطاريات", C.bat, "🔋"], ["فحص واستبدال الكفرات", tireM, "🛞"], ["صيانة دورية شاملة", C.full, "🧰"]].forEach(function (t) {
+      [["تغيير زيوت وسوائل", C.oil, ICO.oil], ["فحص وصيانة البطاريات", C.bat, ICO.battery], ["فحص واستبدال الكفرات", tireM, ICO.wheel], ["صيانة دورية شاملة", C.full, ICO.toolbox]].forEach(function (t) {
         var due = base + Math.round(t[1] * 29.53), diff = due - SER_NOW;
         rows.push({ v: v, task: t[0], icon: t[2], due: due, diff: diff, st: diff < 0 ? "متأخرة" : (diff <= 30 ? "قريبة" : "مجدولة") });
       });
@@ -787,19 +787,19 @@ var SPECIAL2 = [
       '<div class="fdp-head"><div class="fdp-title"><span class="fdp-ic fdp-ic-img"><img src="'+MAINT_LOGO+'" alt="شعار الصيانة الوقائية"></span><div><h1>الصيانة الوقائية للآليات</h1><p>خطة استباقية تُحسب من تاريخ آخر إصلاح لكل آلية بتقويم أم القرى — الرجيع مستبعد</p></div></div></div>' +
       '<div class="fdp-kpis">' +
       '<div class="fdp-kpi red"><div class="k-ic">⏰</div><div class="k-n">' + late.length + '</div><div class="k-l">مهمة متأخرة</div></div>' +
-      '<div class="fdp-kpi amber"><div class="k-ic">📅</div><div class="k-n">' + soon.length + '</div><div class="k-l">مستحقة خلال 30 يوماً</div></div>' +
-      '<div class="fdp-kpi green"><div class="k-ic">✅</div><div class="k-n">' + sched + '</div><div class="k-l">مجدولة لاحقاً</div></div>' +
-      '<div class="fdp-kpi blue"><div class="k-ic">🚒</div><div class="k-n">' + new Set(rows.map(function (r) { return r.v.id; })).size + '</div><div class="k-l">آلية مشمولة</div></div>' +
+      '<div class="fdp-kpi amber"><div class="k-ic">' + ICO.calendar + '</div><div class="k-n">' + soon.length + '</div><div class="k-l">مستحقة خلال 30 يوماً</div></div>' +
+      '<div class="fdp-kpi green"><div class="k-ic">' + ICO.check + '</div><div class="k-n">' + sched + '</div><div class="k-l">مجدولة لاحقاً</div></div>' +
+      '<div class="fdp-kpi blue"><div class="k-ic">' + ICO.truck + '</div><div class="k-n">' + new Set(rows.map(function (r) { return r.v.id; })).size + '</div><div class="k-l">آلية مشمولة</div></div>' +
       '</div>' +
-      '<div class="fdp-panel"><div class="fdp-panel-h"><h2>⚙️ فترات الصيانة القياسية</h2><span class="fdp-note">بالأشهر الهجرية · تُطبَّق فوراً عند التغيير</span></div>' +
+      '<div class="fdp-panel"><div class="fdp-panel-h"><h2>' + ICO.gear + ' فترات الصيانة القياسية</h2><span class="fdp-note">بالأشهر الهجرية · تُطبَّق فوراً عند التغيير</span></div>' +
       '<div class="fdp-cfg">' +
-      cfgBox("oil", "🛢️", "الزيوت والسوائل", C.oil) + cfgBox("bat", "🔋", "البطاريات", C.bat) +
-      cfgBox("tire", "🛞", "الكفرات", C.tire) + cfgBox("full", "🧰", "الصيانة الشاملة", C.full) +
-      '</div><div class="fdp-hint">💡 الآليات الأقدم من 10 سنوات تُنصَّف فترة كفراتها تلقائياً</div></div>' +
-      '<div class="fdp-panel"><div class="fdp-panel-h"><h2>📋 جدول الاستحقاق</h2>' +
+      cfgBox("oil", ICO.oil, "الزيوت والسوائل", C.oil) + cfgBox("bat", ICO.battery, "البطاريات", C.bat) +
+      cfgBox("tire", ICO.wheel, "الكفرات", C.tire) + cfgBox("full", ICO.toolbox, "الصيانة الشاملة", C.full) +
+      '</div><div class="fdp-hint">' + ICO.bulb + ' الآليات الأقدم من 10 سنوات تُنصَّف فترة كفراتها تلقائياً</div></div>' +
+      '<div class="fdp-panel"><div class="fdp-panel-h"><h2>' + ICO.clipboard + ' جدول الاستحقاق</h2>' +
       '<div class="fdp-filters"><select id="fdp-br" class="fdp-sel"><option value="">كل الجهات</option>' + Object.keys(branches).sort().map(function (b) { return '<option>' + b + '</option>'; }).join("") + '</select>' +
       '<select id="fdp-st" class="fdp-sel"><option value="">كل الحالات</option><option>متأخرة</option><option>قريبة</option><option>مجدولة</option></select>' +
-      '<button id="fdp-print" class="fdp-btn">🖨️ طباعة الجدول</button><button id="fdp-word" class="fdp-btn">📄 تصدير Word</button></div></div>' +
+      '<button id="fdp-print" class="fdp-btn">' + ICO.printer + ' طباعة الجدول</button><button id="fdp-word" class="fdp-btn">' + ICO.file + ' تصدير Word</button></div></div>' +
       '<div id="fdp-tbl" class="fdp-tblwrap"></div></div></div>';
     function cfgApply() {
       var o = {}; ["oil", "bat", "tire", "full"].forEach(function (k) { o[k] = +$("#fdp-c-" + k, host).value || mcfg()[k]; });
@@ -853,8 +853,8 @@ var SPECIAL2 = [
     var downDays = 0; (v.faults || []).forEach(function (f) { var a = hSer(parseH(f.date)), b = hSer(parseH(f.repairDate)); if (a && b && b >= a) downDays += (b - a); else if (a && !b) downDays += (SER_NOW - a); });
     host.innerHTML =
       '<div class="fdv">' +
-      '<div class="fdv-h"><span class="fdv-ic">🕓</span><h2>الخط الزمني وسيرة الآلية</h2>' +
-      '<button class="fdv-print" id="fdv-print">🖨️ طباعة تقرير مفصّل</button><button class="fdv-print fdv-word" id="fdv-word">📄 تصدير Word</button></div>' +
+      '<div class="fdv-h"><span class="fdv-ic">' + ICO.clock + '</span><h2>الخط الزمني وسيرة الآلية</h2>' +
+      '<button class="fdv-print" id="fdv-print">' + ICO.printer + ' طباعة تقرير مفصّل</button><button class="fdv-print fdv-word" id="fdv-word">' + ICO.file + ' تصدير Word</button></div>' +
       '<div class="fdv-stats"><div class="fdv-st"><b>' + totalFaults + '</b><span>إجمالي الأعطال</span></div>' +
       '<div class="fdv-st ' + (of.length ? "warn" : "") + '"><b>' + of.length + '</b><span>أعطال مفتوحة</span></div>' +
       '<div class="fdv-st"><b>' + downDays + '</b><span>إجمالي أيام التوقف</span></div>' +
@@ -970,8 +970,8 @@ var SPECIAL2 = [
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ops-pulse" preserveAspectRatio="none"><defs><linearGradient id="opsGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,180,84,.42)"/><stop offset="1" stop-color="rgba(255,180,84,0)"/></linearGradient></defs>' +
       '<path d="' + area + '" fill="url(#opsGrad)"/><path class="ops-pl-line" d="' + d + '" fill="none" stroke="#FFB454" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' + dots + labels + '</svg>';
   }
-  function kpiTile(icon, label, val, cls) {
-    return '<div class="ops-kpi ' + cls + '"><div class="ops-kpi-ic">' + icon + '</div><div class="ops-kpi-n" data-count="' + val + '">0</div><div class="ops-kpi-l">' + label + '</div><i class="ops-kpi-glow"></i></div>';
+  function kpiTile(icon, label, val, cls, why) {
+    return '<div class="ops-kpi ' + cls + '"' + (why ? ' data-why="' + esc(why) + '"' : '') + '><div class="ops-kpi-ic">' + icon + '</div><div class="ops-kpi-n" data-count="' + val + '">0</div><div class="ops-kpi-l">' + label + '</div><i class="ops-kpi-glow"></i></div>';
   }
   function opsAnimate(host) {
     host.querySelectorAll("[data-count]").forEach(function (el) {
@@ -1009,14 +1009,14 @@ var SPECIAL2 = [
     var c = opsMapColor(x.pct);
     var head = '<div class="omd-h"><span class="omd-dot" style="background:' + c + '"></span><b>شعبة ' + esc(x.name) + '</b>'
       + '<span class="omd-pctwrap"><span class="omd-pct" style="color:' + c + '">' + x.pct + '٪</span><span class="omd-pctl">نسبة الجاهزية</span></span>'
-      + '<span class="omd-btns"><button class="omd-rep" data-b="' + esc(x.name) + '" title="طباعة التقرير الشامل للشعبة">🖨️ تقرير الشعبة</button><button class="omd-rep omd-repw" data-b="' + esc(x.name) + '" title="تصدير Word">📄</button></span></div>';
+      + '<span class="omd-btns"><button class="omd-rep" data-b="' + esc(x.name) + '" title="طباعة التقرير الشامل للشعبة">' + ICO.printer + ' تقرير الشعبة</button><button class="omd-rep omd-repw" data-b="' + esc(x.name) + '" title="تصدير Word">' + ICO.file + '</button></span></div>';
     var grid = '<div class="omd-grid">'
       + '<div class="omd-cell"><div class="omd-v">' + x.total + '</div><div class="omd-k">إجمالي آليات الشعبة</div></div>'
       + '<div class="omd-cell"><div class="omd-v" style="color:#5FE3A5">' + x.up + '</div><div class="omd-k">آليات جاهزة</div></div>'
       + '<div class="omd-cell"><div class="omd-v" style="color:#FF8A90">' + x.down + '</div><div class="omd-k">الآليات المتعطلة</div></div>'
       + '<div class="omd-cell"><div class="omd-v" style="color:#F0D58A">' + x.notes + '</div><div class="omd-k">آليات تعمل بوجود ملاحظات</div></div>'
       + '</div>';
-    var worst = (x.down ? '<div class="omd-worst">أكثر الأنواع تعطلاً: <b>' + esc(x.worst) + '</b> (' + x.worstN + ' آلية)</div>' : '<div class="omd-worst ok">لا آليات متعطلة في هذه الشعبة ✅</div>');
+    var worst = (x.down ? '<div class="omd-worst">أكثر الأنواع تعطلاً: <b>' + esc(x.worst) + '</b> (' + x.worstN + ' آلية)</div>' : '<div class="omd-worst ok">لا آليات متعطلة في هذه الشعبة ' + ICO.check + '</div>');
     // بطاقات شبكية لكل آليات الشعبة (النوع + اللوحة + الحالة) — تملأ الفراغ بذكاء
     var list = (x.list || []).slice().sort(function (a, b) {
       var oa = (a.status === "عطلانة") ? 0 : 1, ob = (b.status === "عطلانة") ? 0 : 1; return oa - ob;
@@ -1070,7 +1070,7 @@ var SPECIAL2 = [
       '<div class="fdls-count"><span class="fdls-n">' + n + '</span><span class="fdls-nl">آلية مطابقة للمرشّح</span></div>' +
       '<div class="fdls-ready"><span class="fdls-rp">' + d.pct + '٪</span><span class="fdls-rl">جاهزية المعروض</span></div>' +
       '<div class="fdls-meta"><span>' + branches.length + ' جهة</span><span>' + typeN + ' نوع</span><span>' + d.up + ' جاهزة · ' + d.down.length + ' عطلانة</span></div>' +
-      '<button type="button" class="fdls-word" title="تصدير بيانات السجل المعروض إلى Word">📄 تصدير Word</button>' +
+      '<button type="button" class="fdls-word" title="تصدير بيانات السجل المعروض إلى Word">' + ICO.file + ' تصدير Word</button>' +
       '</div>' +
       '<div class="fdls-bar">' + bar + '</div>' +
       '<div class="fdls-chips">' + chips + '</div>' +
@@ -1111,11 +1111,11 @@ var SPECIAL2 = [
     if (host.querySelector(".ops-wrap") || host.querySelector(".ops-ph-card")) return;
     function go() { if (!host.querySelector(".ops-wrap")) buildOpsDash(host); }
     if (typeof window.IntersectionObserver !== "function") {
-      host.innerHTML = '<div class="ops-ph-card"><span class="ops-ph-ic">🛰️</span><div class="ops-ph-t">داشبورد غرفة العمليات جاهز</div><button class="ops-ph-btn" type="button">▶ عرض اللوحة الحيّة</button></div>';
+      host.innerHTML = '<div class="ops-ph-card"><span class="ops-ph-ic">' + ICO.radar + '</span><div class="ops-ph-t">داشبورد غرفة العمليات جاهز</div><button class="ops-ph-btn" type="button">▶ عرض اللوحة الحيّة</button></div>';
       var b = host.querySelector(".ops-ph-btn"); if (b) b.onclick = go;
       return;
     }
-    host.innerHTML = '<div class="ops-ph-card ops-ph-load"><span class="ops-ph-ic">🛰️</span><div class="ops-ph-t">يُحمَّل داشبورد غرفة العمليات…</div></div>';
+    host.innerHTML = '<div class="ops-ph-card ops-ph-load"><span class="ops-ph-ic">' + ICO.radar + '</span><div class="ops-ph-t">يُحمَّل داشبورد غرفة العمليات…</div></div>';
     try { var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); go(); } }); }, { rootMargin: "200px" }); io.observe(host); } catch (e) { go(); }
   }
   function buildOpsDash(host) {
@@ -1127,41 +1127,42 @@ var SPECIAL2 = [
     var color = d.pct >= 70 ? "#2FD37F" : (d.pct >= 50 ? "#E8C561" : "#FF6B72");
     var now = new Date(), clock = ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2);
     var maxBr = br.length ? br[0].pct : 100;
-    var medals = ["🥇", "🥈", "🥉"];
+    var medals = ['<span class="ops-rank r1">1</span>', '<span class="ops-rank r2">2</span>', '<span class="ops-rank r3">3</span>'];
     host.innerHTML =
       '<div class="ops-wrap" id="ops-wrap">' +
       '<div class="ops-bar"><div class="ops-live"><span class="ops-dot"></span> مباشر</div>' +
       '<div class="ops-title">مؤشرات الجاهزية الفنية والآلية — الإدارة العامة للدفاع المدني بمحافظة جدة</div>' +
       '<div class="ops-clock"><span id="ops-clock">' + clock + '</span> · ' + fmtH(H_NOW) + '</div>' +
-      '<button class="ops-full" id="ops-word" title="تصدير تقرير الجاهزية إلى Word">📄 تصدير Word</button>' +
+      '<button class="ops-full" id="ops-word" title="تصدير تقرير الجاهزية إلى Word">' + ICO.file + ' تصدير Word</button>' +
       '<button class="ops-full" id="ops-full" title="عرض ملء الشاشة للجدران">⛶ شاشة كاملة</button>' +
-      '<button class="ops-full" id="ops-mon" title="البيان الشهري الرسمي — طباعة">🗓️ بيان شهري</button>' +
-      '<button class="ops-full" id="ops-monw" title="البيان الشهري — Word">🗓️📄</button></div>' +
+      '<button class="ops-full" id="ops-pres" title="جولة عرض تلقائية بين اللوحات — للعرض أمام القيادة">' + ICO.play + ' عرض تقديمي</button>' +
+      '<button class="ops-full" id="ops-mon" title="البيان الشهري الرسمي — طباعة">' + ICO.calendar + ' بيان شهري</button>' +
+      '<button class="ops-full" id="ops-monw" title="البيان الشهري — Word">' + ICO.calendar + ICO.file + '</button></div>' +
 
       '<div class="ops-hero">' +
-      '<div class="ops-card ops-glow"><div class="ops-card-h">مؤشر الجاهزية العام</div>' + gaugeSVG(d.pct, color) +
+      '<div class="ops-card ops-glow" data-why="' + esc('النسبة = الجاهزة ' + d.up + ' ÷ (الإجمالي ' + all.length + ' − رجيع ' + ((C['تحت إجراءات الرجيع']||0)+(C['صدر قرار الرجيع']||0)) + ' − تجهيز ' + (C['تحت التجهيز والتسليم']||0) + ') = ' + d.pct + '٪ · الجاهزة = تعمل + تم الإصلاح + تعمل بملاحظات') + '"><div class="ops-card-h">مؤشر الجاهزية العام</div>' + gaugeSVG(d.pct, color) +
       '<div class="ops-sub">إجمالي الآليات ' + all.length + ' · جاهزة ' + d.up + '</div></div>' +
       '<div class="ops-card"><div class="ops-card-h">توزيع الحالات الفنية</div>' + donutSVG(C) +
       '<div class="ops-legend">' + [["تعمل", "#2FD37F"], ["عطلانة", "#FF6B72"], ["رجيع", "#B79CF0"]].map(function (x) { return '<span><i style="background:' + x[1] + '"></i>' + x[0] + '</span>'; }).join("") + '</div></div>' +
       '<div class="ops-kpis">' +
-      kpiTile("🚒", "إجمالي الآليات", all.length, "b") +
-      kpiTile("✅", "تعمل الآن", G["يعمل"], "g") +
-      kpiTile("🛠️", "عطلانة", C["عطلانة"] || 0, "r") +
-      kpiTile("🔧", "في الصيانة", maint, "a") +
-      kpiTile("📄", "رجيع", G["رجيع"], "p") +
-      kpiTile("📝", "بملاحظات", C["تعمل بوجود ملاحظات"] || 0, "y") +
+      kpiTile(ICO.truck, "إجمالي الآليات", all.length, "b", "كامل ملاك الآليات المسجّلة بقاعدة البيانات (من عمود الجهة)") +
+      kpiTile(ICO.check, "تعمل الآن", G["يعمل"], "g", "مجموعة «يعمل» = تعمل + تم الإصلاح + تعمل بوجود ملاحظات") +
+      kpiTile(ICO.wrench, "عطلانة", C["عطلانة"] || 0, "r", "الآليات حالتها الفنية «عطلانة» حالياً") +
+      kpiTile(ICO.gearwrench, "في الصيانة", maint, "a", "المتواجدة فعلياً بمواقع الصيانة (المركزية/روزنباور/ورشة خارجية) — من عمود موقع الآلية") +
+      kpiTile(ICO.file, "رجيع", G["رجيع"], "p", "تحت إجراءات الرجيع + صدر قرار الرجيع — مستبعدة من مقام النسبة") +
+      kpiTile(ICO.pencil, "بملاحظات", C["تعمل بوجود ملاحظات"] || 0, "y", "تعمل مع وجود ملاحظات فنية — تُحسب ضمن الجاهزة") +
       '</div></div>' +
 
       '<div class="ops-grid">' +
-      '<div class="ops-card ops-lead"><div class="ops-card-h">🏆 جاهزية الشُّعب الميدانية — لحظياً</div><div class="ops-bars">' +
+      '<div class="ops-card ops-lead"><div class="ops-card-h">' + ICO.trophy + ' جاهزية الشُّعب الميدانية — لحظياً</div><div class="ops-bars">' +
       br.map(function (x, i) {
         var c = x.pct >= 70 ? "#2FD37F" : (x.pct >= 50 ? "#E8C561" : "#FF6B72");
         return '<div class="ops-brow"><span class="ops-brk">' + (i < 3 ? medals[i] + " " : "") + esc(x.b) + '</span><span class="ops-btrack"><i style="width:' + (x.pct / (maxBr || 1) * 100) + '%;background:linear-gradient(90deg,' + c + '99,' + c + ');animation-delay:' + (i * 0.05) + 's"></i></span><b style="color:' + c + '">' + x.pct + '٪</b></div>';
       }).join("") + '</div></div>' +
-      '<div class="ops-card ops-pulse-card"><div class="ops-card-h">📊 مؤشر الأعطال الشهري — آخر ' + series.length + ' أشهر هجرية</div>' + pulseSVG(series) + '</div>' +
+      '<div class="ops-card ops-pulse-card"><div class="ops-card-h">' + ICO.chart + ' مؤشر الأعطال الشهري — آخر ' + series.length + ' أشهر هجرية</div>' + pulseSVG(series) + '</div>' +
       '</div>' +
 
-      '<div class="ops-card ops-map"><div class="ops-card-h">🗺️ خريطة جاهزية الشعب الميدانية — تفاعلية</div>' +
+      '<div class="ops-card ops-map"><div class="ops-card-h">' + ICO.map + ' خريطة جاهزية الشعب الميدانية — تفاعلية</div>' +
       '<div class="ops-map-wrap"><div class="ops-map-svg-box">' + opsMapSVG(brFull) + '</div>' +
       '<div class="ops-map-detail" id="ops-map-detail">' + opsMapDetail(brFull[0]) + '</div></div>' +
       '<div class="ops-map-legend"><span><i style="background:#2FD37F"></i>جاهزية ≥ 70٪</span><span><i style="background:#E8C561"></i>50–69٪</span><span><i style="background:#FF6B72"></i>أقل من 50٪</span><span class="ops-map-hint">اضغط أي شعبة لعرض تفصيلها · حجم الدائرة = عدد الآليات</span></div></div>' +
@@ -1192,6 +1193,9 @@ var SPECIAL2 = [
       var brTbl = '<div style="margin-top:12px;font-weight:800;font-size:13px">جاهزية الشُّعب الميدانية (مرتّبة)</div><table><tr><th style="width:26px">م</th><th>الشعبة</th><th>نسبة الجاهزية</th></tr>' + brRows + "</table>";
       fd31DocExport("تقرير جاهزية غرفة العمليات", kTbl + brTbl, {}, "تقرير الجاهزية العام");
     };
+    var _pres = host.querySelector("#ops-pres");
+    if (_pres) _pres.onclick = function () { startPresent(host); };
+    wireWhy(host);
     var _mon = host.querySelector("#ops-mon"), _monw = host.querySelector("#ops-monw");
     if (_mon) _mon.onclick = function () { var s = monthlyStatementBody(); printDoc("البيان الشهري للجاهزية والأعطال — شهر " + s.lbl, s.body, {}); };
     if (_monw) _monw.onclick = function () { var s = monthlyStatementBody(); fd31DocExport("البيان الشهري للجاهزية والأعطال — شهر " + s.lbl, s.body, {}, "البيان الشهري"); };
@@ -1209,9 +1213,9 @@ var SPECIAL2 = [
       if (p) p.onclick = function () { printDoc(ttl, bodyFn(), {}); };
       if (w2) w2.onclick = function () { fd31DocExport(ttl, bodyFn(), {}, ttl); };
     }
-    _bindRep("#ops-mx-p", "#ops-mx-w", "\u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 \u0627\u0644\u0645\u064A\u062F\u0627\u0646\u064A\u0629", function () { var M = matrixData(); return matrixTable(M, true) + (M.recs.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u062A\u0648\u0635\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0648\u0632\u064A\u0639</div><ol>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ol>" : ""); });
-    _bindRep("#ops-rq-p", "#ops-rq-w", "\u0643\u0634\u0641 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u0643\u0631\u0631\u0629 \u2014 \u062C\u0648\u062F\u0629 \u0627\u0644\u0625\u0635\u0644\u0627\u062D", function () { return repeatTable(repeatFaults()); });
-    _bindRep("#ops-sla-p", "#ops-sla-w", "\u0645\u062A\u0627\u0628\u0639\u0629 \u0632\u0645\u0646 \u0627\u0644\u0625\u0635\u0644\u0627\u062D \u2014 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u062C\u0627\u0648\u0632\u0629", slaReportBody);
+    _bindRep("#ops-mx-p", "#ops-mx-w", "مصفوفة الجاهزية النوعية للشُّعب الميدانية", function () { var M = matrixData(); return matrixTable(M, true) + (M.recs.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">توصيات إعادة التوزيع</div><ol>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ol>" : ""); });
+    _bindRep("#ops-rq-p", "#ops-rq-w", "كشف الأعطال المتكررة — جودة الإصلاح", function () { return repeatTable(repeatFaults()); });
+    _bindRep("#ops-sla-p", "#ops-sla-w", "متابعة زمن الإصلاح — الأعطال المتجاوزة", slaReportBody);
     try { fillPendingReports(); } catch (e) { }
     if (host._opsClk) clearInterval(host._opsClk);
     host._opsClk = setInterval(function () { var el = document.getElementById("ops-clock"); if (!el) { clearInterval(host._opsClk); return; } var n = new Date(); el.textContent = ("0" + n.getHours()).slice(-2) + ":" + ("0" + n.getMinutes()).slice(-2); }, 30000);
@@ -1227,19 +1231,19 @@ var SPECIAL2 = [
   function buildAI() {
     if (aiOv) return aiOv;
     aiOv = overlay("fd31-ai");
-    aiOv.appendChild(head("🤖", "المساعد الذكي", "يميّز الشُّعب عن مراكزها ويجيب بالتصنيف والتبرير", function () { closeOv(aiOv); }));
+    aiOv.appendChild(head(ICO.bot, "المساعد الذكي", "يميّز الشُّعب عن مراكزها ويجيب بالتصنيف والتبرير", function () { closeOv(aiOv); }));
     var body = el("div", "fd31-body"); aiOv.appendChild(body);
     body.innerHTML = '<div class="fd31-wrap"><div id="fd31-chat"><div id="fd31-msgs"></div>' +
       '<div id="fd31-hint">اكتب سؤالك بأي صيغة. أمثلة: <span>كم سلالم تعمل وكم متعطلة؟</span> · <span>نسبة جاهزية شعبة أبحر</span> · <span>كم آلية في مركز الروضة؟</span> · <span>كم البروبلين؟</span> · <span>أفضل الشُّعب الميدانية</span></div>' +
       '<div id="fd31-ask"><input id="fd31-q" class="fd31-input" placeholder="مثال: كم آلية تعمل وكم متعطلة في شعبة العزيزية؟">' +
-      '<button id="fd31-mic" class="fd31-btn ghost" title="سؤال صوتي">🎙️</button><button id="fd31-send" class="fd31-btn gold">إرسال</button></div></div></div>';
+      '<button id="fd31-mic" class="fd31-btn ghost" title="سؤال صوتي">' + ICO.mic + '</button><button id="fd31-send" class="fd31-btn gold">إرسال</button></div></div></div>';
     wireChat();
     return aiOv;
   }
   function wireChat() {
     var msgs = $("#fd31-msgs");
     function push(cls, html) { var m = el("div", "fd31-msg " + cls, html); msgs.appendChild(m); msgs.scrollTop = msgs.scrollHeight; return m; }
-    push("bot", "<div>مرحباً 👋 — أجيبك فوراً من بيانات <b style='color:#F5D77A'>" + VEH.length + "</b> آلية. أُميّز الشُّعب الميدانية عن مراكزها، وأصنّف الحالات إلى <b>يعمل</b> و<b>متعطل</b> و<b>رجيع</b>، وأعرف <b>التصنيف الخاص</b> لصفحة التقارير (البروبلين، المزدوجات، النوعية، الديهاتسو المسحوب، بيان 186…)، وأُرفق تبريراً لكل نسبة جاهزية.</div>");
+    push("bot", "<div>مرحباً — أجيبك فوراً من بيانات <b style='color:#F5D77A'>" + VEH.length + "</b> آلية. أُميّز الشُّعب الميدانية عن مراكزها، وأصنّف الحالات إلى <b>يعمل</b> و<b>متعطل</b> و<b>رجيع</b>، وأعرف <b>التصنيف الخاص</b> لصفحة التقارير (البروبلين، المزدوجات، النوعية، الديهاتسو المسحوب، بيان 186…)، وأُرفق تبريراً لكل نسبة جاهزية.</div>");
     function go(qtext) {
       var qv = (qtext != null ? qtext : $("#fd31-q").value || "").trim(); if (!qv) return;
       $("#fd31-q").value = ""; push("user", esc(qv));
@@ -1307,6 +1311,8 @@ var SPECIAL2 = [
   }
   function fillMounts() {
     placeRailAI();
+    placeHomeSearch();
+    fixQrCard();
     var mp = document.getElementById("fd-maint-page");
     if (mp && !mp.querySelector(".fdp")) { loadDB(function () { if (document.getElementById("fd-maint-page")) renderMaintPage(mp); }); }
     var od = document.getElementById("fd-ops-dash");
@@ -1329,7 +1335,7 @@ var SPECIAL2 = [
   var WT_KEY = "fd31_welcome_v1";
   // أيقونة كل شريحة (46px): الأولى إيموجي ترحيب، والبقية أيقونات خطّية بلون الدفاع المدني الأحمر
   function wtIcon(k){
-    if (k === 0) return '<span class="fdwt-emoji">\uD83D\uDC4B</span>';
+    if (k === 0) return '<span class="fdwt-emoji">' + ICO.shield + '</span>';
     var svg = function(p){ return '<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#B3121C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
     if (k === 1) return svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>');            // سجل الآليات
     if (k === 2) return svg('<path d="M22 12A10 10 0 1 1 12 2"/><path d="M12 12l4-4"/><path d="M3 20h5v-5"/><path d="M16 20h5v-4"/>'); // الجاهزية والعمليات
@@ -1337,14 +1343,14 @@ var SPECIAL2 = [
   }
   function wtSlides(){
     return [
-      { icon:0, title:"\u0623\u0647\u0644\u0627\u064B \u0628\u0643 \u0641\u064A \u0633\u062C\u0644 \u0645\u062A\u0627\u0628\u0639\u0629 \u0627\u0644\u0622\u0644\u064A\u0627\u062A",
-        desc:"\u0645\u0646\u0638\u0648\u0645\u0629 \u0631\u0642\u0645\u064A\u0629 \u062D\u064A\u0629 \u0644\u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0639\u0627\u0645\u0629 \u0644\u0644\u062F\u0641\u0627\u0639 \u0627\u0644\u0645\u062F\u0646\u064A \u0628\u0645\u062D\u0627\u0641\u0638\u0629 \u062C\u062F\u0629 \u2014 \u062A\u0633\u062A\u0639\u0631\u0636 \u0643\u0644 \u0634\u064A\u0621 \u0628\u0634\u0641\u0627\u0641\u064A\u0629 \u0643\u0627\u0645\u0644\u0629." },
-      { icon:1, title:"\u0633\u062C\u0644 \u0627\u0644\u0622\u0644\u064A\u0627\u062A",
-        desc:"\u0633\u062C\u0644 \u0643\u0627\u0645\u0644 \u0628\u0643\u0644 \u0622\u0644\u064A\u0629: \u0627\u0644\u062D\u0627\u0644\u0629\u060C \u0627\u0644\u0645\u0648\u0642\u0639\u060C \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0648\u062A\u0648\u0627\u0631\u064A\u062E\u0647\u0627\u060C \u0648\u062E\u0637 \u0632\u0645\u0646\u064A \u0644\u0643\u0644 \u0622\u0644\u064A\u0629." },
-      { icon:2, title:"\u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0648\u0627\u0644\u0639\u0645\u0644\u064A\u0627\u062A",
-        desc:"\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u0645\u0631\u0627\u0643\u0632 \u0627\u0644\u0645\u064A\u062F\u0627\u0646\u064A\u0629 \u0644\u062D\u0638\u064A\u0627\u064B\u060C \u0648\u0625\u062D\u0635\u0627\u0626\u064A\u0627\u062A \u0627\u0644\u062D\u0648\u0627\u062F\u062B \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629 \u0628\u0645\u0624\u0634\u0631\u0627\u062A\u0647\u0627." },
-      { icon:3, title:"\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631 \u0627\u0644\u0631\u0633\u0645\u064A\u0629",
-        desc:"\u062A\u0642\u0631\u064A\u0631 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0623\u0633\u0628\u0648\u0639\u064A\u060C \u062A\u0643\u0645\u064A\u0644 \u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0646\u0648\u0639\u064A\u060C \u0648\u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0627\u0644\u0634\u0627\u0645\u0644 \u2014 \u062A\u064F\u0628\u0646\u0649 \u062A\u0644\u0642\u0627\u0626\u064A\u0627\u064B \u0645\u0646 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062D\u064A\u0629." }
+      { icon:0, title:"أهلاً بك في سجل متابعة الآليات",
+        desc:"منظومة رقمية حية للإدارة العامة للدفاع المدني بمحافظة جدة — تستعرض كل شيء بشفافية كاملة." },
+      { icon:1, title:"سجل الآليات",
+        desc:"سجل كامل بكل آلية: الحالة، الموقع، الأعطال وتواريخها، وخط زمني لكل آلية." },
+      { icon:2, title:"الجاهزية والعمليات",
+        desc:"تغطية المراكز الميدانية لحظياً، وإحصائيات الحوادث المباشرة بمؤشراتها." },
+      { icon:3, title:"التقارير الرسمية",
+        desc:"تقرير الأعطال الأسبوعي، تكميل الآليات النوعي، والنموذج الشامل — تُبنى تلقائياً من البيانات الحية." }
     ];
   }
   function startWelcomeTour(){
@@ -1353,13 +1359,13 @@ var SPECIAL2 = [
     var ov = document.createElement("div"); ov.className = "fdwt-ov";
     var dots = slides.map(function(_, i){ return '<span class="fdwt-dot'+(i===0?' on':'')+'"></span>'; }).join("");
     ov.innerHTML =
-      '<div class="fdwt-card" role="dialog" aria-modal="true" aria-label="\u0627\u0644\u062C\u0648\u0644\u0629 \u0627\u0644\u062A\u0631\u062D\u064A\u0628\u064A\u0629">'
+      '<div class="fdwt-card" role="dialog" aria-modal="true" aria-label="الجولة الترحيبية">'
       + '<div class="fdwt-ic"></div>'
       + '<div class="fdwt-title"></div>'
       + '<div class="fdwt-desc"></div>'
       + '<div class="fdwt-dots">'+dots+'</div>'
       + '<div class="fdwt-nav">'
-      +   '<button class="fdwt-skip">\u062A\u062E\u0637\u064A</button>'
+      +   '<button class="fdwt-skip">تخطي</button>'
       +   '<button class="fdwt-next"></button>'
       + '</div>'
       + '</div>';
@@ -1375,7 +1381,7 @@ var SPECIAL2 = [
       void elIc.offsetWidth;
       elIc.classList.add("fdwt-fade"); elT.classList.add("fdwt-fade"); elD.classList.add("fdwt-fade");
       elDots.forEach(function(d,i){ d.classList.toggle("on", i===idx); });
-      elNext.innerHTML = idx < slides.length-1 ? "\u0627\u0644\u062A\u0627\u0644\u064A \u2190" : "\u0627\u0628\u062F\u0623 \u0627\u0644\u0627\u0633\u062A\u0639\u0631\u0627\u0636 \uD83D\uDE80";
+      elNext.innerHTML = idx < slides.length-1 ? "التالي ←" : "ابدأ الاستعراض";
     }
     function close(){
       ov.classList.remove("fdwt-in");
@@ -1445,7 +1451,7 @@ var SPECIAL2 = [
     while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; }
     return [hSer({ y: y, m: m, d: 1 }), hSer({ y: y, m: m, d: 30 }), y, m];
   }
-  function mLabel(y, m) { return ("0" + m).slice(-2) + "/" + y + "\u0647\u0640"; }
+  function mLabel(y, m) { return ("0" + m).slice(-2) + "/" + y + "هـ"; }
   function faultsInRange(pool, a, b, useRepair) {
     var out = [];
     pool.forEach(function (v) {
@@ -1459,48 +1465,48 @@ var SPECIAL2 = [
   function followupData() {
     var long = [];
     VEH.forEach(function (v) {
-      if (v.status !== "\u0639\u0637\u0644\u0627\u0646\u0629") return;
+      if (v.status !== "عطلانة") return;
       var worst = null;
       (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var s = hSer(parseH(f.date)); if (s && (!worst || s < worst)) worst = s; });
       if (worst) { var dd = SER_NOW - worst; if (dd >= 30) long.push({ v: v, d: dd }); }
     });
     long.sort(function (a, b) { return b.d - a.d; });
-    var late = maintRows().filter(function (r) { return r.st === "\u0645\u062A\u0623\u062E\u0631\u0629"; });
+    var late = maintRows().filter(function (r) { return r.st === "متأخرة"; });
     return { long: long, late: late };
   }
   function opsExtrasHtml() {
     var fu = followupData();
     var longRows = fu.long.slice(0, 5).map(function (x) {
-      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "\u2014") + ' \u2014 ' + esc(x.v.plate || "") + '</span><b style="color:#FF8A90">' + x.d + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
-    }).join("") || '<div class="ops-fu-row ok">\u0644\u0627 \u0622\u0644\u064A\u0627\u062A \u0645\u062A\u0648\u0642\u0641\u0629 \u2265 30 \u064A\u0648\u0645\u0627\u064B \u2705</div>';
+      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "—") + ' — ' + esc(x.v.plate || "") + '</span><b style="color:#FF8A90">' + x.d + ' يوماً</b></div>';
+    }).join("") || '<div class="ops-fu-row ok">لا آليات متوقفة ≥ 30 يوماً ' + ICO.check + '</div>';
     var lateRows = fu.late.slice(0, 3).map(function (r) {
-      return '<div class="ops-fu-row"><span>' + r.icon + ' ' + esc(r.task) + ' \u2014 ' + esc(r.v.plate || "") + '</span><b style="color:#E8C561">' + Math.abs(r.diff) + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
+      return '<div class="ops-fu-row"><span>' + r.icon + ' ' + esc(r.task) + ' — ' + esc(r.v.plate || "") + '</span><b style="color:#E8C561">' + Math.abs(r.diff) + ' يوماً</b></div>';
     }).join("");
     var fuCard =
-      '<div class="ops-card"><div class="ops-card-h">\uD83D\uDCCC \u0642\u064A\u062F \u0627\u0644\u0645\u062A\u0627\u0628\u0639\u0629</div>' +
+      '<div class="ops-card"><div class="ops-card-h">' + ICO.target + ' قيد المتابعة</div>' +
       '<div class="ops-fu-chips">' +
-      '<span class="ops-fu-chip r">\u0645\u062A\u0648\u0642\u0641\u0629 \u2265 30 \u064A\u0648\u0645\u0627\u064B <b>' + fu.long.length + '</b></span>' +
-      '<span class="ops-fu-chip y">\u0635\u064A\u0627\u0646\u0629 \u0645\u062A\u0623\u062E\u0631\u0629 <b>' + fu.late.length + '</b></span>' +
-      '<span class="ops-fu-chip b" id="ops-fu-rep">\u0628\u0644\u0627\u063A\u0627\u062A \u0645\u0639\u0644\u0651\u0642\u0629 <b>\u2026</b></span>' +
+      '<span class="ops-fu-chip r">متوقفة ≥ 30 يوماً <b>' + fu.long.length + '</b></span>' +
+      '<span class="ops-fu-chip y">صيانة متأخرة <b>' + fu.late.length + '</b></span>' +
+      '<span class="ops-fu-chip b" id="ops-fu-rep">بلاغات معلّقة <b>…</b></span>' +
       '</div>' +
-      '<div class="ops-fu-sec">\u0623\u0637\u0648\u0644 \u0627\u0644\u0622\u0644\u064A\u0627\u062A \u062A\u0648\u0642\u0641\u0627\u064B</div>' + longRows +
-      (lateRows ? '<div class="ops-fu-sec">\u0623\u0642\u0631\u0628 \u0645\u0647\u0627\u0645 \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u0645\u062A\u0623\u062E\u0631\u0629</div>' + lateRows : '') +
+      '<div class="ops-fu-sec">أطول الآليات توقفاً</div>' + longRows +
+      (lateRows ? '<div class="ops-fu-sec">أقرب مهام الصيانة المتأخرة</div>' + lateRows : '') +
       '</div>';
     var r1 = monthSerRange(0), r0 = monthSerRange(-1);
     var nf1 = faultsInRange(VEH, r1[0], r1[1]).length, nf0 = faultsInRange(VEH, r0[0], r0[1]).length;
     var nr1 = faultsInRange(VEH, r1[0], r1[1], true).length, nr0 = faultsInRange(VEH, r0[0], r0[1], true).length;
     function arrow(cur, prev, goodUp) {
-      if (cur === prev) return '<span class="ops-ar s">\u25C6 \u062B\u0627\u0628\u062A</span>';
+      if (cur === prev) return '<span class="ops-ar s">◆ ثابت</span>';
       var up = cur > prev, good = (up === goodUp);
-      return '<span class="ops-ar ' + (good ? "g" : "r") + '">' + (up ? "\u25B2" : "\u25BC") + " " + (prev ? Math.abs(Math.round((cur - prev) / prev * 100)) + "\u066A" : "\u2014") + '</span>';
+      return '<span class="ops-ar ' + (good ? "g" : "r") + '">' + (up ? "▲" : "▼") + " " + (prev ? Math.abs(Math.round((cur - prev) / prev * 100)) + "٪" : "—") + '</span>';
     }
-    var trend = (nf1 < nf0 && nr1 >= nr0) ? '<span class="ops-ar g">\u25B2 \u062A\u062A\u062D\u0633\u0651\u0646</span>'
-      : (nf1 > nf0 ? '<span class="ops-ar r">\u25BC \u062A\u062A\u0631\u0627\u062C\u0639</span>' : '<span class="ops-ar s">\u25C6 \u0645\u0633\u062A\u0642\u0631\u0629</span>');
+    var trend = (nf1 < nf0 && nr1 >= nr0) ? '<span class="ops-ar g">▲ تتحسّن</span>'
+      : (nf1 > nf0 ? '<span class="ops-ar r">▼ تتراجع</span>' : '<span class="ops-ar s">◆ مستقرة</span>');
     var cmpCard =
-      '<div class="ops-card"><div class="ops-card-h">\uD83D\uDCC8 \u0645\u0642\u0627\u0631\u0646\u0629 \u0627\u0644\u0641\u062A\u0631\u0627\u062A \u2014 ' + mLabel(r1[2], r1[3]) + ' \u0645\u0642\u0627\u0628\u0644 ' + mLabel(r0[2], r0[3]) + '</div>' +
-      '<div class="ops-cmp-row"><span>\u0623\u0639\u0637\u0627\u0644 \u062C\u062F\u064A\u062F\u0629</span><b>' + nf1 + '</b>' + arrow(nf1, nf0, false) + '<i>(\u0627\u0644\u0633\u0627\u0628\u0642 ' + nf0 + ')</i></div>' +
-      '<div class="ops-cmp-row"><span>\u0625\u0635\u0644\u0627\u062D\u0627\u062A \u0645\u0646\u062C\u0632\u0629</span><b>' + nr1 + '</b>' + arrow(nr1, nr0, true) + '<i>(\u0627\u0644\u0633\u0627\u0628\u0642 ' + nr0 + ')</i></div>' +
-      '<div class="ops-cmp-row big"><span>\u0645\u0624\u0634\u0631 \u0627\u062A\u062C\u0627\u0647 \u0635\u062D\u0629 \u0627\u0644\u0622\u0644\u064A\u0627\u062A</span>' + trend + '</div>' +
+      '<div class="ops-card"><div class="ops-card-h">' + ICO.trend + ' مقارنة الفترات — ' + mLabel(r1[2], r1[3]) + ' مقابل ' + mLabel(r0[2], r0[3]) + '</div>' +
+      '<div class="ops-cmp-row"><span>أعطال جديدة</span><b>' + nf1 + '</b>' + arrow(nf1, nf0, false) + '<i>(السابق ' + nf0 + ')</i></div>' +
+      '<div class="ops-cmp-row"><span>إصلاحات منجزة</span><b>' + nr1 + '</b>' + arrow(nr1, nr0, true) + '<i>(السابق ' + nr0 + ')</i></div>' +
+      '<div class="ops-cmp-row big"><span>مؤشر اتجاه صحة الآليات</span>' + trend + '</div>' +
       '</div>';
     return '<div class="ops-grid ops-extra">' + fuCard + cmpCard + '</div>';
   }
@@ -1510,51 +1516,51 @@ var SPECIAL2 = [
       var n = 0;
       if (j && j.length) j.forEach(function (r) {
         var dec = ((r && (r.decision || r.status || r.state)) || "").toString();
-        if (!/\u0627\u0639\u062A\u0645\u062F|\u0645\u0639\u062A\u0645\u062F|\u0631\u0641\u0636|\u0645\u0631\u0641\u0648\u0636|approved|rejected|closed|done/i.test(dec)) n++;
+        if (!/اعتمد|معتمد|رفض|مرفوض|approved|rejected|closed|done/i.test(dec)) n++;
       });
-      el2.innerHTML = '\u0628\u0644\u0627\u063A\u0627\u062A \u0645\u0639\u0644\u0651\u0642\u0629 <b>' + n + '</b>';
+      el2.innerHTML = 'بلاغات معلّقة <b>' + n + '</b>';
     });
   }
   function monthlyStatementBody() {
     var r1 = monthSerRange(0), lbl = mLabel(r1[2], r1[3]);
     var d = readinessDetail(VEH), C = statCounts(VEH);
     var nf = faultsInRange(VEH, r1[0], r1[1]), nr = faultsInRange(VEH, r1[0], r1[1], true);
-    var byT = {}; nf.forEach(function (x) { var t = x.f.faultType || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"; byT[t] = (byT[t] || 0) + 1; });
-    var byB = {}; nf.forEach(function (x) { var b = branchOf(x.v.unit) || "\u0623\u062E\u0631\u0649"; byB[b] = (byB[b] || 0) + 1; });
-    var late = maintRows().filter(function (r) { return r.st === "\u0645\u062A\u0623\u062E\u0631\u0629"; }).length;
-    var kT = '<table><tr><th colspan="2" style="background:#DCE3F0">\u0627\u0644\u0645\u0648\u0642\u0641 \u0627\u0644\u0639\u0627\u0645 \u2014 \u0634\u0647\u0631 ' + lbl + '</th></tr>' +
-      [["\u0646\u0633\u0628\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0639\u0627\u0645\u0629", "<b>" + d.pct + "\u066A</b> (" + d.up + " \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 " + VEH.length + ")"],
-      ["\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0622\u0644\u064A\u0627\u062A", VEH.length], ["\u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0639\u0637\u0644\u0627\u0646\u0629 \u062D\u0627\u0644\u064A\u0627\u064B", C["\u0639\u0637\u0644\u0627\u0646\u0629"] || 0],
-      ["\u0623\u0639\u0637\u0627\u0644 \u0633\u064F\u062C\u0651\u0644\u062A \u062E\u0644\u0627\u0644 \u0627\u0644\u0634\u0647\u0631", nf.length], ["\u0625\u0635\u0644\u0627\u062D\u0627\u062A \u0623\u064F\u0646\u062C\u0632\u062A \u062E\u0644\u0627\u0644 \u0627\u0644\u0634\u0647\u0631", nr.length],
-      ["\u0645\u0647\u0627\u0645 \u0635\u064A\u0627\u0646\u0629 \u0648\u0642\u0627\u0626\u064A\u0629 \u0645\u062A\u0623\u062E\u0631\u0629", late]].map(function (r) { return "<tr><td style='width:60%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
+    var byT = {}; nf.forEach(function (x) { var t = x.f.faultType || "غير محدد"; byT[t] = (byT[t] || 0) + 1; });
+    var byB = {}; nf.forEach(function (x) { var b = branchOf(x.v.unit) || "أخرى"; byB[b] = (byB[b] || 0) + 1; });
+    var late = maintRows().filter(function (r) { return r.st === "متأخرة"; }).length;
+    var kT = '<table><tr><th colspan="2" style="background:#DCE3F0">الموقف العام — شهر ' + lbl + '</th></tr>' +
+      [["نسبة الجاهزية العامة", "<b>" + d.pct + "٪</b> (" + d.up + " جاهزة من " + VEH.length + ")"],
+      ["إجمالي الآليات", VEH.length], ["الآليات العطلانة حالياً", C["عطلانة"] || 0],
+      ["أعطال سُجّلت خلال الشهر", nf.length], ["إصلاحات أُنجزت خلال الشهر", nr.length],
+      ["مهام صيانة وقائية متأخرة", late]].map(function (r) { return "<tr><td style='width:60%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
     var tT = Object.keys(byT).sort(function (a, b) { return byT[b] - byT[a]; });
-    var tTbl = tT.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0634\u0647\u0631 \u062D\u0633\u0628 \u0627\u0644\u0646\u0648\u0639</div><table><tr><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th style="width:80px">\u0627\u0644\u0639\u062F\u062F</th></tr>' + tT.map(function (t) { return "<tr><td>" + esc(t) + "</td><td>" + byT[t] + "</td></tr>"; }).join("") + "</table>" : "";
+    var tTbl = tT.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">أعطال الشهر حسب النوع</div><table><tr><th>نوع العطل</th><th style="width:80px">العدد</th></tr>' + tT.map(function (t) { return "<tr><td>" + esc(t) + "</td><td>" + byT[t] + "</td></tr>"; }).join("") + "</table>" : "";
     var bT = Object.keys(byB).sort(function (a, b) { return byB[b] - byB[a]; }).slice(0, 8);
-    var bTbl = bT.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0623\u0643\u062B\u0631 \u0627\u0644\u062C\u0647\u0627\u062A \u062A\u0633\u062C\u064A\u0644\u0627\u064B \u0644\u0644\u0623\u0639\u0637\u0627\u0644 \u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631</div><table><tr><th>\u0627\u0644\u062C\u0647\u0629</th><th style="width:80px">\u0627\u0644\u0623\u0639\u0637\u0627\u0644</th></tr>' + bT.map(function (b) { return "<tr><td>" + esc(b) + "</td><td>" + byB[b] + "</td></tr>"; }).join("") + "</table>" : "";
+    var bTbl = bT.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">أكثر الجهات تسجيلاً للأعطال هذا الشهر</div><table><tr><th>الجهة</th><th style="width:80px">الأعطال</th></tr>' + bT.map(function (b) { return "<tr><td>" + esc(b) + "</td><td>" + byB[b] + "</td></tr>"; }).join("") + "</table>" : "";
     return { body: kT + tTbl + bTbl, lbl: lbl };
   }
   function branchReportBody(x) {
     var pool = x.list || [], C = statCounts(pool);
-    var kT = '<table><tr><th colspan="2" style="background:#DCE3F0">\u0627\u0644\u0645\u0648\u0642\u0641 \u0627\u0644\u0639\u0627\u0645 \u0644\u0634\u0639\u0628\u0629 ' + esc(x.name) + '</th></tr>' +
-      [["\u0625\u062C\u0645\u0627\u0644\u064A \u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0634\u0639\u0628\u0629", x.total], ["\u0622\u0644\u064A\u0627\u062A \u062C\u0627\u0647\u0632\u0629", x.up], ["\u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u0639\u0637\u0644\u0629", x.down], ["\u062A\u0639\u0645\u0644 \u0628\u0648\u062C\u0648\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A", x.notes],
-      ["\u0646\u0633\u0628\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629", "<b>" + x.pct + "\u066A</b> \u2014 " + x.up + " \u00F7 (" + x.total + " \u2212 " + (x.rej || 0) + " \u0631\u062C\u064A\u0639 \u2212 " + (x.prep || 0) + " \u062A\u062C\u0647\u064A\u0632)"]].map(function (r) { return "<tr><td style='width:60%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
-    var sT = '<div style="margin-top:12px;font-weight:800;font-size:13px">\u062A\u0648\u0632\u064A\u0639 \u0627\u0644\u062D\u0627\u0644\u0627\u062A \u0627\u0644\u0641\u0646\u064A\u0629</div><table><tr><th>\u0627\u0644\u062D\u0627\u0644\u0629</th><th style="width:80px">\u0627\u0644\u0639\u062F\u062F</th></tr>' + STATUSES.filter(function (s) { return C[s]; }).map(function (s) { return "<tr><td>" + s + "</td><td>" + C[s] + "</td></tr>"; }).join("") + "</table>";
-    var down = pool.filter(function (v) { return v.status === "\u0639\u0637\u0644\u0627\u0646\u0629"; });
+    var kT = '<table><tr><th colspan="2" style="background:#DCE3F0">الموقف العام لشعبة ' + esc(x.name) + '</th></tr>' +
+      [["إجمالي آليات الشعبة", x.total], ["آليات جاهزة", x.up], ["الآليات المتعطلة", x.down], ["تعمل بوجود ملاحظات", x.notes],
+      ["نسبة الجاهزية", "<b>" + x.pct + "٪</b> — " + x.up + " ÷ (" + x.total + " − " + (x.rej || 0) + " رجيع − " + (x.prep || 0) + " تجهيز)"]].map(function (r) { return "<tr><td style='width:60%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
+    var sT = '<div style="margin-top:12px;font-weight:800;font-size:13px">توزيع الحالات الفنية</div><table><tr><th>الحالة</th><th style="width:80px">العدد</th></tr>' + STATUSES.filter(function (s) { return C[s]; }).map(function (s) { return "<tr><td>" + s + "</td><td>" + C[s] + "</td></tr>"; }).join("") + "</table>";
+    var down = pool.filter(function (v) { return v.status === "عطلانة"; });
     var dRows = down.map(function (v, i) {
-      var worst = null, ft = "\u2014";
-      (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var s = hSer(parseH(f.date)); if (s && (!worst || s < worst)) { worst = s; ft = f.faultType || "\u2014"; } });
-      return "<tr><td>" + (i + 1) + "</td><td>" + esc(v.type || "\u2014") + "</td><td>" + esc(v.plate || "\u2014") + "</td><td>" + esc(ft) + "</td><td>" + (worst ? (SER_NOW - worst) + " \u064A\u0648\u0645\u0627\u064B" : "\u2014") + "</td></tr>";
+      var worst = null, ft = "—";
+      (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var s = hSer(parseH(f.date)); if (s && (!worst || s < worst)) { worst = s; ft = f.faultType || "—"; } });
+      return "<tr><td>" + (i + 1) + "</td><td>" + esc(v.type || "—") + "</td><td>" + esc(v.plate || "—") + "</td><td>" + esc(ft) + "</td><td>" + (worst ? (SER_NOW - worst) + " يوماً" : "—") + "</td></tr>";
     }).join("");
-    var dTbl = down.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u0639\u0637\u0644\u0629 (' + down.length + ')</div><table><tr><th style="width:24px">\u0645</th><th>\u0627\u0644\u0646\u0648\u0639</th><th>\u0627\u0644\u0644\u0648\u062D\u0629</th><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th>\u0645\u062F\u0629 \u0627\u0644\u062A\u0648\u0642\u0641</th></tr>' + dRows + "</table>" : '<div style="margin-top:12px;font-weight:800">\u0644\u0627 \u0622\u0644\u064A\u0627\u062A \u0645\u062A\u0639\u0637\u0644\u0629 \u0641\u064A \u0627\u0644\u0634\u0639\u0628\u0629 \u2705</div>';
-    var late = maintRows().filter(function (r) { return r.st === "\u0645\u062A\u0623\u062E\u0631\u0629" && branchOf(r.v.unit) === x.full; }).length;
-    var mT = '<div style="margin-top:12px">\u0645\u0647\u0627\u0645 \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u0648\u0642\u0627\u0626\u064A\u0629 \u0627\u0644\u0645\u062A\u0623\u062E\u0631\u0629 \u0644\u0644\u0634\u0639\u0628\u0629: <b>' + late + '</b></div>';
+    var dTbl = down.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">الآليات المتعطلة (' + down.length + ')</div><table><tr><th style="width:24px">م</th><th>النوع</th><th>اللوحة</th><th>نوع العطل</th><th>مدة التوقف</th></tr>' + dRows + "</table>" : '<div style="margin-top:12px;font-weight:800">لا آليات متعطلة في الشعبة</div>';
+    var late = maintRows().filter(function (r) { return r.st === "متأخرة" && branchOf(r.v.unit) === x.full; }).length;
+    var mT = '<div style="margin-top:12px">مهام الصيانة الوقائية المتأخرة للشعبة: <b>' + late + '</b></div>';
     return kT + sT + dTbl + mT;
   }
   var _CHK_CACHE;
   function loadVehCheckin(v) {
     var box = document.getElementById("fdv-chk"); if (!box) return;
     function show(list) {
-      var none = "\uD83D\uDDD3\uFE0F \u0627\u0644\u0641\u062D\u0635 \u0627\u0644\u064A\u0648\u0645\u064A: \u0644\u0627 \u0641\u062D\u0635 \u0645\u0633\u062C\u0651\u0644\u0627\u064B \u0628\u0639\u062F \u0644\u0647\u0630\u0647 \u0627\u0644\u0622\u0644\u064A\u0629";
+      var none = ICO.calendar + " الفحص اليومي: لا فحص مسجّلاً بعد لهذه الآلية";
       if (!list || !list.length) { box.innerHTML = none; return; }
       var hit = null;
       list.forEach(function (r) {
@@ -1563,58 +1569,58 @@ var SPECIAL2 = [
         if ((r.id && r.id === v.id) || (r.vid && r.vid === v.id) || (r.plate && v.plate && r.plate === v.plate) || (v.id && s.indexOf('"' + v.id + '"') >= 0)) hit = r;
       });
       if (!hit) { box.innerHTML = none; return; }
-      var drv = hit.driver || hit.name || hit.by || "\u2014";
-      var dt = hit.date || hit.at || hit.time || "\u2014";
+      var drv = hit.driver || hit.name || hit.by || "—";
+      var dt = hit.date || hit.at || hit.time || "—";
       var okF = (hit.ok === false || hit.notes === true || ((hit.note || hit.msg || "") + "").length > 1);
-      box.innerHTML = "\uD83D\uDDD3\uFE0F \u0622\u062E\u0631 \u0641\u062D\u0635 \u064A\u0648\u0645\u064A: " + (okF ? "\u26A0\uFE0F \u0628\u0645\u0644\u0627\u062D\u0638\u0627\u062A" : "\u2705 \u0633\u0644\u064A\u0645") + " \u00B7 \u0627\u0644\u0633\u0627\u0626\u0642: <b>" + esc(String(drv)) + "</b> \u00B7 " + esc(String(dt)) + (hit.num ? " \u00B7 " + esc(String(hit.num)) : "");
+      box.innerHTML = ICO.calendar + " آخر فحص يومي: " + (okF ? ICO.alert + " بملاحظات" : ICO.check + " سليم") + " · السائق: <b>" + esc(String(drv)) + "</b> · " + esc(String(dt)) + (hit.num ? " · " + esc(String(hit.num)) : "");
     }
     if (_CHK_CACHE !== undefined) { show(_CHK_CACHE); return; }
     fetchRaw("checkins.json", function (j) { _CHK_CACHE = j || []; show(_CHK_CACHE); });
   }
   function detectTime(qn) {
-    if (/\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631|\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u062D\u0627\u0644\u064A/.test(qn)) { var r = monthSerRange(0); return { a: r[0], b: r[1], l: "\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631 (" + mLabel(r[2], r[3]) + ")" }; }
-    if (/\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0645\u0627\u0636\u064A|\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0633\u0627\u0628\u0642/.test(qn)) { var r0 = monthSerRange(-1); return { a: r0[0], b: r0[1], l: "\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0645\u0627\u0636\u064A (" + mLabel(r0[2], r0[3]) + ")" }; }
-    if (/\u0647\u0630\u0627 \u0627\u0644\u0627\u0633\u0628\u0648\u0639|\u062E\u0644\u0627\u0644 \u0627\u0644\u0627\u0633\u0628\u0648\u0639|\u0627\u0644\u0627\u0633\u0628\u0648\u0639/.test(qn)) return { a: SER_NOW - 7, b: SER_NOW, l: "\u0647\u0630\u0627 \u0627\u0644\u0623\u0633\u0628\u0648\u0639" };
-    if (/(^|\s)\u0627\u0644\u064A\u0648\u0645(\s|$)/.test(qn)) return { a: SER_NOW, b: SER_NOW, l: "\u0627\u0644\u064A\u0648\u0645" };
+    if (/هذا الشهر|الشهر الحالي/.test(qn)) { var r = monthSerRange(0); return { a: r[0], b: r[1], l: "هذا الشهر (" + mLabel(r[2], r[3]) + ")" }; }
+    if (/الشهر الماضي|الشهر السابق/.test(qn)) { var r0 = monthSerRange(-1); return { a: r0[0], b: r0[1], l: "الشهر الماضي (" + mLabel(r0[2], r0[3]) + ")" }; }
+    if (/هذا الاسبوع|خلال الاسبوع|الاسبوع/.test(qn)) return { a: SER_NOW - 7, b: SER_NOW, l: "هذا الأسبوع" };
+    if (/(^|\s)اليوم(\s|$)/.test(qn)) return { a: SER_NOW, b: SER_NOW, l: "اليوم" };
     return null;
   }
   function timeAnswer(q0) {
     var qn = norm(q0), T = detectTime(qn);
     if (!T) return null;
-    var wantRepair = /\u0639\u0627\u062F|\u0631\u062C\u0639|\u0627\u0635\u0644\u062D|\u062A\u0645 \u0627\u0644\u0627\u0635\u0644\u0627\u062D|\u0627\u0646\u062C\u0632/.test(qn);
-    var wantFault = /\u0639\u0637\u0644|\u0627\u0639\u0637\u0627\u0644|\u062A\u0639\u0637\u0644/.test(qn);
+    var wantRepair = /عاد|رجع|اصلح|تم الاصلاح|انجز/.test(qn);
+    var wantFault = /عطل|اعطال|تعطل/.test(qn);
     if (!wantRepair && !wantFault) return null;
     var F = parseQuery(q0), pool = subjectPool(F), lbl = subjLabel(F);
     var hits = faultsInRange(pool, T.a, T.b, wantRepair);
     var seen = {}, rows = [];
     hits.forEach(function (x) {
       if (wantRepair) { if (seen[x.v.id]) return; seen[x.v.id] = 1; }
-      if (rows.length < 8) rows.push("<li>" + esc(x.v.type || "\u2014") + " \u2014 <b>" + esc(x.v.plate || "") + "</b>" + (wantRepair ? "" : " (" + esc(x.f.faultType || "\u2014") + ")") + " \u00B7 " + fmtH(wantRepair ? parseH(x.f.repairDate) : parseH(x.f.date)) + "</li>");
+      if (rows.length < 8) rows.push("<li>" + esc(x.v.type || "—") + " — <b>" + esc(x.v.plate || "") + "</b>" + (wantRepair ? "" : " (" + esc(x.f.faultType || "—") + ")") + " · " + fmtH(wantRepair ? parseH(x.f.repairDate) : parseH(x.f.date)) + "</li>");
     });
     var n = wantRepair ? Object.keys(seen).length : hits.length;
     var head = wantRepair
-      ? "\uD83D\uDD27 <b>" + n + "</b> \u0622\u0644\u064A\u0629 \u0639\u0627\u062F\u062A \u0644\u0644\u0639\u0645\u0644 \u062E\u0644\u0627\u0644 <b>" + T.l + "</b> \u0645\u0646 " + lbl
-      : "\u26A0\uFE0F \u0633\u064F\u062C\u0651\u0644 <b>" + n + "</b> \u0639\u0637\u0644\u0627\u064B \u062E\u0644\u0627\u0644 <b>" + T.l + "</b> \u0639\u0644\u0649 " + lbl;
+      ? ICO.gearwrench + " <b>" + n + "</b> آلية عادت للعمل خلال <b>" + T.l + "</b> من " + lbl
+      : ICO.alert + " سُجّل <b>" + n + "</b> عطلاً خلال <b>" + T.l + "</b> على " + lbl;
     var byT = {};
-    if (!wantRepair) hits.forEach(function (x) { var t = x.f.faultType || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"; byT[t] = (byT[t] || 0) + 1; });
-    var bd = Object.keys(byT).sort(function (a, b) { return byT[b] - byT[a]; }).map(function (t) { return t + " (" + byT[t] + ")"; }).join(" \u00B7 ");
-    var _say = wantRepair ? (n + " \u0622\u0644\u064A\u0629 \u0639\u0627\u062F\u062A \u0644\u0644\u0639\u0645\u0644 \u062E\u0644\u0627\u0644 " + T.l) : ("\u0633\u064F\u062C\u0651\u0644 " + n + " \u0639\u0637\u0644\u0627\u064B \u062E\u0644\u0627\u0644 " + T.l);
-    return { say: _say, html: "<div>" + head + (bd ? "<div style='font-size:12px;margin-top:5px;opacity:.85'>\u0627\u0644\u062A\u0648\u0632\u064A\u0639: " + bd + "</div>" : "") + (rows.length ? "<ul style='margin:7px 0 0;padding-inline-start:18px'>" + rows.join("") + "</ul>" : "") + "</div>" };
+    if (!wantRepair) hits.forEach(function (x) { var t = x.f.faultType || "غير محدد"; byT[t] = (byT[t] || 0) + 1; });
+    var bd = Object.keys(byT).sort(function (a, b) { return byT[b] - byT[a]; }).map(function (t) { return t + " (" + byT[t] + ")"; }).join(" · ");
+    var _say = wantRepair ? (n + " آلية عادت للعمل خلال " + T.l) : ("سُجّل " + n + " عطلاً خلال " + T.l);
+    return { say: _say, html: "<div>" + head + (bd ? "<div style='font-size:12px;margin-top:5px;opacity:.85'>التوزيع: " + bd + "</div>" : "") + (rows.length ? "<ul style='margin:7px 0 0;padding-inline-start:18px'>" + rows.join("") + "</ul>" : "") + "</div>" };
   }
 
   /* ============================================================
-     \u062F\u0641\u0639\u0629 26: \u0627\u0644\u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 + \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u0643\u0631\u0631\u0629
-     + \u0645\u062A\u0627\u0628\u0639\u0629 \u0632\u0645\u0646 \u0627\u0644\u0625\u0635\u0644\u0627\u062D + \u0645\u0648\u062C\u0632 \u00AB\u0645\u0646\u0630 \u0622\u062E\u0631 \u0632\u064A\u0627\u0631\u0629\u00BB
+     دفعة 26: المصفوفة النوعية للشُّعب + الأعطال المتكررة
+     + متابعة زمن الإصلاح + موجز «منذ آخر زيارة»
      ============================================================ */
   var CRIT_GROUPS = [
-    ["\u0625\u0637\u0641\u0627\u0621", function (t) { return t.indexOf("\u0627\u0637\u0641\u0627\u0621") >= 0; }],
-    ["\u0625\u0646\u0642\u0627\u0630", function (t) { return t.indexOf("\u0627\u0646\u0642\u0627\u0630") >= 0; }],
-    ["\u0633\u0644\u0627\u0644\u0645", function (t) { return t.indexOf("\u0633\u0644\u0645") >= 0; }],
-    ["\u0648\u0627\u064A\u062A\u0627\u062A", function (t) { return t.indexOf("\u0648\u0627\u064A\u062A") >= 0; }],
-    ["\u0625\u0633\u0639\u0627\u0641", function (t) { return t.indexOf("\u0627\u0633\u0639\u0627\u0641") >= 0; }],
-    ["\u062F\u0631\u0627\u062C\u0627\u062A", function (t) { return t.indexOf("\u062F\u0631\u0627\u062C") >= 0; }]
+    ["إطفاء", function (t) { return t.indexOf("اطفاء") >= 0; }],
+    ["إنقاذ", function (t) { return t.indexOf("انقاذ") >= 0; }],
+    ["سلالم", function (t) { return t.indexOf("سلم") >= 0; }],
+    ["وايتات", function (t) { return t.indexOf("وايت") >= 0; }],
+    ["إسعاف", function (t) { return t.indexOf("اسعاف") >= 0; }],
+    ["دراجات", function (t) { return t.indexOf("دراج") >= 0; }]
   ];
-  var READY_ST = { "\u062A\u0639\u0645\u0644": 1, "\u062A\u0645 \u0627\u0644\u0625\u0635\u0644\u0627\u062D": 1, "\u062A\u0639\u0645\u0644 \u0628\u0648\u062C\u0648\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A": 1 };
+  var READY_ST = { "تعمل": 1, "تم الإصلاح": 1, "تعمل بوجود ملاحظات": 1 };
   function matrixData() {
     var rows = FIELD12.map(function (b) {
       var pool = VEH.filter(function (v) { return branchOf(v.unit) === b; });
@@ -1622,7 +1628,7 @@ var SPECIAL2 = [
         var n = 0; pool.forEach(function (v) { if (READY_ST[v.status] && g[1](norm(v.type || ""))) n++; });
         return n;
       });
-      return { b: b.replace("\u0634\u0639\u0628\u0629 ", ""), cells: cells };
+      return { b: b.replace("شعبة ", ""), cells: cells };
     });
     var recs = [];
     CRIT_GROUPS.forEach(function (g, gi) {
@@ -1630,7 +1636,7 @@ var SPECIAL2 = [
       if (!zero.length) return;
       var best = rows.slice().sort(function (a, b) { return b.cells[gi] - a.cells[gi]; })[0];
       if (best && best.cells[gi] >= 3) zero.slice(0, 2).forEach(function (z) {
-        if (recs.length < 5) recs.push("\u0646\u0642\u0644 \u0622\u0644\u064A\u0629 " + g[0] + " \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 \u0634\u0639\u0628\u0629 " + best.b + " (" + best.cells[gi] + ") \u0625\u0644\u0649 \u0634\u0639\u0628\u0629 " + z.b + " (0)");
+        if (recs.length < 5) recs.push("نقل آلية " + g[0] + " جاهزة من شعبة " + best.b + " (" + best.cells[gi] + ") إلى شعبة " + z.b + " (0)");
       });
     });
     var central = [];
@@ -1638,7 +1644,7 @@ var SPECIAL2 = [
     return { rows: rows, recs: recs, central: central };
   }
   function matrixTable(M, forReport) {
-    var head = "<tr><th>\u0627\u0644\u0634\u0639\u0628\u0629</th>" + CRIT_GROUPS.map(function (g) { return "<th>" + g[0] + "</th>"; }).join("") + "</tr>";
+    var head = "<tr><th>الشعبة</th>" + CRIT_GROUPS.map(function (g) { return "<th>" + g[0] + "</th>"; }).join("") + "</tr>";
     var body = M.rows.map(function (r) {
       return "<tr><td style='font-weight:800'>" + esc(r.b) + "</td>" + r.cells.map(function (n) {
         var c = n === 0 ? "#B3121C" : (n === 1 ? "#8A5D0B" : "#1B6E42");
@@ -1650,10 +1656,10 @@ var SPECIAL2 = [
   }
   function opsMatrixHtml() {
     var M = matrixData();
-    var recs = M.recs.length ? '<div class="ops-mx-recs"><b>\u062A\u0648\u0635\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0648\u0632\u064A\u0639:</b><ul>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul></div>" : '<div class="ops-mx-recs ok">\u0644\u0627 \u0641\u062C\u0648\u0627\u062A \u062A\u063A\u0637\u064A\u0629 \u0641\u064A \u0627\u0644\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0645\u0648\u0632\u0651\u0639\u0629 \u0639\u0644\u0649 \u0627\u0644\u0634\u064F\u0651\u0639\u0628 \u2705</div>';
-    var central = M.central.length ? '<div class="ops-mx-note">\u0645\u0644\u0627\u062D\u0638\u0629: ' + M.central.map(esc).join(' \u00B7 ') + ' \u063A\u064A\u0631 \u0645\u0648\u0632\u0651\u0639\u0629 \u0639\u0644\u0649 \u0627\u0644\u0634\u064F\u0651\u0639\u0628 \u2014 \u062A\u062A\u0628\u0639 \u0627\u0644\u062F\u0639\u0645 \u0648\u0627\u0644\u0625\u0633\u0646\u0627\u062F \u0645\u0631\u0643\u0632\u064A\u0627\u064B</div>' : '';
-    return '<div class="ops-card ops-mx"><div class="ops-card-h">\u1F9ED \u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 \u2014 <span style="opacity:.8;font-weight:700">\u0622\u0644\u064A\u0627\u062A \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 \u0643\u0644 \u0646\u0648\u0639 \u062D\u0631\u062C</span>' +
-      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-mx-p">\u1F5A8\uFE0F \u0637\u0628\u0627\u0639\u0629</button><button class="omd-rep omd-repw" id="ops-mx-w">\u1F4C4</button></span></div>' +
+    var recs = M.recs.length ? '<div class="ops-mx-recs"><b>توصيات إعادة التوزيع:</b><ul>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul></div>" : '<div class="ops-mx-recs ok">لا فجوات تغطية في الأنواع الموزّعة على الشُّعب' + ICO.check + '</div>';
+    var central = M.central.length ? '<div class="ops-mx-note">ملاحظة: ' + M.central.map(esc).join(' · ') + ' غير موزّعة على الشُّعب — تتبع الدعم والإسناد مركزياً</div>' : '';
+    return '<div class="ops-card ops-mx"><div class="ops-card-h">ᾞD مصفوفة الجاهزية النوعية للشُّعب — <span style="opacity:.8;font-weight:700">آليات جاهزة من كل نوع حرج</span>' +
+      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-mx-p">὚8 طباعة</button><button class="omd-rep omd-repw" id="ops-mx-w">Ὄ4</button></span></div>' +
       '<div class="ops-mx-wrap">' + matrixTable(M) + '</div>' + recs + central + '</div>';
   }
   function repeatFaults() {
@@ -1674,15 +1680,15 @@ var SPECIAL2 = [
   }
   function repeatTable(list, lim) {
     var rows = (lim ? list.slice(0, lim) : list).map(function (x, i) {
-      return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.v.type || "\u2014") + "</td><td>" + esc(x.v.plate || "\u2014") + "</td><td>" + esc(x.first.faultType || "\u2014") + "</td><td>" + fmtH(parseH(x.first.repairDate)) + "</td><td style='color:#B3121C;font-weight:900'>" + x.gap + " \u064A\u0648\u0645\u0627\u064B</td><td>" + esc(x.first.causedBy || "\u2014") + "</td></tr>";
+      return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.v.type || "—") + "</td><td>" + esc(x.v.plate || "—") + "</td><td>" + esc(x.first.faultType || "—") + "</td><td>" + fmtH(parseH(x.first.repairDate)) + "</td><td style='color:#B3121C;font-weight:900'>" + x.gap + " يوماً</td><td>" + esc(x.first.causedBy || "—") + "</td></tr>";
     }).join("");
-    return "<table><tr><th style='width:24px'>\u0645</th><th>\u0627\u0644\u0646\u0648\u0639</th><th>\u0627\u0644\u0644\u0648\u062D\u0629</th><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th>\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0625\u0635\u0644\u0627\u062D</th><th>\u0639\u0627\u062F \u0627\u0644\u0639\u0637\u0644 \u0628\u0639\u062F</th><th>\u0627\u0644\u062C\u0647\u0629 \u0627\u0644\u0645\u062A\u0633\u0628\u0628\u0629</th></tr>" + (rows || "<tr><td colspan='7' style='text-align:center'>\u0644\u0627 \u0623\u0639\u0637\u0627\u0644 \u0645\u062A\u0643\u0631\u0631\u0629 \u2705</td></tr>") + "</table>";
+    return "<table><tr><th style='width:24px'>م</th><th>النوع</th><th>اللوحة</th><th>نوع العطل</th><th>تاريخ الإصلاح</th><th>عاد العطل بعد</th><th>الجهة المتسببة</th></tr>" + (rows || "<tr><td colspan='7' style='text-align:center'>لا أعطال متكررة</td></tr>") + "</table>";
   }
   function opsQualityHtml() {
     var rep = repeatFaults();
     var repRows = rep.slice(0, 6).map(function (x) {
-      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "\u2014") + ' \u2014 ' + esc(x.v.plate || "") + ' (' + esc(x.first.faultType || "\u2014") + ')</span><b style="color:#FF8A90">\u0639\u0627\u062F \u0628\u0639\u062F ' + x.gap + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
-    }).join("") || '<div class="ops-fu-row ok">\u0644\u0627 \u0623\u0639\u0637\u0627\u0644 \u0645\u062A\u0643\u0631\u0631\u0629 \u062E\u0644\u0627\u0644 30 \u064A\u0648\u0645\u0627\u064B \u0645\u0646 \u0627\u0644\u0625\u0635\u0644\u0627\u062D \u2705</div>';
+      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "—") + ' — ' + esc(x.v.plate || "") + ' (' + esc(x.first.faultType || "—") + ')</span><b style="color:#FF8A90">عاد بعد ' + x.gap + ' يوماً</b></div>';
+    }).join("") || '<div class="ops-fu-row ok">لا أعطال متكررة خلال 30 يوماً من الإصلاح ' + ICO.check + '</div>';
     var slow = [];
     VEH.forEach(function (v) {
       (v.faults || []).forEach(function (f) {
@@ -1693,33 +1699,33 @@ var SPECIAL2 = [
     });
     slow.sort(function (a, b) { return b.d - a.d; });
     var slowRows = slow.slice(0, 6).map(function (x) {
-      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "\u2014") + ' \u2014 ' + esc(x.v.plate || "") + ' (' + esc(x.f.faultType || "\u2014") + ')</span><b style="color:#E8C561">' + x.d + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
-    }).join("") || '<div class="ops-fu-row ok">\u0644\u0627 \u0623\u0639\u0637\u0627\u0644 \u0645\u0641\u062A\u0648\u062D\u0629 \u0645\u062A\u062C\u0627\u0648\u0632\u0629 14 \u064A\u0648\u0645\u0627\u064B \u2705</div>';
+      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "—") + ' — ' + esc(x.v.plate || "") + ' (' + esc(x.f.faultType || "—") + ')</span><b style="color:#E8C561">' + x.d + ' يوماً</b></div>';
+    }).join("") || '<div class="ops-fu-row ok">لا أعطال مفتوحة متجاوزة 14 يوماً ' + ICO.check + '</div>';
     return '<div class="ops-grid ops-q">' +
-      '<div class="ops-card"><div class="ops-card-h">\u1F501 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u0643\u0631\u0631\u0629 \u2014 \u062C\u0648\u062F\u0629 \u0627\u0644\u0625\u0635\u0644\u0627\u062D <b style="color:#FF8A90">' + rep.length + '</b>' +
-      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-rq-p">\u1F5A8\uFE0F</button><button class="omd-rep omd-repw" id="ops-rq-w">\u1F4C4</button></span></div>' +
-      '<div class="ops-fu-sec">\u0622\u0644\u064A\u0629 \u0623\u064F\u0635\u0644\u062D\u062A \u062B\u0645 \u062A\u0639\u0637\u0644\u062A \u0628\u0646\u0641\u0633 \u0627\u0644\u0646\u0648\u0639 \u062E\u0644\u0627\u0644 \u2264 30 \u064A\u0648\u0645\u0627\u064B</div>' + repRows + '</div>' +
-      '<div class="ops-card"><div class="ops-card-h">\u23F1\uFE0F \u0623\u0639\u0637\u0627\u0644 \u0645\u0641\u062A\u0648\u062D\u0629 \u0645\u062A\u062C\u0627\u0648\u0632\u0629 14 \u064A\u0648\u0645\u0627\u064B <b style="color:#E8C561">' + slow.length + '</b>' +
-      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-sla-p">\u1F5A8\uFE0F</button><button class="omd-rep omd-repw" id="ops-sla-w">\u1F4C4</button></span></div>' +
-      '<div class="ops-fu-sec">\u0645\u0631\u062A\u0628\u0629 \u0628\u0627\u0644\u0623\u0642\u062F\u0645 \u2014 \u0623\u062F\u0627\u0629 \u0645\u062A\u0627\u0628\u0639\u0629 \u062C\u0647\u0627\u062A \u0627\u0644\u0625\u0635\u0644\u0627\u062D</div>' + slowRows + '</div>' +
+      '<div class="ops-card"><div class="ops-card-h">ὐ1 الأعطال المتكررة — جودة الإصلاح <b style="color:#FF8A90">' + rep.length + '</b>' +
+      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-rq-p">὚8</button><button class="omd-rep omd-repw" id="ops-rq-w">Ὄ4</button></span></div>' +
+      '<div class="ops-fu-sec">آلية أُصلحت ثم تعطلت بنفس النوع خلال ≤ 30 يوماً</div>' + repRows + '</div>' +
+      '<div class="ops-card"><div class="ops-card-h">⏱ أعطال مفتوحة متجاوزة 14 يوماً <b style="color:#E8C561">' + slow.length + '</b>' +
+      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-sla-p">὚8</button><button class="omd-rep omd-repw" id="ops-sla-w">Ὄ4</button></span></div>' +
+      '<div class="ops-fu-sec">مرتبة بالأقدم — أداة متابعة جهات الإصلاح</div>' + slowRows + '</div>' +
       '</div>';
   }
   function slaReportBody() {
     var slow = [];
     VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var a = hSer(parseH(f.date)); if (!a) return; var dd = SER_NOW - a; if (dd > 14) slow.push({ v: v, f: f, d: dd }); }); });
     slow.sort(function (a, b) { return b.d - a.d; });
-    var t1 = "<table><tr><th style='width:24px'>\u0645</th><th>\u0627\u0644\u0646\u0648\u0639</th><th>\u0627\u0644\u0644\u0648\u062D\u0629</th><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th>\u0645\u0641\u062A\u0648\u062D \u0645\u0646\u0630</th><th>\u0645\u0648\u0642\u0639 \u0627\u0644\u0622\u0644\u064A\u0629</th></tr>" + slow.map(function (x, i) { return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.v.type || "\u2014") + "</td><td>" + esc(x.v.plate || "\u2014") + "</td><td>" + esc(x.f.faultType || "\u2014") + "</td><td style='font-weight:900'>" + x.d + " \u064A\u0648\u0645\u0627\u064B</td><td>" + esc(x.v.location || "\u2014") + "</td></tr>"; }).join("") + "</table>";
+    var t1 = "<table><tr><th style='width:24px'>م</th><th>النوع</th><th>اللوحة</th><th>نوع العطل</th><th>مفتوح منذ</th><th>موقع الآلية</th></tr>" + slow.map(function (x, i) { return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.v.type || "—") + "</td><td>" + esc(x.v.plate || "—") + "</td><td>" + esc(x.f.faultType || "—") + "</td><td style='font-weight:900'>" + x.d + " يوماً</td><td>" + esc(x.v.location || "—") + "</td></tr>"; }).join("") + "</table>";
     var by = {};
-    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { var a = hSer(parseH(f.date)), r = hSer(parseH(f.repairDate)); if (!a || !r || r < a) return; var k = f.causedBy || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"; (by[k] = by[k] || []).push(r - a); }); });
+    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { var a = hSer(parseH(f.date)), r = hSer(parseH(f.repairDate)); if (!a || !r || r < a) return; var k = f.causedBy || "غير محدد"; (by[k] = by[k] || []).push(r - a); }); });
     var ks = Object.keys(by).sort(function (a, b) { return by[b].length - by[a].length; }).slice(0, 10);
-    var t2 = ks.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0645\u062A\u0648\u0633\u0637 \u0645\u062F\u0629 \u0627\u0644\u0625\u0635\u0644\u0627\u062D \u062D\u0633\u0628 \u0627\u0644\u062C\u0647\u0629 \u0627\u0644\u0645\u062A\u0633\u0628\u0628\u0629 (\u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u063A\u0644\u0642\u0629)</div><table><tr><th>\u0627\u0644\u062C\u0647\u0629 \u0627\u0644\u0645\u062A\u0633\u0628\u0628\u0629</th><th>\u0639\u062F\u062F \u0627\u0644\u0625\u0635\u0644\u0627\u062D\u0627\u062A</th><th>\u0645\u062A\u0648\u0633\u0637 \u0627\u0644\u0645\u062F\u0629</th></tr>' + ks.map(function (k) { var arr = by[k], avg = Math.round(arr.reduce(function (s, x) { return s + x; }, 0) / arr.length); return "<tr><td>" + esc(k) + "</td><td>" + arr.length + "</td><td><b>" + avg + " \u064A\u0648\u0645\u0627\u064B</b></td></tr>"; }).join("") + "</table>" : "";
+    var t2 = ks.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">متوسط مدة الإصلاح حسب الجهة المتسببة (الأعطال المغلقة)</div><table><tr><th>الجهة المتسببة</th><th>عدد الإصلاحات</th><th>متوسط المدة</th></tr>' + ks.map(function (k) { var arr = by[k], avg = Math.round(arr.reduce(function (s, x) { return s + x; }, 0) / arr.length); return "<tr><td>" + esc(k) + "</td><td>" + arr.length + "</td><td><b>" + avg + " يوماً</b></td></tr>"; }).join("") + "</table>" : "";
     return t1 + t2;
   }
-  /* ---------- \u0645\u0648\u062C\u0632 \u00AB\u0645\u0646\u0630 \u0622\u062E\u0631 \u0632\u064A\u0627\u0631\u0629\u00BB ---------- */
+  /* ---------- موجز «منذ آخر زيارة» ---------- */
   var LV_KEY = "fd_lastvisit_v1";
   function visitSnap() {
     var sigs = [], down = [];
-    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { sigs.push(v.id + "|" + (f.date || "")); }); if (v.status === "\u0639\u0637\u0644\u0627\u0646\u0629") down.push(v.id); });
+    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { sigs.push(v.id + "|" + (f.date || "")); }); if (v.status === "عطلانة") down.push(v.id); });
     return { at: Date.now(), sigs: sigs, down: down, pct: readinessDetail(VEH).pct };
   }
   function showVisitBrief() {
@@ -1735,15 +1741,213 @@ var SPECIAL2 = [
     var dp = cur.pct - (prev.pct || cur.pct);
     if (!newFaults && !returned && !dp) return;
     var el2 = el("div", "fd31-brief");
-    el2.innerHTML = '<b>\u1F4CB \u0645\u0646\u0630 \u0622\u062E\u0631 \u0632\u064A\u0627\u0631\u0629:</b> ' +
-      (newFaults ? '<span class="r">' + newFaults + ' \u0639\u0637\u0644\u0627\u064B \u062C\u062F\u064A\u062F\u0627\u064B</span>' : '') +
-      (returned ? '<span class="g">' + returned + ' \u0622\u0644\u064A\u0629 \u0639\u0627\u062F\u062A \u0644\u0644\u0639\u0645\u0644</span>' : '') +
-      (dp ? '<span class="' + (dp > 0 ? "g" : "r") + '">\u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 ' + (dp > 0 ? "\u25B2 +" : "\u25BC ") + dp + '\u066A</span>' : '') +
-      '<button class="fd31-brief-x" title="\u0625\u063A\u0644\u0627\u0642">\u2715</button>';
+    el2.innerHTML = '<b>ὌB منذ آخر زيارة:</b> ' +
+      (newFaults ? '<span class="r">' + newFaults + ' عطلاً جديداً</span>' : '') +
+      (returned ? '<span class="g">' + returned + ' آلية عادت للعمل</span>' : '') +
+      (dp ? '<span class="' + (dp > 0 ? "g" : "r") + '">الجاهزية ' + (dp > 0 ? "▲ +" : "▼ ") + dp + '٪</span>' : '') +
+      '<button class="fd31-brief-x" title="إغلاق">✕</button>';
     document.body.appendChild(el2);
     el2.querySelector(".fd31-brief-x").onclick = function () { el2.remove(); };
     setTimeout(function () { if (el2.parentNode) el2.classList.add("hide"); }, 25000);
     setTimeout(function () { if (el2.parentNode) el2.remove(); }, 26000);
+  }
+
+  /* ============================================================
+     دفعة 27: إصلاح احتواء الباركود المضمون (بكسل JS) + البحث الشامل
+     + وضع العرض التقديمي + تفسير الأرقام بنقرة
+     ============================================================ */
+  function fixQrCard() {
+    var cards = document.querySelectorAll(".qr-veh-card");
+    for (var i = 0; i < cards.length; i++) {
+      var c = cards[i];
+      var mh = (window.innerHeight || 600) - 22, mw = (window.innerWidth || 360) - 14;
+      var wantH = mh + "px", wantW = (mw < 560 ? mw + "px" : "");
+      if (c.style.maxHeight !== wantH) c.style.maxHeight = wantH;
+      if (c.style.overflowY !== "auto") { c.style.overflowY = "auto"; c.style.overflowX = "hidden"; }
+      if (wantW && c.style.maxWidth !== wantW) c.style.maxWidth = wantW;
+      c.style.boxSizing = "border-box";
+      if (mw < 560 && c.style.padding !== "16px 14px") c.style.padding = "16px 14px";
+    }
+  }
+  /* ---------- البحث الشامل الفوري ---------- */
+  function vehHay(v) {
+    if (v.__hay) return v.__hay;
+    var parts = [v.type, v.plate, v.unit, v.location, v.status, v.model, v.maker, v.notes];
+    (v.faults || []).forEach(function (f) { parts.push(f.faultType); });
+    v.__hay = norm(parts.filter(Boolean).join(" "));
+    return v.__hay;
+  }
+  function srchStatusColor(st) {
+    if (st === "عطلانة") return "#FF8A90";
+    if (st === "تعمل" || st === "تم الإصلاح") return "#5FE3A5";
+    if (st === "تعمل بوجود ملاحظات") return "#E8C561";
+    return "#B79CF0";
+  }
+  function srchCard(v) {
+    var worst = null, ft = "";
+    (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var s = hSer(parseH(f.date)); if (s && (!worst || s < worst)) { worst = s; ft = f.faultType || ""; } });
+    var open = worst ? '<span class="fds-open">' + esc(ft) + ' · ' + (SER_NOW - worst) + ' يوماً</span>' : '';
+    return '<div class="fds-hit" data-vid="' + esc(v.id) + '">' +
+      '<div class="fds-l1"><b>' + esc(v.type || "—") + '</b><span class="fds-plate">' + esc(v.plate || "—") + '</span></div>' +
+      '<div class="fds-l2">' + esc(v.unit || "—") + ' · ὌD ' + esc(v.location || "—") + '</div>' +
+      '<div class="fds-l3"><span class="fds-st" style="color:' + srchStatusColor(v.status) + '">' + esc(v.status || "—") + '</span>' + open + '</div>' +
+      '</div>';
+  }
+  function srchDetail(v) {
+    var rows = [["النوع", v.type], ["اللوحة", v.plate], ["الجهة", v.unit], ["موقع الآلية", v.location], ["الحالة الفنية", v.status], ["الموديل", v.model]];
+    var fs = (v.faults || []).slice(-3).reverse().map(function (f) {
+      return '<div class="fds-fr">' + esc(f.faultType || "—") + ' · ' + esc(f.date || "") + (String(f.repairDate || "").trim() ? ' → أُصلح ' + esc(f.repairDate) : ' · <b style="color:#FF8A90">مفتوح</b>') + '</div>';
+    }).join("") || '<div class="fds-fr">لا أعطال مسجّلة</div>';
+    return '<div class="fds-det">' +
+      '<button class="fds-back">▸ عودة للنتائج</button>' +
+      rows.map(function (r) { return '<div class="fds-dr"><span>' + r[0] + '</span><b>' + esc(String(r[1] || "—")) + '</b></div>'; }).join("") +
+      '<div class="fds-dh">آخر الأعطال</div>' + fs +
+      '<div class="fds-btns"><button class="fd31-btn gold" id="fds-rep">὚8 تقرير الآلية</button><button class="fd31-btn" id="fds-word">Ὄ4 Word</button></div>' +
+      '</div>';
+  }
+  function openSearch() {
+    var old = document.getElementById("fd31-srch"); if (old) { old.remove(); return; }
+    loadDB(function () {
+      var ov = el("div", "fd31-srch-ov"); ov.id = "fd31-srch";
+      ov.innerHTML = '<div class="fd31-srch-card">' +
+        '<div class="fd31-srch-head">ὐE البحث الشامل <span class="fd31-srch-hint">اكتب أي شيء: لوحة، نوع، جهة، موقع، نوع عطل…</span><button class="fd31-srch-x">✕</button></div>' +
+        '<input class="fd31-srch-in" id="fd31-srch-in" placeholder="ابحث في 639 آلية…" autocomplete="off">' +
+        '<div class="fd31-srch-res" id="fd31-srch-res"><div class="fds-empty">ابدأ بالكتابة — النتائج تظهر فوراً</div></div></div>';
+      document.body.appendChild(ov);
+      var inp = ov.querySelector("#fd31-srch-in"), res = ov.querySelector("#fd31-srch-res");
+      function close() { ov.remove(); document.removeEventListener("keydown", escH); }
+      function escH(ev) { if (ev.key === "Escape") close(); }
+      document.addEventListener("keydown", escH);
+      ov.querySelector(".fd31-srch-x").onclick = close;
+      ov.onclick = function (ev) { if (ev.target === ov) close(); };
+      function doSearch() {
+        var q = norm(inp.value || "").trim();
+        if (q.length < 2) { res.innerHTML = '<div class="fds-empty">ابدأ بالكتابة — النتائج تظهر فوراً</div>'; return; }
+        var hits = [], qd = q.replace(/\s+/g, "");
+        for (var i = 0; i < VEH.length && hits.length < 30; i++) {
+          var v = VEH[i];
+          if (vehHay(v).indexOf(q) >= 0 || (v.plate && norm(v.plate).replace(/\s+/g, "").indexOf(qd) >= 0)) hits.push(v);
+        }
+        res.innerHTML = hits.length
+          ? '<div class="fds-count">النتائج: ' + hits.length + (hits.length === 30 ? "+" : "") + '</div>' + hits.map(srchCard).join("")
+          : '<div class="fds-empty">لا نتائج مطابقة لـ«' + esc(inp.value) + '»</div>';
+      }
+      inp.oninput = doSearch;
+      res.addEventListener("click", function (ev) {
+        var back = ev.target.closest ? ev.target.closest(".fds-back") : null;
+        if (back) { doSearch(); return; }
+        var hit = ev.target.closest ? ev.target.closest(".fds-hit") : null;
+        if (!hit) return;
+        var vid = hit.getAttribute("data-vid"), v = null;
+        VEH.forEach(function (x) { if (x.id === vid) v = x; });
+        if (!v) return;
+        res.innerHTML = srchDetail(v);
+        var rp = res.querySelector("#fds-rep"), wd = res.querySelector("#fds-word");
+        if (rp) rp.onclick = function () { printVehReport(v); };
+        if (wd) wd.onclick = function () { wordVehReport(v); };
+      });
+      setTimeout(function () { try { inp.focus(); } catch (e) { } }, 60);
+    });
+  }
+  var ICO = {
+    truck: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M1 15V7a1 1 0 011-1h11v9'/><path d='M13 9h4l3.4 3.4a1 1 0 01.6.9V15h-8'/><circle cx='6.5' cy='17.5' r='2'/><circle cx='16.5' cy='17.5' r='2'/><path d='M8.5 17.5h6M3 9h6'/></svg>",
+    check: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M8.2 12.4l2.6 2.6 5-5.6'/></svg>",
+    wrench: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 6.5a4.2 4.2 0 00-5.6 5.2L3.5 17.1a2 2 0 102.8 2.8l5.4-5.4a4.2 4.2 0 005.2-5.6l-2.9 2.9-2.4-2.4 2.9-2.9z'/></svg>",
+    gearwrench: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='16.5' cy='7.5' r='3'/><path d='M16.5 2.8v1.7M16.5 10.5v1.7M21.2 7.5h-1.7M13.5 7.5h-1.7M19.8 4.2l-1.2 1.2M14.1 9.9l-1.2 1.2M19.8 10.8l-1.2-1.2M14.1 5.1l-1.2-1.2'/><path d='M10.8 10.8L3.6 18a1.9 1.9 0 102.7 2.7l7.2-7.2'/></svg>",
+    file: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z'/><path d='M14 3v5h5M9 13h6M9 17h6'/></svg>",
+    pencil: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z'/><path d='M14.5 6.5l3 3'/></svg>",
+    printer: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M7 8V3h10v5'/><rect x='3' y='8' width='18' height='9' rx='2'/><path d='M7 13h10v8H7z' fill='none'/></svg>",
+    calendar: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='16' rx='2'/><path d='M8 3v4M16 3v4M3 10h18'/></svg>",
+    clock: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M12 7v5l3.5 2'/></svg>",
+    chart: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20V4M4 20h16'/><path d='M8.5 16v-5M13 16V8M17.5 16v-8'/></svg>",
+    trend: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 19l5.5-5.5 3.5 3.5L20 10'/><path d='M15.5 10H20v4.5'/></svg>",
+    map: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2z'/><path d='M9 4v14M15 6v14'/></svg>",
+    pin: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 21s-6.5-5.4-6.5-10A6.5 6.5 0 0112 4.5 6.5 6.5 0 0118.5 11c0 4.6-6.5 10-6.5 10z'/><circle cx='12' cy='11' r='2.3'/></svg>",
+    target: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><circle cx='12' cy='12' r='3.5'/><path d='M12 2.5V6M12 18v3.5M2.5 12H6M18 12h3.5'/></svg>",
+    clipboard: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4a3 3 0 016 0M9 11h6M9 15h6'/></svg>",
+    gear: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3.2'/><path d='M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.9 1.9M7.4 16.6l-1.9 1.9M18.5 18.5l-1.9-1.9M7.4 7.4L5.5 5.5'/></svg>",
+    bulb: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9.5 18h5M10 21h4'/><path d='M12 3a6 6 0 00-3.6 10.8c.8.6 1.1 1.3 1.1 2.2h5c0-.9.3-1.6 1.1-2.2A6 6 0 0012 3z'/></svg>",
+    layers: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l9 5-9 5-9-5 9-5z'/><path d='M3 13l9 5 9-5'/></svg>",
+    bot: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='5' y='8' width='14' height='11' rx='3'/><path d='M12 8V4.5M12 4.5a1.4 1.4 0 10-.01 0'/><circle cx='9.3' cy='13' r='1.1' fill='currentColor' stroke='none'/><circle cx='14.7' cy='13' r='1.1' fill='currentColor' stroke='none'/><path d='M9.5 16.5h5'/></svg>",
+    mic: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9.2' y='3' width='5.6' height='11' rx='2.8'/><path d='M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M8.5 21h7'/></svg>",
+    play: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M10 8.5l6 3.5-6 3.5v-7z'/></svg>",
+    trophy: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8 4h8v6a4 4 0 01-8 0V4z'/><path d='M8 5H4.5v1.5A3.5 3.5 0 008 10M16 5h3.5v1.5A3.5 3.5 0 0116 10M12 14v3M8.5 20h7M10 17h4v3h-4z'/></svg>",
+    radar: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><circle cx='12' cy='12' r='4.8'/><path d='M12 12l5.8-5.8'/><circle cx='12' cy='12' r='1' fill='currentColor' stroke='none'/></svg>",
+    alert: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5l9.5 16.5H2.5L12 3.5z'/><path d='M12 10v4.5M12 17.6v.1'/></svg>",
+    ban: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M5.7 5.7l12.6 12.6'/></svg>",
+    oil: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5s6 6.7 6 11a6 6 0 01-12 0c0-4.3 6-11 6-11z'/></svg>",
+    battery: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='8' width='16' height='9' rx='2'/><path d='M21 11v3M6.5 12.5h3M12.8 12.5h3'/></svg>",
+    wheel: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><circle cx='12' cy='12' r='3'/><path d='M12 3v6M12 15v6M3 12h6M15 12h6'/></svg>",
+    toolbox: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='9' width='18' height='11' rx='2'/><path d='M9 9V6.5A1.5 1.5 0 0110.5 5h3A1.5 1.5 0 0115 6.5V9M3 13.5h18M10 13v2M14 13v2'/></svg>",
+    shield: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l7.5 3v5.5c0 4.7-3.2 8-7.5 9.5-4.3-1.5-7.5-4.8-7.5-9.5V6l7.5-3z'/><path d='M8.8 12.2l2.3 2.3 4.2-4.7'/></svg>"
+  };
+  var SRCH_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.2"></circle><line x1="15.3" y1="15.3" x2="20.5" y2="20.5"></line></svg>';
+  function placeHomeSearch() {
+    var old = document.getElementById("fd31-rail-srch"); if (old) old.remove();
+    if (document.getElementById("fd31-home-srch")) return;
+    var tabs = document.querySelector(".cmd-tabs"); if (!tabs) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.id = "fd31-home-srch"; b.className = "cmd-tab";
+    b.title = "بحث فوري في كل بيانات الآليات — لوحة، نوع، جهة، موقع، نوع عطل";
+    b.innerHTML = '<span class="ct-img ct-srch">' + SRCH_SVG + '</span>البحث الشامل';
+    b.onclick = function (ev) { ev.preventDefault(); ev.stopPropagation(); openSearch(); };
+    tabs.appendChild(b);
+  }
+  /* ---------- وضع العرض التقديمي ---------- */
+  var _presT = null;
+  function stopPresent() {
+    if (_presT) { clearInterval(_presT); _presT = null; }
+    var s = document.getElementById("fd31-pres-stop"); if (s) s.remove();
+    document.querySelectorAll(".ops-focus,.ops-dim").forEach(function (x) { x.classList.remove("ops-focus"); x.classList.remove("ops-dim"); });
+  }
+  function startPresent(host) {
+    stopPresent();
+    var secs = [];
+    [".ops-hero", ".ops-grid:not(.ops-extra):not(.ops-q)", null, ".ops-extra", ".ops-mx", ".ops-q"].forEach(function (sel, idx) {
+      var e2 = null;
+      if (sel === null) { var mb = host.querySelector(".ops-map-svg-box"); e2 = mb && mb.closest ? mb.closest(".ops-card") : null; }
+      else e2 = host.querySelector(sel);
+      if (e2) secs.push(e2);
+    });
+    if (!secs.length) return;
+    var stop = el("button", "fd31-pres-stop", "⏹ إيقاف العرض التقديمي");
+    stop.id = "fd31-pres-stop"; stop.onclick = stopPresent;
+    document.body.appendChild(stop);
+    var i = 0;
+    function step() {
+      secs.forEach(function (s2) { s2.classList.add("ops-dim"); s2.classList.remove("ops-focus"); });
+      var cur = secs[i % secs.length];
+      cur.classList.remove("ops-dim"); cur.classList.add("ops-focus");
+      try { cur.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) { try { cur.scrollIntoView(); } catch (e2) { } }
+      i++;
+    }
+    step();
+    _presT = setInterval(function () {
+      if (!document.body.contains(secs[0])) { stopPresent(); return; }
+      step();
+    }, 12000);
+  }
+  /* ---------- تفسير الأرقام بنقرة ---------- */
+  function wireWhy(host) {
+    host.addEventListener("click", function (ev) {
+      var t = ev.target.closest ? ev.target.closest("[data-why]") : null;
+      var oldB = document.querySelector(".ops-why"); if (oldB) oldB.remove();
+      if (!t) return;
+      if (oldB && oldB.__src === t) return;
+      var b = el("div", "ops-why", t.getAttribute("data-why"));
+      b.__src = t;
+      t.style.position = "relative";
+      t.appendChild(b);
+      ev.stopPropagation();
+    });
+    if (!wireWhy._doc) {
+      wireWhy._doc = 1;
+      document.addEventListener("click", function (ev) {
+        var inside = ev.target && ev.target.closest ? ev.target.closest("[data-why]") : null;
+        if (inside) return;
+        var b2 = document.querySelector(".ops-why"); if (b2) b2.remove();
+      });
+    }
   }
 
   function boot() {

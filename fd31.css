@@ -426,12 +426,10 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
    بطاقتها بلا className فلا يشملها تنسيق modal-card — نضيف حدّ
    ارتفاع بوحدة vh المدعومة عالمياً (+ dvh للمتصفحات الأحدث) وتمرير
    ============================================================ */
-.qr-veh-card{ box-sizing:border-box; max-height:calc(100vh - 26px); max-height:calc(100dvh - 26px);
-  overflow-y:auto; overflow-x:hidden; }
+.qr-veh-card{ box-sizing:border-box; max-height:94vh; overflow-y:auto; overflow-x:hidden; }
 .qr-veh-card img{ max-width:100%; height:auto; }
 @media (max-width:640px){
-  .qr-veh-card{ max-width:calc(100vw - 20px)!important; max-height:88vh!important; max-height:88dvh!important;
-    padding:18px 16px!important; margin:6px auto; }
+  .qr-veh-card{ max-width:96vw!important; max-height:88vh!important; padding:16px 14px!important; margin:6px auto; }
 }
 
 
@@ -490,3 +488,92 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
   width:24px; height:24px; border-radius:8px; cursor:pointer; font-size:12px; }
 @media print{ .fd31-brief{ display:none!important; } }
 .ops-mx-note{ margin-top:8px; font-size:11px; color:#9FB0C8; font-weight:700; }
+
+/* ---------- دفعة 27: البحث الشامل ---------- */
+.fd31-srch-ov{ position:fixed; inset:0; background:rgba(10,14,24,.78); z-index:2147482900; display:flex; align-items:flex-start; justify-content:center; padding:34px 12px 12px; direction:rtl; }
+.fd31-srch-card{ width:640px; max-width:96vw; max-height:88vh; display:flex; flex-direction:column;
+  background:linear-gradient(165deg,#152238,#0d1728); border:1px solid rgba(212,175,55,.35); border-radius:16px; box-shadow:0 24px 70px rgba(0,0,0,.55); overflow:hidden; }
+.fd31-srch-head{ display:flex; align-items:center; gap:9px; padding:13px 16px 9px; color:#F3D98B; font-weight:900; font-size:14.5px; }
+.fd31-srch-hint{ font-size:10.5px; font-weight:700; color:#8CA0BC; flex:1; }
+.fd31-srch-x{ background:rgba(255,255,255,.08); border:none; color:#cfd8e6; width:27px; height:27px; border-radius:9px; cursor:pointer; }
+.fd31-srch-in{ margin:0 14px 10px; padding:11px 14px; border-radius:11px; border:1.5px solid rgba(212,175,55,.45);
+  background:#0b1424; color:#EDF2FA; font-family:inherit; font-size:14px; font-weight:700; outline:none; }
+.fd31-srch-in:focus{ border-color:#D4AF37; }
+.fd31-srch-res{ overflow-y:auto; padding:0 14px 14px; }
+.fds-count{ font-size:11px; font-weight:800; color:#8CA0BC; margin:2px 2px 7px; }
+.fds-empty{ text-align:center; color:#7f92ad; font-size:12.5px; font-weight:700; padding:26px 0; }
+.fds-hit{ background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:9px 12px; margin-bottom:7px; cursor:pointer; transition:background .15s,border-color .15s; }
+.fds-hit:hover{ background:rgba(212,175,55,.10); border-color:rgba(212,175,55,.4); }
+.fds-l1{ display:flex; align-items:center; gap:8px; color:#EDF2FA; font-size:13px; }
+.fds-plate{ margin-inline-start:auto; background:rgba(212,175,55,.14); color:#F3D98B; font-weight:900; font-size:11.5px; padding:2px 9px; border-radius:9px; }
+.fds-l2{ color:#9FB0C8; font-size:11px; font-weight:700; margin-top:3px; }
+.fds-l3{ display:flex; gap:9px; align-items:center; margin-top:4px; font-size:11px; font-weight:800; }
+.fds-open{ color:#FF9AA0; }
+.fds-det{ padding:2px 0; }
+.fds-back{ background:none; border:none; color:#7FB8F0; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; padding:4px 0 10px; }
+.fds-dr{ display:flex; justify-content:space-between; gap:10px; padding:6px 2px; border-bottom:1px dashed rgba(255,255,255,.08); font-size:12.5px; }
+.fds-dr span{ color:#8CA0BC; font-weight:700; } .fds-dr b{ color:#EDF2FA; }
+.fds-dh{ font-size:11px; font-weight:900; color:#9FB0C8; margin:11px 0 5px; }
+.fds-fr{ font-size:12px; color:#DCE4F0; font-weight:700; padding:4px 0; }
+.fds-btns{ display:flex; gap:8px; margin-top:13px; }
+.ct-srch{ height:20px; width:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:inherit; }
+.ct-srch svg{ display:block; }
+
+/* ---------- دفعة 27: العرض التقديمي ---------- */
+.ops-dim{ opacity:.32; transition:opacity .55s ease; }
+.ops-focus{ opacity:1!important; transition:opacity .55s ease, box-shadow .55s ease; box-shadow:0 0 0 3px #D4AF37, 0 22px 70px rgba(0,0,0,.55); border-radius:18px; }
+#fd31-pres-stop{ position:fixed; top:14px; left:14px; z-index:2147482950; background:linear-gradient(135deg,#B3121C,#8E0E16); color:#fff;
+  border:none; border-radius:12px; padding:10px 16px; font-family:inherit; font-size:13px; font-weight:900; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+@media print{ #fd31-pres-stop{ display:none!important; } }
+
+/* ---------- دفعة 27: تفسير الأرقام بنقرة ---------- */
+[data-why]{ cursor:help; }
+.ops-why{ position:absolute; bottom:100%; right:50%; transform:translate(50%,-7px); width:230px; max-width:80vw; z-index:60;
+  background:#0d1a2e; border:1px solid rgba(212,175,55,.55); border-radius:11px; padding:9px 11px;
+  color:#EDF2FA; font-size:11px; font-weight:700; line-height:1.7; text-align:right; box-shadow:0 12px 34px rgba(0,0,0,.5); cursor:default; }
+
+/* ---------- دفعة 27: صقل الجوال للوحات ---------- */
+@media (max-width:700px){
+  .ops-hd{ flex-wrap:wrap; gap:6px; }
+  .ops-full{ font-size:10.5px; padding:6px 9px; }
+  .ops-mx-wrap{ -webkit-overflow-scrolling:touch; }
+  .ops-mx-wrap th:first-child, .ops-mx-wrap td:first-child{ position:sticky; right:0; background:#152238; z-index:2; }
+  .ops-mx-wrap th:first-child{ background:#1c2c47; }
+  .ops-mx-t th,.ops-mx-t td{ padding:5px 7px; font-size:10.5px; }
+  .ops-fu-row,.ops-cmp-row{ font-size:11.5px; }
+  .ops-cmp-row b{ font-size:16px; }
+  .fd31-brief{ max-width:92vw; left:8px; bottom:8px; font-size:12px; }
+  .fd31-srch-card{ max-height:92vh; }
+}
+
+/* ---------- 33.3: بطاقات الرئيسية الأربع بصف واحد بأعراض متساوية ---------- */
+.cmd-tabs{ grid-template-columns:repeat(4, minmax(0,1fr))!important; }
+@media (min-width:641px){
+  .cmd-tab{ padding:12px 8px!important; font-size:12.8px!important; gap:8px!important; }
+}
+@media (max-width:640px){
+  .cmd-tab{ font-size:9.8px!important; padding:9px 3px!important; gap:4px!important; }
+  .ct-srch{ height:17px; width:17px; }
+  .ct-srch svg{ width:17px; height:17px; }
+}
+
+/* ---------- 33.4: الأيقونات الاحترافية الموحّدة ---------- */
+.fdi{ width:1em; height:1em; display:inline-block; vertical-align:-0.15em; }
+.ops-card-h .fdi{ width:15px; height:15px; vertical-align:-2.5px; margin-left:6px; }
+.ops-full .fdi{ width:13px; height:13px; vertical-align:-2px; margin-left:4px; }
+.ops-kpi-ic .fdi{ width:26px; height:26px; }
+.k-ic .fdi{ width:24px; height:24px; }
+.fdv-ic .fdi{ width:18px; height:18px; }
+.fdp-btn .fdi,.fdls-word .fdi,.omd-rep .fdi,.fdv-print .fdi{ width:13px; height:13px; vertical-align:-2px; margin-left:4px; }
+.fd31-head .ico .fdi{ width:22px; height:22px; }
+.fdp-panel-h h2 .fdi{ width:16px; height:16px; vertical-align:-2.5px; margin-left:6px; }
+.fdp-hint .fdi{ width:14px; height:14px; vertical-align:-2.5px; margin-left:4px; }
+.ops-ph-ic .fdi{ width:34px; height:34px; }
+.ops-fu-row.ok .fdi,.chk-box .fdi{ width:14px; height:14px; vertical-align:-2.5px; }
+.fdwt-emoji .fdi{ width:40px; height:40px; color:#B3121C; }
+#fd31-mic .fdi{ width:16px; height:16px; vertical-align:-3px; }
+.ops-rank{ display:inline-flex; align-items:center; justify-content:center; width:21px; height:21px; border-radius:50%;
+  font-size:11.5px; font-weight:900; color:#1B2440; margin-left:4px; }
+.ops-rank.r1{ background:linear-gradient(145deg,#F5D77A,#D4AF37); }
+.ops-rank.r2{ background:linear-gradient(145deg,#DfE4EC,#AEB8C6); }
+.ops-rank.r3{ background:linear-gradient(145deg,#E2B08A,#C08552); }
