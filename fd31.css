@@ -489,3 +489,4 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 .fd31-brief-x{ position:absolute; top:8px; inset-inline-end:8px; background:rgba(255,255,255,.08); border:none; color:#cfd8e6;
   width:24px; height:24px; border-radius:8px; cursor:pointer; font-size:12px; }
 @media print{ .fd31-brief{ display:none!important; } }
+.ops-mx-note{ margin-top:8px; font-size:11px; color:#9FB0C8; font-weight:700; }

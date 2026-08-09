@@ -1,5 +1,5 @@
 /* ============================================================
-   FD31 · الإصدار 32.8 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 32.9 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -658,7 +658,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 32.8</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 32.9</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
@@ -1598,7 +1598,9 @@ var SPECIAL2 = [
         if (recs.length < 5) recs.push("\u0646\u0642\u0644 \u0622\u0644\u064A\u0629 " + g[0] + " \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 \u0634\u0639\u0628\u0629 " + best.b + " (" + best.cells[gi] + ") \u0625\u0644\u0649 \u0634\u0639\u0628\u0629 " + z.b + " (0)");
       });
     });
-    return { rows: rows, recs: recs };
+    var central = [];
+    CRIT_GROUPS.forEach(function (g, gi) { var any = rows.some(function (r) { return r.cells[gi] > 0; }); if (!any) central.push(g[0]); });
+    return { rows: rows, recs: recs, central: central };
   }
   function matrixTable(M, forReport) {
     var head = "<tr><th>\u0627\u0644\u0634\u0639\u0628\u0629</th>" + CRIT_GROUPS.map(function (g) { return "<th>" + g[0] + "</th>"; }).join("") + "</tr>";
@@ -1613,10 +1615,11 @@ var SPECIAL2 = [
   }
   function opsMatrixHtml() {
     var M = matrixData();
-    var recs = M.recs.length ? '<div class="ops-mx-recs"><b>\u062A\u0648\u0635\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0648\u0632\u064A\u0639:</b><ul>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul></div>" : '<div class="ops-mx-recs ok">\u0644\u0627 \u0641\u062C\u0648\u0627\u062A \u062A\u063A\u0637\u064A\u0629 \u062D\u0631\u062C\u0629 \u2014 \u0643\u0644 \u0634\u0639\u0628\u0629 \u0644\u062F\u064A\u0647\u0627 \u062C\u0627\u0647\u0632 \u0645\u0646 \u0643\u0644 \u0646\u0648\u0639 \u062D\u0631\u062C \u2705</div>';
+    var recs = M.recs.length ? '<div class="ops-mx-recs"><b>\u062A\u0648\u0635\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0648\u0632\u064A\u0639:</b><ul>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul></div>" : '<div class="ops-mx-recs ok">\u0644\u0627 \u0641\u062C\u0648\u0627\u062A \u062A\u063A\u0637\u064A\u0629 \u0641\u064A \u0627\u0644\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0645\u0648\u0632\u0651\u0639\u0629 \u0639\u0644\u0649 \u0627\u0644\u0634\u064F\u0651\u0639\u0628 \u2705</div>';
+    var central = M.central.length ? '<div class="ops-mx-note">\u0645\u0644\u0627\u062D\u0638\u0629: ' + M.central.map(esc).join(' \u00B7 ') + ' \u063A\u064A\u0631 \u0645\u0648\u0632\u0651\u0639\u0629 \u0639\u0644\u0649 \u0627\u0644\u0634\u064F\u0651\u0639\u0628 \u2014 \u062A\u062A\u0628\u0639 \u0627\u0644\u062F\u0639\u0645 \u0648\u0627\u0644\u0625\u0633\u0646\u0627\u062F \u0645\u0631\u0643\u0632\u064A\u0627\u064B</div>' : '';
     return '<div class="ops-card ops-mx"><div class="ops-card-h">\u1F9ED \u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 \u2014 <span style="opacity:.8;font-weight:700">\u0622\u0644\u064A\u0627\u062A \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 \u0643\u0644 \u0646\u0648\u0639 \u062D\u0631\u062C</span>' +
       '<span class="ops-mx-btns"><button class="omd-rep" id="ops-mx-p">\u1F5A8\uFE0F \u0637\u0628\u0627\u0639\u0629</button><button class="omd-rep omd-repw" id="ops-mx-w">\u1F4C4</button></span></div>' +
-      '<div class="ops-mx-wrap">' + matrixTable(M) + '</div>' + recs + '</div>';
+      '<div class="ops-mx-wrap">' + matrixTable(M) + '</div>' + recs + central + '</div>';
   }
   function repeatFaults() {
     var out = [];
