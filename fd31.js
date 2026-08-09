@@ -1,10 +1,45 @@
 /* ============================================================
-   FD31 · الإصدار 32.9 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 33.0 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
   "use strict";
   if (window.__FD31__) return; window.__FD31__ = true;
+  /* حارس بصمة GitHub: يضمن sha في أي PUT contents ويعالج 409/422 بإعادة واحدة */
+  (function () {
+    if (window.__fdShaFix) return; window.__fdShaFix = 1;
+    var OF = window.fetch ? window.fetch.bind(window) : null;
+    if (!OF) return;
+    function isPut(u, o) { return o && String(o.method || "").toUpperCase() === "PUT" && u.indexOf("api.github.com") >= 0 && u.indexOf("/contents/") >= 0 && typeof o.body === "string"; }
+    function getSha(u, o) {
+      var gu = u.split("?")[0];
+      return OF(gu, { headers: o.headers }).then(function (r) { return r && r.ok ? r.json() : null; }).then(function (j) { return (j && j.sha) || null; }).catch(function () { return null; });
+    }
+    window.fetch = function (u, o) {
+      try {
+        var us = String(u || "");
+        if (isPut(us, o)) {
+          var b = null; try { b = JSON.parse(o.body); } catch (e) { }
+          if (b && typeof b.content === "string") {
+            var run = Promise.resolve(null);
+            if (!b.sha) run = getSha(us, o).then(function (s) { if (s) { b.sha = s; o = Object.assign({}, o, { body: JSON.stringify(b) }); } });
+            return run.then(function () { return OF(u, o); }).then(function (res) {
+              if (res && (res.status === 409 || res.status === 422)) {
+                return getSha(us, o).then(function (s2) {
+                  if (!s2 || s2 === b.sha) return res;
+                  b.sha = s2;
+                  return OF(u, Object.assign({}, o, { body: JSON.stringify(b) }));
+                });
+              }
+              return res;
+            });
+          }
+        }
+      } catch (e) { }
+      return OF(u, o);
+    };
+  })();
+
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var el = function (tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -658,7 +693,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 32.9</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 33.0</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
