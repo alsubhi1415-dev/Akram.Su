@@ -577,3 +577,11 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 .ops-rank.r1{ background:linear-gradient(145deg,#F5D77A,#D4AF37); }
 .ops-rank.r2{ background:linear-gradient(145deg,#DfE4EC,#AEB8C6); }
 .ops-rank.r3{ background:linear-gradient(145deg,#E2B08A,#C08552); }
+
+/* ---------- 33.5: تمييز عنوان القائمة الجانبية بالذهبي ---------- */
+.side-rail .rail-title{
+  color:#F5D77A!important;
+  font-weight:900!important;
+  text-shadow:0 1px 6px rgba(212,175,55,.25);
+  letter-spacing:.2px;
+}
