@@ -1,5 +1,5 @@
 /* ============================================================
-   FD31 · الإصدار 31.4 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 31.7 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -660,7 +660,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 31.4</div></body></html>');
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 31.7</div></body></html>');
     w.document.close();
     setTimeout(function () { try { w.print(); } catch (e) { } }, 400);
   }
@@ -1198,6 +1198,7 @@ var SPECIAL2 = [
   }
   function fillMounts() {
     placeRailAI();
+    try { placeRailTheme(); } catch (e) { }
     var mp = document.getElementById("fd-maint-page");
     if (mp && !mp.querySelector(".fdp")) { loadDB(function () { if (document.getElementById("fd-maint-page")) renderMaintPage(mp); }); }
     var od = document.getElementById("fd-ops-dash");
@@ -1214,10 +1215,258 @@ var SPECIAL2 = [
       }
     }
   }
+  /* ============================================================
+     الجولة الترحيبية — تصميم البطاقة البيضاء السلس (٤ شرائح)، تظهر بعد شاشة الاستهلال لأول زيارة
+     ============================================================ */
+  var WT_KEY = "fd31_welcome_v1";
+  // أيقونة كل شريحة (46px): الأولى إيموجي ترحيب، والبقية أيقونات خطّية بلون الدفاع المدني الأحمر
+  function wtIcon(k){
+    if (k === 0) return '<span class="fdwt-emoji">\uD83D\uDC4B</span>';
+    var svg = function(p){ return '<svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#B3121C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
+    if (k === 1) return svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>');            // سجل الآليات
+    if (k === 2) return svg('<path d="M22 12A10 10 0 1 1 12 2"/><path d="M12 12l4-4"/><path d="M3 20h5v-5"/><path d="M16 20h5v-4"/>'); // الجاهزية والعمليات
+    return svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>'); // التقارير
+  }
+  function wtSlides(){
+    return [
+      { icon:0, title:"\u0623\u0647\u0644\u0627\u064B \u0628\u0643 \u0641\u064A \u0633\u062C\u0644 \u0645\u062A\u0627\u0628\u0639\u0629 \u0627\u0644\u0622\u0644\u064A\u0627\u062A",
+        desc:"\u0645\u0646\u0638\u0648\u0645\u0629 \u0631\u0642\u0645\u064A\u0629 \u062D\u064A\u0629 \u0644\u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0639\u0627\u0645\u0629 \u0644\u0644\u062F\u0641\u0627\u0639 \u0627\u0644\u0645\u062F\u0646\u064A \u0628\u0645\u062D\u0627\u0641\u0638\u0629 \u062C\u062F\u0629 \u2014 \u062A\u0633\u062A\u0639\u0631\u0636 \u0643\u0644 \u0634\u064A\u0621 \u0628\u0634\u0641\u0627\u0641\u064A\u0629 \u0643\u0627\u0645\u0644\u0629." },
+      { icon:1, title:"\u0633\u062C\u0644 \u0627\u0644\u0622\u0644\u064A\u0627\u062A",
+        desc:"\u0633\u062C\u0644 \u0643\u0627\u0645\u0644 \u0628\u0643\u0644 \u0622\u0644\u064A\u0629: \u0627\u0644\u062D\u0627\u0644\u0629\u060C \u0627\u0644\u0645\u0648\u0642\u0639\u060C \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0648\u062A\u0648\u0627\u0631\u064A\u062E\u0647\u0627\u060C \u0648\u062E\u0637 \u0632\u0645\u0646\u064A \u0644\u0643\u0644 \u0622\u0644\u064A\u0629." },
+      { icon:2, title:"\u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0648\u0627\u0644\u0639\u0645\u0644\u064A\u0627\u062A",
+        desc:"\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u0645\u0631\u0627\u0643\u0632 \u0627\u0644\u0645\u064A\u062F\u0627\u0646\u064A\u0629 \u0644\u062D\u0638\u064A\u0627\u064B\u060C \u0648\u0625\u062D\u0635\u0627\u0626\u064A\u0627\u062A \u0627\u0644\u062D\u0648\u0627\u062F\u062B \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u0629 \u0628\u0645\u0624\u0634\u0631\u0627\u062A\u0647\u0627." },
+      { icon:3, title:"\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631 \u0627\u0644\u0631\u0633\u0645\u064A\u0629",
+        desc:"\u062A\u0642\u0631\u064A\u0631 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0623\u0633\u0628\u0648\u0639\u064A\u060C \u062A\u0643\u0645\u064A\u0644 \u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0646\u0648\u0639\u064A\u060C \u0648\u0627\u0644\u0646\u0645\u0648\u0630\u062C \u0627\u0644\u0634\u0627\u0645\u0644 \u2014 \u062A\u064F\u0628\u0646\u0649 \u062A\u0644\u0642\u0627\u0626\u064A\u0627\u064B \u0645\u0646 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062D\u064A\u0629." }
+    ];
+  }
+  function startWelcomeTour(){
+    if (document.querySelector(".fdwt-ov")) return;
+    var slides = wtSlides(), idx = 0;
+    var ov = document.createElement("div"); ov.className = "fdwt-ov";
+    var dots = slides.map(function(_, i){ return '<span class="fdwt-dot'+(i===0?' on':'')+'"></span>'; }).join("");
+    ov.innerHTML =
+      '<div class="fdwt-card" role="dialog" aria-modal="true" aria-label="\u0627\u0644\u062C\u0648\u0644\u0629 \u0627\u0644\u062A\u0631\u062D\u064A\u0628\u064A\u0629">'
+      + '<div class="fdwt-ic"></div>'
+      + '<div class="fdwt-title"></div>'
+      + '<div class="fdwt-desc"></div>'
+      + '<div class="fdwt-dots">'+dots+'</div>'
+      + '<div class="fdwt-nav">'
+      +   '<button class="fdwt-skip">\u062A\u062E\u0637\u064A</button>'
+      +   '<button class="fdwt-next"></button>'
+      + '</div>'
+      + '</div>';
+    document.body.appendChild(ov);
+    var elIc=ov.querySelector(".fdwt-ic"), elT=ov.querySelector(".fdwt-title"), elD=ov.querySelector(".fdwt-desc");
+    var elDots=Array.prototype.slice.call(ov.querySelectorAll(".fdwt-dot")), elNext=ov.querySelector(".fdwt-next");
+    function render(){
+      var sl=slides[idx];
+      // تلاشٍ لطيف للمحتوى عند التنقّل (سلاسة)
+      var stage=ov.querySelector(".fdwt-card");
+      elIc.innerHTML=wtIcon(sl.icon); elT.textContent=sl.title; elD.textContent=sl.desc;
+      elIc.classList.remove("fdwt-fade"); elT.classList.remove("fdwt-fade"); elD.classList.remove("fdwt-fade");
+      void elIc.offsetWidth;
+      elIc.classList.add("fdwt-fade"); elT.classList.add("fdwt-fade"); elD.classList.add("fdwt-fade");
+      elDots.forEach(function(d,i){ d.classList.toggle("on", i===idx); });
+      elNext.innerHTML = idx < slides.length-1 ? "\u0627\u0644\u062A\u0627\u0644\u064A \u2190" : "\u0627\u0628\u062F\u0623 \u0627\u0644\u0627\u0633\u062A\u0639\u0631\u0627\u0636 \uD83D\uDE80";
+    }
+    function close(){
+      ov.classList.remove("fdwt-in");
+      try{ localStorage.setItem(WT_KEY,"1"); }catch(e){}
+      document.removeEventListener("keydown", onKey);
+      setTimeout(function(){ if(ov&&ov.parentNode) ov.parentNode.removeChild(ov); }, 420);
+    }
+    function next(){ idx < slides.length-1 ? (idx++, render()) : close(); }
+    function onKey(e){ if(e.key==="Escape") close(); else if(e.key==="Enter"||e.key==="ArrowLeft") next(); }
+    elNext.addEventListener("click", next);
+    ov.querySelector(".fdwt-skip").addEventListener("click", close);
+    elDots.forEach(function(d,i){ d.addEventListener("click", function(){ idx=i; render(); }); });
+    document.addEventListener("keydown", onKey);
+    render();
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ ov.classList.add("fdwt-in"); }); });
+  }
+  try { window.fd31Tour = function(){ try{ startWelcomeTour(); }catch(e){} }; } catch(e){}
+
+  // ---- انتظار انتهاء شاشة الاستهلال ثم عرض الجولة لأول زيارة ----
+  function wtSplashGone(){
+    var sp = document.querySelector(".splash-scr");
+    if (!sp) return true;
+    var cn = sp.className || "";
+    if (/splash-out/.test(cn)) return true;
+    var st = null; try { st = window.getComputedStyle(sp); } catch(e){}
+    if (st && (st.visibility === "hidden" || parseFloat(st.opacity) === 0 || st.display === "none")) return true;
+    return false;
+  }
+  function initWelcomeTour(){
+    try { if (localStorage.getItem(WT_KEY)) return; } catch(e){ return; }
+    if (initWelcomeTour._on) return; initWelcomeTour._on = true;
+    var tries = 0, sawSplash = false;
+    (function chk(){
+      tries++;
+      var sp = document.querySelector(".splash-scr");
+      // شاشة الاستهلال ظاهرة فعلاً (لم تبدأ الاختفاء بعد)
+      if (sp && !/splash-out/.test(sp.className)) sawSplash = true;
+      var gone = wtSplashGone();
+      // انتظرنا ظهور الاستهلال ثم اختفاءه → اعرض الجولة بعد اكتمال التلاشي
+      if (sawSplash && gone){
+        setTimeout(function(){ try{ startWelcomeTour(); }catch(e){} }, 640);
+        return;
+      }
+      // لم يظهر استهلال إطلاقاً خلال ~3.5s (ربما مُعطّل) → اعرض بأمان
+      if (!sawSplash && tries > 24){ try{ startWelcomeTour(); }catch(e){} return; }
+      // احتياط نهائي ~11s
+      if (tries > 74){ try{ startWelcomeTour(); }catch(e){} return; }
+      setTimeout(chk, 150);
+    })();
+  }
+
+  /* ============================================================
+     لوحة «تخصيص المظهر» (للمشرف) — رموز تصميم fd31، حفظ محلي، معاينة حيّة
+     ============================================================ */
+  var FDT_KEY = "fd_theme_custom";
+  var FDT_ADMIN_HASH = "a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49";
+  var FDT_DEF = { accent:"#C69B2E", accent2:"#E7C651", fs:1, icon:1, radius:1, pad:1 };
+  var FDT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#E7C651" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.4" fill="#14263f"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.4" fill="#14263f"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="8" cy="17" r="2.4" fill="#14263f"/></svg>';
+
+  var _fdAdminCache = null;
+  function fdIsAdmin(){
+    if (_fdAdminCache !== null) return _fdAdminCache;
+    var ok = false;
+    try { if (localStorage.getItem("cdfleet_role_hash") === FDT_ADMIN_HASH) ok = true; } catch(e){}
+    if (!ok) { // احتياط: شارة «المشرف» بترويسة الأساس (فحص خفيف مرة واحدة تُخزَّن نتيجته)
+      try {
+        var els = document.querySelectorAll(".side-rail ~ * span, header span, .rlb");
+        for (var i=0;i<els.length && i<400;i++){ if (((els[i].textContent||"").trim())==="\u0627\u0644\u0645\u0634\u0631\u0641"){ ok=true; break; } }
+      } catch(e){}
+    }
+    // لا نُخزّن "false" مبكراً قبل اكتمال تسجيل الدخول؛ نُخزّن فقط عند التأكد
+    if (ok) _fdAdminCache = true;
+    return ok;
+  }
+  function fdtLighten(hex, amt){
+    try{ hex=hex.replace("#",""); if(hex.length===3) hex=hex.replace(/./g,function(c){return c+c;});
+      var r=parseInt(hex.substr(0,2),16),g=parseInt(hex.substr(2,2),16),b=parseInt(hex.substr(4,2),16);
+      r=Math.min(255,Math.round(r+(255-r)*amt)); g=Math.min(255,Math.round(g+(255-g)*amt)); b=Math.min(255,Math.round(b+(255-b)*amt));
+      return "#"+[r,g,b].map(function(x){return ("0"+x.toString(16)).slice(-2);}).join("");
+    }catch(e){ return hex; }
+  }
+  function fdtLoad(){
+    try{ var s=localStorage.getItem(FDT_KEY); if(s){ var o=JSON.parse(s); return { accent:o.accent||FDT_DEF.accent, accent2:o.accent2||fdtLighten(o.accent||FDT_DEF.accent,.28), fs:+o.fs||1, icon:+o.icon||1, radius:+o.radius||1, pad:+o.pad||1 }; } }catch(e){}
+    return null;
+  }
+  function fdtApply(t){
+    var st=document.getElementById("fd31-theme-live");
+    if(!st){ st=document.createElement("style"); st.id="fd31-theme-live"; (document.head||document.documentElement).appendChild(st); }
+    if(!t){ st.textContent=""; return; } // إزالة = العودة للافتراضي
+    st.textContent = ":root{"
+      + "--fdt-accent:"+t.accent+";--fdt-accent2:"+t.accent2+";"
+      + "--fdt-fs:"+t.fs+";--fdt-icon:"+t.icon+";--fdt-radius:"+t.radius+";--fdt-pad:"+t.pad+";}";
+  }
+  function applySavedTheme(){ var t=fdtLoad(); if(t) fdtApply(t); }
+
+  function openThemePanel(){
+    if (document.querySelector(".fdtp-ov")) return;
+    var cur = fdtLoad() || JSON.parse(JSON.stringify(FDT_DEF));
+    if(!cur.accent2) cur.accent2 = fdtLighten(cur.accent,.28);
+    var draft = { accent:cur.accent, accent2:cur.accent2, fs:cur.fs, icon:cur.icon, radius:cur.radius, pad:cur.pad };
+
+    var SWATCH = [
+      { c:"#C69B2E", n:"ذهبي" }, { c:"#B3121C", n:"أحمر الدفاع المدني" }, { c:"#0E7A5F", n:"أخضر" },
+      { c:"#2C6BB3", n:"أزرق" }, { c:"#7A4BC9", n:"بنفسجي" }, { c:"#C2632B", n:"نحاسي" }
+    ];
+    function seg(label, key, opts){
+      var h='<div class="fdtp-row"><label>'+label+'</label><div class="fdtp-seg" data-key="'+key+'">';
+      opts.forEach(function(o){ h+='<button data-v="'+o.v+'"'+(Math.abs(draft[key]-o.v)<0.001?' class="on"':'')+'>'+o.t+'</button>'; });
+      return h+'</div></div>';
+    }
+    var swHtml = SWATCH.map(function(s){ return '<button data-c="'+s.c+'"'+(s.c.toLowerCase()===draft.accent.toLowerCase()?' class="on"':'')+' title="'+s.n+'" style="background:'+s.c+'"></button>'; }).join("");
+    swHtml += '<button class="fdtp-pick" title="لون مخصّص">\uD83C\uDFA8<input type="color" value="'+draft.accent+'"></button>';
+
+    var ov=document.createElement("div"); ov.className="fdtp-ov";
+    ov.innerHTML =
+      '<div class="fdtp-card" role="dialog" aria-modal="true" aria-label="\u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631">'
+      + '<div class="fdtp-hd"><div><h3>\uD83C\uDFA8 \u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631</h3><p>\u062A\u062A\u062D\u0643\u0645 \u0628\u0623\u0644\u0648\u0627\u0646 \u0648\u0623\u062D\u062C\u0627\u0645 \u0648\u0645\u0633\u0627\u0641\u0627\u062A \u0648\u0627\u062C\u0647\u0629 \u0627\u0644\u0645\u0646\u0635\u0629 \u2014 \u0645\u0639\u0627\u064A\u0646\u0629 \u0641\u0648\u0631\u064A\u0629</p></div><button class="fdtp-x" aria-label="\u0625\u063A\u0644\u0627\u0642">\u2715</button></div>'
+      + '<div class="fdtp-body">'
+      +   '<div class="fdtp-row"><label>\u0627\u0644\u0644\u0648\u0646 \u0627\u0644\u0645\u0645\u064A\u0651\u0632</label><div class="fdtp-sw">'+swHtml+'</div></div>'
+      +   seg("\u062D\u062C\u0645 \u0627\u0644\u062E\u0637", "fs", [{v:0.9,t:"\u0635\u063A\u064A\u0631"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.12,t:"\u0643\u0628\u064A\u0631"},{v:1.25,t:"\u0623\u0643\u0628\u0631"}])
+      +   seg("\u062D\u062C\u0645 \u0627\u0644\u0623\u064A\u0642\u0648\u0646\u0627\u062A", "icon", [{v:0.85,t:"\u0635\u063A\u064A\u0631"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.2,t:"\u0643\u0628\u064A\u0631"}])
+      +   seg("\u0627\u0644\u0643\u062B\u0627\u0641\u0629 \u0648\u0627\u0644\u0645\u0633\u0627\u0641\u0627\u062A", "pad", [{v:0.85,t:"\u0645\u0636\u063A\u0648\u0637"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.2,t:"\u0645\u0631\u064A\u062D"}])
+      +   seg("\u0627\u0633\u062A\u062F\u0627\u0631\u0629 \u0627\u0644\u0632\u0648\u0627\u064A\u0627", "radius", [{v:0.4,t:"\u062D\u0627\u062F\u0651"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.5,t:"\u062F\u0627\u0626\u0631\u064A"}])
+      + '</div>'
+      + '<div class="fdtp-note">\u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062C\u0647\u0627\u0632 (\u0644\u0644\u0645\u0634\u0631\u0641)</div>'
+      + '<div class="fdtp-ft"><button class="fdtp-btn fdtp-reset">\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0636\u0628\u0637</button><button class="fdtp-btn fdtp-save">\u062D\u0641\u0638</button></div>'
+      + '</div>';
+    document.body.appendChild(ov);
+
+    function preview(){ fdtApply(draft); }
+    preview();
+    function close(){ ov.classList.remove("on"); setTimeout(function(){ if(ov&&ov.parentNode) ov.parentNode.removeChild(ov); },300); document.removeEventListener("keydown",onKey); }
+    function onKey(e){ if(e.key==="Escape"){ applySavedTheme(); close(); } }
+
+    // اختيار اللون (حوامل + منتقٍ)
+    ov.querySelectorAll(".fdtp-sw button[data-c]").forEach(function(b){
+      b.addEventListener("click", function(){
+        ov.querySelectorAll(".fdtp-sw button").forEach(function(x){ x.classList.remove("on"); });
+        b.classList.add("on");
+        draft.accent=b.getAttribute("data-c"); draft.accent2=fdtLighten(draft.accent,.28);
+        var ci=ov.querySelector(".fdtp-pick input"); if(ci) ci.value=draft.accent;
+        preview();
+      });
+    });
+    var picker=ov.querySelector(".fdtp-pick input");
+    if(picker) picker.addEventListener("input", function(){
+      ov.querySelectorAll(".fdtp-sw button").forEach(function(x){ x.classList.remove("on"); });
+      ov.querySelector(".fdtp-pick").classList.add("on");
+      draft.accent=picker.value; draft.accent2=fdtLighten(draft.accent,.28); preview();
+    });
+    // القطاعات (خط/أيقونات/كثافة/استدارة)
+    ov.querySelectorAll(".fdtp-seg").forEach(function(seg){
+      var key=seg.getAttribute("data-key");
+      seg.querySelectorAll("button").forEach(function(b){
+        b.addEventListener("click", function(){
+          seg.querySelectorAll("button").forEach(function(x){ x.classList.remove("on"); });
+          b.classList.add("on"); draft[key]=parseFloat(b.getAttribute("data-v")); preview();
+        });
+      });
+    });
+    // إعادة الضبط
+    ov.querySelector(".fdtp-reset").addEventListener("click", function(){
+      draft={ accent:FDT_DEF.accent, accent2:FDT_DEF.accent2, fs:1, icon:1, radius:1, pad:1 };
+      try{ localStorage.removeItem(FDT_KEY); }catch(e){}
+      fdtApply(null); close();
+    });
+    // حفظ
+    ov.querySelector(".fdtp-save").addEventListener("click", function(){
+      try{ localStorage.setItem(FDT_KEY, JSON.stringify(draft)); }catch(e){}
+      fdtApply(draft); close();
+    });
+    ov.querySelector(".fdtp-x").addEventListener("click", function(){ applySavedTheme(); close(); });
+    ov.addEventListener("click", function(e){ if(e.target===ov){ applySavedTheme(); close(); } });
+    document.addEventListener("keydown", onKey);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ ov.classList.add("on"); }); });
+  }
+  try { window.fd31Theme = function(){ try{ openThemePanel(); }catch(e){} }; } catch(e){}
+
+  // زر «تخصيص المظهر» بالقائمة الجانبية (للمشرف فقط)
+  function placeRailTheme(){
+    var rail = document.querySelector(".side-rail"); if (!rail) return;
+    if (!fdIsAdmin()) return; // غير مشرف: لا زر (لا نحذف بتكلفة كل نبضة)
+    // موجود بالفعل داخل القائمة؟ لا تفعل شيئاً (تفادي عاصفة إعادة الإدراج)
+    if (rail.querySelector("#fd31-rail-theme")) return;
+    var th = el("button", "fd31-rail-theme", '<span class="ric">' + FDT_ICON + '</span><span class="rlb">\u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631</span>');
+    th.id="fd31-rail-theme"; th.title="\u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631 (\u0644\u0644\u0645\u0634\u0631\u0641)"; th.type="button";
+    th.onclick=openThemePanel; th.style.marginTop="0";
+    var aiBtn = rail.querySelector("#fd31-rail-ai");
+    if (aiBtn && aiBtn.nextSibling) rail.insertBefore(th, aiBtn.nextSibling);
+    else if (aiBtn) rail.appendChild(th);
+    else rail.appendChild(th);
+  }
+
   function boot() {
     if (!document.body) { setTimeout(boot, 300); return; }
+    try { applySavedTheme(); } catch (e) { }
     placeRailAI();
     fillMounts();
+    try { initWelcomeTour(); } catch (e) { }
     if (!VEH.length && !boot._dbTried) { boot._dbTried = true; try { loadDB(function () { }); } catch (e) { } }
     try { new MutationObserver(function () { fillMounts(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
     setInterval(fillMounts, 700);

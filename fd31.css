@@ -366,3 +366,109 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 .rs-nums{ display:flex; justify-content:space-between; gap:3px; }
 .rs-nums span{ display:flex; flex-direction:column; align-items:center; gap:1px; font-size:8px; color:#AEB6C6; font-weight:700; flex:1; }
 .rs-nums b{ font-size:15px; color:#fff; font-weight:900; }
+
+/* ============================================================
+   الجولة الترحيبية — تصميم البطاقة البيضاء السلس (٤ شرائح)
+   ============================================================ */
+.fdwt-ov{ position:fixed; inset:0; z-index:2147483000; display:flex; align-items:center; justify-content:center; padding:20px;
+  background:rgba(15,17,26,.75); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+  opacity:0; transition:opacity .38s ease; direction:rtl; font-family:inherit; }
+.fdwt-ov.fdwt-in{ opacity:1; }
+.fdwt-card{ background:#fff; border-radius:24px; padding:34px 36px; max-width:420px; width:90%; text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.4);
+  transform:translateY(18px) scale(.96); opacity:0;
+  transition:transform .5s cubic-bezier(.2,.85,.3,1), opacity .42s ease; }
+.fdwt-ov.fdwt-in .fdwt-card{ transform:none; opacity:1; }
+.fdwt-ic{ font-size:46px; line-height:1; height:52px; display:flex; align-items:center; justify-content:center; }
+.fdwt-emoji{ font-size:46px; }
+.fdwt-title{ font-size:19px; font-weight:800; color:#1B2440; margin-top:10px; line-height:1.5; }
+.fdwt-desc{ font-size:13.5px; font-weight:700; color:#5B6478; margin-top:8px; line-height:1.8; }
+.fdwt-dots{ display:flex; gap:6px; justify-content:center; margin:18px 0; }
+.fdwt-dot{ width:8px; height:8px; border-radius:6px; background:#D9DCE6; transition:all .25s ease; cursor:pointer; }
+.fdwt-dot.on{ width:22px; background:#B3121C; }
+.fdwt-nav{ display:flex; gap:10px; justify-content:center; }
+.fdwt-skip,.fdwt-next{ border:none; border-radius:12px; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; transition:filter .2s, transform .2s; }
+.fdwt-skip{ background:#EEF1F8; color:#5B6478; padding:11px 20px; }
+.fdwt-skip:hover{ filter:brightness(.97); }
+.fdwt-next{ background:linear-gradient(120deg,#B3121C,#7E1A2F); color:#fff; padding:11px 28px; }
+.fdwt-next:hover{ filter:brightness(1.06); transform:translateY(-1px); }
+/* تلاشٍ لطيف للمحتوى عند التنقّل (سلاسة) */
+.fdwt-fade{ animation:fdwtFade .42s ease; }
+@keyframes fdwtFade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+@media (prefers-reduced-motion:reduce){
+  .fdwt-card,.fdwt-fade{ animation:none!important; transition:opacity .25s ease!important; transform:none!important; }
+}
+
+/* ============================================================
+   نظام رموز تصميم fd31 + لوحة «تخصيص المظهر» (للمشرف)
+   القِيَم الافتراضية = المظهر الحالي تماماً → لا يتغيّر شيء حتى يعدّل المشرف
+   الأثر مقصور على مناطق fd31 فقط (لا يمسّ الأساس)
+   ============================================================ */
+:root{ --fdt-accent:#C69B2E; --fdt-accent2:#E7C651; --fdt-fs:1; --fdt-icon:1; --fdt-radius:1; --fdt-pad:1; }
+
+/* اللون المميّز (الذهبي) — عناصر fd31 الذهبية */
+.side-rail #fd31-rail-ai{ background:linear-gradient(135deg,var(--fdt-accent2),var(--fdt-accent))!important; }
+.fd31-msg.bot .big{ color:var(--fdt-accent2); }
+
+/* حجم الخط + الكثافة + الاستدارة — مناطق نصية آمنة (المساعد/الجولة/ملخّص السجل) */
+.fd31-msg{ font-size:calc(13.5px * var(--fdt-fs)); line-height:1.9;
+  border-radius:calc(16px * var(--fdt-radius)); padding:calc(11px*var(--fdt-pad)) calc(15px*var(--fdt-pad)); }
+.fd31-msg.bot .big{ font-size:calc(30px * var(--fdt-fs)); }
+.fdwt-title{ font-size:calc(19px * var(--fdt-fs)); }
+.fdwt-desc{ font-size:calc(13.5px * var(--fdt-fs)); }
+.fdwt-card{ border-radius:calc(24px * var(--fdt-radius)); }
+.fdwt-ic{ font-size:calc(46px * var(--fdt-icon)); }
+.fdwt-emoji{ font-size:calc(46px * var(--fdt-icon)); }
+
+/* حجم أيقونة زر المساعد بالقائمة */
+.side-rail #fd31-rail-ai .ric svg{ width:calc(18px*var(--fdt-icon)); height:calc(18px*var(--fdt-icon)); }
+
+/* لوحة KPI بغرفة العمليات — تكبير النص/الأيقونة بأمان (لها متّسع) */
+.ops-kpi-n{ font-size:calc(34px * var(--fdt-fs)); }
+.ops-kpi-ic{ font-size:calc(23px * var(--fdt-icon)); }
+.ops-kpi-l{ font-size:calc(12px * var(--fdt-fs)); }
+
+/* ---------- زر القائمة «تخصيص المظهر» ---------- */
+.side-rail #fd31-rail-theme .ric{ width:26px!important; min-width:26px!important; height:26px!important; border-radius:7px;
+  display:flex!important; align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#2C4A78,#1B3355)!important; }
+.side-rail #fd31-rail-theme .ric svg{ width:18px; height:18px; }
+.side-rail #fd31-rail-theme:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+
+/* ---------- لوحة تخصيص المظهر ---------- */
+.fdtp-ov{ position:fixed; inset:0; z-index:2147482900; display:flex; align-items:center; justify-content:center; padding:20px;
+  background:rgba(8,14,26,.72); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  opacity:0; transition:opacity .3s ease; direction:rtl; font-family:inherit; }
+.fdtp-ov.on{ opacity:1; }
+.fdtp-card{ width:min(460px,96vw); max-height:92vh; overflow:auto; border-radius:22px;
+  background:linear-gradient(165deg,#14263f,#0e1a2e); border:1px solid rgba(212,175,55,.28);
+  box-shadow:0 30px 80px rgba(0,0,0,.55); color:#E7ECF4;
+  transform:translateY(16px) scale(.97); opacity:0; transition:transform .34s cubic-bezier(.2,.85,.3,1),opacity .3s ease; }
+.fdtp-ov.on .fdtp-card{ transform:none; opacity:1; }
+.fdtp-hd{ display:flex; align-items:center; justify-content:space-between; padding:18px 22px 6px; }
+.fdtp-hd h3{ margin:0; font-size:17px; font-weight:900; color:#fff; }
+.fdtp-hd p{ margin:3px 0 0; font-size:11.5px; color:#9FB0C8; font-weight:600; }
+.fdtp-x{ background:rgba(255,255,255,.08); border:none; color:#cfd8e6; width:30px; height:30px; border-radius:9px; cursor:pointer; font-size:16px; }
+.fdtp-x:hover{ background:rgba(255,255,255,.16); }
+.fdtp-body{ padding:8px 22px 4px; }
+.fdtp-row{ margin:14px 0; }
+.fdtp-row>label{ display:block; font-size:12.5px; font-weight:800; color:#C6D2E4; margin-bottom:8px; }
+.fdtp-seg{ display:flex; gap:6px; }
+.fdtp-seg button{ flex:1; padding:9px 4px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05); color:#B9C6DA; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; transition:all .18s; }
+.fdtp-seg button:hover{ background:rgba(255,255,255,.1); }
+.fdtp-seg button.on{ background:linear-gradient(135deg,var(--fdt-accent2),var(--fdt-accent)); color:#20180a; border-color:transparent; }
+.fdtp-sw{ display:flex; gap:9px; flex-wrap:wrap; }
+.fdtp-sw button{ width:34px; height:34px; border-radius:9px; border:2px solid rgba(255,255,255,.15); cursor:pointer; padding:0; transition:transform .15s,border-color .15s; }
+.fdtp-sw button:hover{ transform:scale(1.08); }
+.fdtp-sw button.on{ border-color:#fff; box-shadow:0 0 0 2px rgba(255,255,255,.25); }
+.fdtp-sw .fdtp-pick{ display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); font-size:15px; color:#C6D2E4; position:relative; overflow:hidden; }
+.fdtp-pick input[type=color]{ position:absolute; inset:-6px; width:46px; height:46px; border:none; padding:0; cursor:pointer; opacity:0; }
+.fdtp-ft{ display:flex; gap:9px; padding:12px 22px 20px; border-top:1px solid rgba(255,255,255,.06); margin-top:6px; }
+.fdtp-btn{ border:none; border-radius:12px; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; padding:11px 16px; transition:all .18s; }
+.fdtp-reset{ background:rgba(255,255,255,.07); color:#C6D2E4; }
+.fdtp-reset:hover{ background:rgba(255,255,255,.13); }
+.fdtp-save{ background:linear-gradient(135deg,var(--fdt-accent2),var(--fdt-accent)); color:#20180a; flex:1; box-shadow:0 8px 20px rgba(201,155,46,.35); }
+.fdtp-save:hover{ filter:brightness(1.06); transform:translateY(-1px); }
+.fdtp-note{ font-size:11px; color:#8298B4; text-align:center; padding:0 22px 14px; margin-top:-4px; }
+@media (prefers-reduced-motion:reduce){ .fdtp-ov,.fdtp-card{ transition:opacity .2s ease!important; transform:none!important; } }
