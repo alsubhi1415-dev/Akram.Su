@@ -1,5 +1,5 @@
 /* ============================================================
-   FD31 · الإصدار 31.7 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 32.8 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -592,7 +592,7 @@ var SPECIAL2 = [
     return { say: says.join(" — "), html: html };
   }
 
-  function answerTop(q0) { var m = null; try { m = multiAnswer(q0); } catch (e) { m = null; } return m || answer(q0); }
+  function answerTop(q0) { var t = null; try { t = timeAnswer(q0); } catch (e) { t = null; } if (t) return t; var m = null; try { m = multiAnswer(q0); } catch (e) { m = null; } return m || answer(q0); }
 
   /* ---------- إحصاء + ترتيب الشُّعب الميدانية ---------- */
   function branchStats(fieldOnly) {
@@ -645,11 +645,9 @@ var SPECIAL2 = [
   }
 
   /* ---------- طباعة رسمية (بلا اسم/رتبة) ---------- */
-  function printDoc(title, bodyHtml, opts) {
+  function buildReportHtml(title, bodyHtml, opts) {
     opts = opts || {};
-    var w = null; try { w = window.open("", "_blank"); } catch (e) { }
-    if (!w) { alert("تعذّر فتح نافذة الطباعة — يرجى السماح بالنوافذ المنبثقة"); return; }
-    w.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' + title + '</title><style>' +
+    return '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' + title + '</title><style>' +
       '@page{size:A4 ' + (opts.landscape ? "landscape" : "portrait") + ';margin:12mm}' +
       'body{font-family:"Sakkal Majalla","Traditional Arabic",Tahoma,serif;color:#111;margin:0;font-size:14px}' +
       '.doc-h{text-align:center;border-bottom:2.5px double #333;padding-bottom:8px;margin-bottom:14px}' +
@@ -660,10 +658,28 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 31.7</div></body></html>');
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 32.8</div></body></html>';
+  }
+  function printDoc(title, bodyHtml, opts) {
+    var w = null; try { w = window.open("", "_blank"); } catch (e) { }
+    if (!w) { alert("تعذّر فتح نافذة الطباعة — يرجى السماح بالنوافذ المنبثقة"); return; }
+    w.document.write(buildReportHtml(title, bodyHtml, opts));
     w.document.close();
     setTimeout(function () { try { w.print(); } catch (e) { } }, 400);
   }
+  // تصدير Word موحّد — يعيد استخدام نفس محتوى أي تقرير/بيانات
+  function fd31DocExport(title, bodyHtml, opts, filename) {
+    try {
+      var html = buildReportHtml(title, bodyHtml, opts);
+      var blob = new Blob(["\uFEFF", html], { type: "application/msword;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = String(filename || title).replace(/[\\\/:*?"<>|]/g, "_").slice(0, 80) + ".doc";
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { try { document.body.removeChild(a); URL.revokeObjectURL(a.href); } catch (e) { } }, 600);
+    } catch (e) { alert("تعذّر تصدير Word"); }
+  }
+  try { window.fd31DocExport = fd31DocExport; } catch (e) { }
 
   /* ============================================================
      الواجهة
@@ -748,7 +764,7 @@ var SPECIAL2 = [
       '<div class="fdp-panel"><div class="fdp-panel-h"><h2>📋 جدول الاستحقاق</h2>' +
       '<div class="fdp-filters"><select id="fdp-br" class="fdp-sel"><option value="">كل الجهات</option>' + Object.keys(branches).sort().map(function (b) { return '<option>' + b + '</option>'; }).join("") + '</select>' +
       '<select id="fdp-st" class="fdp-sel"><option value="">كل الحالات</option><option>متأخرة</option><option>قريبة</option><option>مجدولة</option></select>' +
-      '<button id="fdp-print" class="fdp-btn">🖨️ طباعة الجدول</button></div></div>' +
+      '<button id="fdp-print" class="fdp-btn">🖨️ طباعة الجدول</button><button id="fdp-word" class="fdp-btn">📄 تصدير Word</button></div></div>' +
       '<div id="fdp-tbl" class="fdp-tblwrap"></div></div></div>';
     function cfgApply() {
       var o = {}; ["oil", "bat", "tire", "full"].forEach(function (k) { o[k] = +$("#fdp-c-" + k, host).value || mcfg()[k]; });
@@ -771,11 +787,13 @@ var SPECIAL2 = [
       $("#fdp-tbl", host).innerHTML = h;
     }
     $("#fdp-br", host).onchange = draw; $("#fdp-st", host).onchange = draw;
-    $("#fdp-print", host).onclick = function () {
+    function maintReportContent() {
       var fb = $("#fdp-br", host).value, fs = $("#fdp-st", host).value;
       var list = rows.filter(function (r) { return (!fb || (branchOf(r.v.unit) || "أخرى") === fb) && (!fs || r.st === fs); }).filter(function (r) { return fs || r.st !== "مجدولة"; });
-      printDoc("جدول الصيانة الوقائية للآليات", '<div style="font-size:13px;margin-bottom:8px">' + (fb ? "الجهة: " + fb + " — " : "") + 'المهام المستحقة والمتأخرة وعددها (' + list.length + ')</div><table><tr><th style="width:26px">م</th><th>المهمة</th><th>اللوحة</th><th>النوع</th><th>الجهة</th><th>الاستحقاق</th><th>الموقف</th></tr>' + list.map(function (r, i) { return "<tr><td>" + (i + 1) + "</td><td>" + r.task + "</td><td>" + esc(r.v.plate || "—") + "</td><td>" + esc(r.v.type) + "</td><td>" + esc(r.v.unit) + "</td><td>" + fmtH(serToH(r.due)) + "</td><td>" + (r.st === "متأخرة" ? "متأخرة " + Math.abs(r.diff) + " يوماً" : r.st) + "</td></tr>"; }).join("") + "</table>", {});
-    };
+      return { title: "جدول الصيانة الوقائية للآليات", body: '<div style="font-size:13px;margin-bottom:8px">' + (fb ? "الجهة: " + fb + " — " : "") + 'المهام المستحقة والمتأخرة وعددها (' + list.length + ')</div><table><tr><th style="width:26px">م</th><th>المهمة</th><th>اللوحة</th><th>النوع</th><th>الجهة</th><th>الاستحقاق</th><th>الموقف</th></tr>' + list.map(function (r, i) { return "<tr><td>" + (i + 1) + "</td><td>" + r.task + "</td><td>" + esc(r.v.plate || "—") + "</td><td>" + esc(r.v.type) + "</td><td>" + esc(r.v.unit) + "</td><td>" + fmtH(serToH(r.due)) + "</td><td>" + (r.st === "متأخرة" ? "متأخرة " + Math.abs(r.diff) + " يوماً" : r.st) + "</td></tr>"; }).join("") + "</table>" };
+    }
+    $("#fdp-print", host).onclick = function () { var c = maintReportContent(); printDoc(c.title, c.body, {}); };
+    var _fdpw = $("#fdp-word", host); if (_fdpw) _fdpw.onclick = function () { var c = maintReportContent(); fd31DocExport(c.title, c.body, {}, c.title); };
     draw();
   }
   function cfgBox(k, ic, lbl, val) { return '<div class="fdp-cbox"><div class="cb-ic">' + ic + '</div><div class="cb-body"><label>' + lbl + '</label><div class="cb-row"><input id="fdp-c-' + k + '" class="fdp-num" type="number" min="1" value="' + val + '"><span>شهر</span></div></div></div>'; }
@@ -801,17 +819,20 @@ var SPECIAL2 = [
     host.innerHTML =
       '<div class="fdv">' +
       '<div class="fdv-h"><span class="fdv-ic">🕓</span><h2>الخط الزمني وسيرة الآلية</h2>' +
-      '<button class="fdv-print" id="fdv-print">🖨️ طباعة تقرير مفصّل</button></div>' +
+      '<button class="fdv-print" id="fdv-print">🖨️ طباعة تقرير مفصّل</button><button class="fdv-print fdv-word" id="fdv-word">📄 تصدير Word</button></div>' +
       '<div class="fdv-stats"><div class="fdv-st"><b>' + totalFaults + '</b><span>إجمالي الأعطال</span></div>' +
       '<div class="fdv-st ' + (of.length ? "warn" : "") + '"><b>' + of.length + '</b><span>أعطال مفتوحة</span></div>' +
       '<div class="fdv-st"><b>' + downDays + '</b><span>إجمالي أيام التوقف</span></div>' +
       '<div class="fdv-st"><b>' + evs.length + '</b><span>حدث مسجّل</span></div></div>' +
+      '<div class="fdv-chk" id="fdv-chk">⏳ جارِ جلب آخر فحص يومي…</div>' +
       '<div class="fdv-line">' + evs.map(function (e) {
         return '<div class="fdv-ev ' + e.t + '"><div class="fdv-dot"></div><div class="fdv-card"><div class="fdv-date">' + fmtH(e.d) + '</div><div class="fdv-title">' + esc(e.h) + '</div>' + (e.x ? '<div class="fdv-desc">' + e.x + '</div>' : "") + (e.dur != null ? '<span class="fdv-dur ' + (e.open ? "open" : "") + '">' + (e.open ? "متوقفة منذ " + e.dur + " يوماً — مفتوح" : "مدة التوقف " + e.dur + " يوماً") + '</span>' : "") + '</div></div>';
       }).join("") + '</div></div>';
     $("#fdv-print", host).onclick = function () { printVehReport(v); };
+    var _fdvw = $("#fdv-word", host); if (_fdvw) _fdvw.onclick = function () { wordVehReport(v); };
+    try { loadVehCheckin(v); } catch (e) { }
   }
-  function printVehReport(v) {
+  function vehReportContent(v) {
     var evs = vehEvents(v), of = openFaults(v);
     var age = parseInt(v.model, 10) > 1980 ? (2026 - parseInt(v.model, 10)) + " سنة" : "—";
     var idRows = [["اللوحة", v.plate || "—"], ["النوع", v.type], ["الموديل", (v.model || "—") + " (العمر " + age + ")"], ["رقم الهيكل", v.chassis || "—"], ["اللون", v.color || "—"], ["الرقم التسلسلي", v.itemNo || "—"], ["الجهة", v.unit], ["الشعبة", branchOf(v.unit) || "—"], ["الموقع", v.location || "—"], ["الحالة الحالية", v.status + " (تصنيف: " + (GROUP[v.status] || "—") + ")"]];
@@ -820,8 +841,10 @@ var SPECIAL2 = [
     var fTbl = '<div style="margin-top:12px;font-weight:800;font-size:13px">سجل الأعطال والإصلاحات (' + faults.length + ')</div><table><tr><th style="width:24px">م</th><th>نوع العطل</th><th>تاريخ العطل</th><th>تاريخ الإصلاح</th><th>مدة التوقف</th><th>الجهة المتسببة</th><th>الوصف</th></tr>' + (faults.length ? faults.map(function (f, i) { var a = hSer(parseH(f.date)), b = hSer(parseH(f.repairDate)); var dur = (a && b) ? (b - a) + " يوماً" : (a ? "مفتوح (" + (SER_NOW - a) + "ي)" : "—"); return "<tr><td>" + (i + 1) + "</td><td>" + esc(f.faultType || "—") + "</td><td>" + fmtH(parseH(f.date)) + "</td><td>" + (f.repairDate ? fmtH(parseH(f.repairDate)) : "<b>لم يُصلح</b>") + "</td><td>" + dur + "</td><td>" + esc(f.causedBy || "—") + "</td><td>" + esc(f.desc || "—") + "</td></tr>"; }).join("") : '<tr><td colspan="7" style="text-align:center">لا أعطال مسجّلة</td></tr>') + "</table>";
     var tl = '<div style="margin-top:12px;font-weight:800;font-size:13px">السيرة الزمنية الكاملة</div><table><tr><th style="width:24px">م</th><th style="width:110px">التاريخ</th><th style="width:70px">النوع</th><th>البيان</th></tr>' + evs.map(function (e, i) { var kind = e.t === "f" ? "عطل" : e.t === "r" ? "إصلاح" : e.t === "c" ? "تسجيل" : "حركة"; return "<tr><td>" + (i + 1) + "</td><td>" + fmtH(e.d) + "</td><td>" + kind + "</td><td>" + esc(e.h) + (e.x ? " — " + e.x.replace(/<br>/g, "، ") : "") + (e.dur != null ? " (توقف " + e.dur + " يوماً)" : "") + "</td></tr>"; }).join("") + "</table>";
     var summary = '<div style="margin-top:12px;padding:8px 12px;border:1px solid #999;background:#F4F6FB;font-size:12.5px">الخلاصة: سُجّل لهذه الآلية <b>' + faults.length + '</b> عطلاً، منها <b>' + of.length + '</b> مفتوح حالياً. حالتها الراهنة <b>' + esc(v.status) + '</b>.' + (v.notes ? ' ملاحظات: ' + esc(v.notes) : "") + '</div>';
-    printDoc("تقرير مفصّل عن الآلية — " + (v.plate || v.type), idTbl + fTbl + tl + summary, {});
+    return { title: "تقرير مفصّل عن الآلية — " + (v.plate || v.type), body: idTbl + fTbl + tl + summary };
   }
+  function printVehReport(v) { var c = vehReportContent(v); printDoc(c.title, c.body, {}); }
+  function wordVehReport(v) { var c = vehReportContent(v); fd31DocExport(c.title, c.body, {}, c.title); }
 
 
   /* ============================================================
@@ -950,7 +973,8 @@ var SPECIAL2 = [
     if (!x) return '';
     var c = opsMapColor(x.pct);
     var head = '<div class="omd-h"><span class="omd-dot" style="background:' + c + '"></span><b>شعبة ' + esc(x.name) + '</b>'
-      + '<span class="omd-pctwrap"><span class="omd-pct" style="color:' + c + '">' + x.pct + '٪</span><span class="omd-pctl">نسبة الجاهزية</span></span></div>';
+      + '<span class="omd-pctwrap"><span class="omd-pct" style="color:' + c + '">' + x.pct + '٪</span><span class="omd-pctl">نسبة الجاهزية</span></span>'
+      + '<span class="omd-btns"><button class="omd-rep" data-b="' + esc(x.name) + '" title="طباعة التقرير الشامل للشعبة">🖨️ تقرير الشعبة</button><button class="omd-rep omd-repw" data-b="' + esc(x.name) + '" title="تصدير Word">📄</button></span></div>';
     var grid = '<div class="omd-grid">'
       + '<div class="omd-cell"><div class="omd-v">' + x.total + '</div><div class="omd-k">إجمالي آليات الشعبة</div></div>'
       + '<div class="omd-cell"><div class="omd-v" style="color:#5FE3A5">' + x.up + '</div><div class="omd-k">آليات جاهزة</div></div>'
@@ -1011,15 +1035,30 @@ var SPECIAL2 = [
       '<div class="fdls-count"><span class="fdls-n">' + n + '</span><span class="fdls-nl">آلية مطابقة للمرشّح</span></div>' +
       '<div class="fdls-ready"><span class="fdls-rp">' + d.pct + '٪</span><span class="fdls-rl">جاهزية المعروض</span></div>' +
       '<div class="fdls-meta"><span>' + branches.length + ' جهة</span><span>' + typeN + ' نوع</span><span>' + d.up + ' جاهزة · ' + d.down.length + ' عطلانة</span></div>' +
+      '<button type="button" class="fdls-word" title="تصدير بيانات السجل المعروض إلى Word">📄 تصدير Word</button>' +
       '</div>' +
       '<div class="fdls-bar">' + bar + '</div>' +
       '<div class="fdls-chips">' + chips + '</div>' +
       (branches.length > 1 ? '<div class="fdls-brs"><span class="fdls-brs-h">الجهات الظاهرة:</span>' + brChips + '</div>' : "") +
       (clickable ? '<div class="fdls-hint">' + (curStatus && curStatus.length ? '<button type="button" class="fdls-clear">✕ مسح مرشّحات الحالة</button> ' : '') + 'اختر حالة أو أكثر (تصفية تراكمية) — تُضاف/تُزال دون التأثير على بقية المرشّحات' + '</div>' : "") +
       '</div>';
+    var _wb = host.querySelector(".fdls-word");
+    if (_wb) _wb.onclick = function (e) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      var C2 = statCounts(list), d2 = readinessDetail(list);
+      var head = '<div style="font-size:13px;margin-bottom:6px">إجمالي الآليات المعروضة: <b>' + list.length + '</b> · نسبة الجاهزية: <b>' + d2.pct + '٪</b> · جاهزة ' + d2.up + ' · متعطلة ' + d2.down.length + ' · ' + branches.length + ' جهة · ' + typeN + ' نوع</div>';
+      var statLine = '<div style="font-size:12px;margin-bottom:8px">توزيع الحالات: ' + STATUSES.filter(function (s) { return C2[s]; }).map(function (s) { return s + " (" + C2[s] + ")"; }).join(" · ") + '</div>';
+      var rowsH = list.map(function (v, i) {
+        var fa = (v.faults || []), op = fa.filter(function (f) { return !f.repairDate; }).length;
+        return "<tr><td>" + (i + 1) + "</td><td>" + esc(v.type || "—") + "</td><td>" + esc(v.plate || "—") + "</td><td>" + esc(v.unit || "—") + "</td><td>" + esc(branchOf(v.unit) || "—") + "</td><td>" + esc(v.location || "—") + "</td><td>" + esc(v.model || "—") + "</td><td>" + esc((v.status || "—").trim()) + "</td><td>" + fa.length + "</td><td>" + op + "</td></tr>";
+      }).join("");
+      var tbl = '<table><tr><th style="width:26px">م</th><th>النوع</th><th>اللوحة</th><th>الجهة</th><th>الشعبة</th><th>الموقع</th><th>الموديل</th><th>الحالة</th><th>الأعطال</th><th>مفتوحة</th></tr>' + rowsH + "</table>";
+      fd31DocExport("سجل الآليات — البيانات المعروضة (" + list.length + ")", head + statLine + tbl, { landscape: true }, "سجل الآليات المعروض");
+    };
     if (clickable) {
       host.onclick = function (e) {
         var t = e.target;
+        if (t.closest && t.closest(".fdls-word")) return;
         var clr = t.closest ? t.closest(".fdls-clear") : null;
         if (clr) { setStatus([]); return; }
         var chip = t.closest ? t.closest(".fdls-chip[data-status]") : null;
@@ -1059,7 +1098,10 @@ var SPECIAL2 = [
       '<div class="ops-bar"><div class="ops-live"><span class="ops-dot"></span> مباشر</div>' +
       '<div class="ops-title">مؤشرات الجاهزية الفنية والآلية — الإدارة العامة للدفاع المدني بمحافظة جدة</div>' +
       '<div class="ops-clock"><span id="ops-clock">' + clock + '</span> · ' + fmtH(H_NOW) + '</div>' +
-      '<button class="ops-full" id="ops-full" title="عرض ملء الشاشة للجدران">⛶ شاشة كاملة</button></div>' +
+      '<button class="ops-full" id="ops-word" title="تصدير تقرير الجاهزية إلى Word">📄 تصدير Word</button>' +
+      '<button class="ops-full" id="ops-full" title="عرض ملء الشاشة للجدران">⛶ شاشة كاملة</button>' +
+      '<button class="ops-full" id="ops-mon" title="البيان الشهري الرسمي — طباعة">🗓️ بيان شهري</button>' +
+      '<button class="ops-full" id="ops-monw" title="البيان الشهري — Word">🗓️📄</button></div>' +
 
       '<div class="ops-hero">' +
       '<div class="ops-card ops-glow"><div class="ops-card-h">مؤشر الجاهزية العام</div>' + gaugeSVG(d.pct, color) +
@@ -1088,6 +1130,9 @@ var SPECIAL2 = [
       '<div class="ops-map-wrap"><div class="ops-map-svg-box">' + opsMapSVG(brFull) + '</div>' +
       '<div class="ops-map-detail" id="ops-map-detail">' + opsMapDetail(brFull[0]) + '</div></div>' +
       '<div class="ops-map-legend"><span><i style="background:#2FD37F"></i>جاهزية ≥ 70٪</span><span><i style="background:#E8C561"></i>50–69٪</span><span><i style="background:#FF6B72"></i>أقل من 50٪</span><span class="ops-map-hint">اضغط أي شعبة لعرض تفصيلها · حجم الدائرة = عدد الآليات</span></div></div>' +
+      opsExtrasHtml() +
+      opsMatrixHtml() +
+      opsQualityHtml() +
 
       '</div>';
     opsAnimate(host);
@@ -1104,6 +1149,35 @@ var SPECIAL2 = [
       wrap.classList.toggle("ops-kiosk");
       this.textContent = wrap.classList.contains("ops-kiosk") ? "✕ إغلاق العرض" : "⛶ شاشة كاملة";
     };
+    var _ow = host.querySelector("#ops-word");
+    if (_ow) _ow.onclick = function () {
+      var kpiRows = [["إجمالي الآليات", all.length], ["تعمل الآن", G["يعمل"]], ["عطلانة", C["عطلانة"] || 0], ["في الصيانة", maint], ["رجيع", G["رجيع"]], ["تعمل بوجود ملاحظات", C["تعمل بوجود ملاحظات"] || 0]];
+      var kTbl = '<table><tr><th colspan="2" style="background:#DCE3F0">الموقف العام للجاهزية</th></tr><tr><td style="width:60%;font-weight:800;background:#F4F6FB">نسبة الجاهزية العامة</td><td><b>' + d.pct + '٪</b> (' + d.up + ' جاهزة من ' + all.length + ')</td></tr>' + kpiRows.map(function (r) { return "<tr><td style='font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
+      var brRows = br.map(function (x, i) { return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.b) + "</td><td><b>" + x.pct + "٪</b></td></tr>"; }).join("");
+      var brTbl = '<div style="margin-top:12px;font-weight:800;font-size:13px">جاهزية الشُّعب الميدانية (مرتّبة)</div><table><tr><th style="width:26px">م</th><th>الشعبة</th><th>نسبة الجاهزية</th></tr>' + brRows + "</table>";
+      fd31DocExport("تقرير جاهزية غرفة العمليات", kTbl + brTbl, {}, "تقرير الجاهزية العام");
+    };
+    var _mon = host.querySelector("#ops-mon"), _monw = host.querySelector("#ops-monw");
+    if (_mon) _mon.onclick = function () { var s = monthlyStatementBody(); printDoc("البيان الشهري للجاهزية والأعطال — شهر " + s.lbl, s.body, {}); };
+    if (_monw) _monw.onclick = function () { var s = monthlyStatementBody(); fd31DocExport("البيان الشهري للجاهزية والأعطال — شهر " + s.lbl, s.body, {}, "البيان الشهري"); };
+    host.addEventListener("click", function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest(".omd-rep") : null;
+      if (!btn) return;
+      var nm = btn.getAttribute("data-b"), x = null;
+      brFull.forEach(function (bb) { if (bb.name === nm) x = bb; });
+      if (!x) return;
+      var body = branchReportBody(x), ttl = "التقرير الشامل لشعبة " + nm;
+      if (btn.classList.contains("omd-repw")) fd31DocExport(ttl, body, {}, ttl); else printDoc(ttl, body, {});
+    });
+    function _bindRep(pid, wid, ttl, bodyFn) {
+      var p = host.querySelector(pid), w2 = host.querySelector(wid);
+      if (p) p.onclick = function () { printDoc(ttl, bodyFn(), {}); };
+      if (w2) w2.onclick = function () { fd31DocExport(ttl, bodyFn(), {}, ttl); };
+    }
+    _bindRep("#ops-mx-p", "#ops-mx-w", "\u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 \u0627\u0644\u0645\u064A\u062F\u0627\u0646\u064A\u0629", function () { var M = matrixData(); return matrixTable(M, true) + (M.recs.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u062A\u0648\u0635\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0648\u0632\u064A\u0639</div><ol>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ol>" : ""); });
+    _bindRep("#ops-rq-p", "#ops-rq-w", "\u0643\u0634\u0641 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u0643\u0631\u0631\u0629 \u2014 \u062C\u0648\u062F\u0629 \u0627\u0644\u0625\u0635\u0644\u0627\u062D", function () { return repeatTable(repeatFaults()); });
+    _bindRep("#ops-sla-p", "#ops-sla-w", "\u0645\u062A\u0627\u0628\u0639\u0629 \u0632\u0645\u0646 \u0627\u0644\u0625\u0635\u0644\u0627\u062D \u2014 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u062C\u0627\u0648\u0632\u0629", slaReportBody);
+    try { fillPendingReports(); } catch (e) { }
     if (host._opsClk) clearInterval(host._opsClk);
     host._opsClk = setInterval(function () { var el = document.getElementById("ops-clock"); if (!el) { clearInterval(host._opsClk); return; } var n = new Date(); el.textContent = ("0" + n.getHours()).slice(-2) + ":" + ("0" + n.getMinutes()).slice(-2); }, 30000);
   }
@@ -1198,7 +1272,6 @@ var SPECIAL2 = [
   }
   function fillMounts() {
     placeRailAI();
-    try { placeRailTheme(); } catch (e) { }
     var mp = document.getElementById("fd-maint-page");
     if (mp && !mp.querySelector(".fdp")) { loadDB(function () { if (document.getElementById("fd-maint-page")) renderMaintPage(mp); }); }
     var od = document.getElementById("fd-ops-dash");
@@ -1319,155 +1392,328 @@ var SPECIAL2 = [
     })();
   }
 
-  /* ============================================================
-     لوحة «تخصيص المظهر» (للمشرف) — رموز تصميم fd31، حفظ محلي، معاينة حيّة
-     ============================================================ */
-  var FDT_KEY = "fd_theme_custom";
-  var FDT_ADMIN_HASH = "a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49";
-  var FDT_DEF = { accent:"#C69B2E", accent2:"#E7C651", fs:1, icon:1, radius:1, pad:1 };
-  var FDT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="#E7C651" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.4" fill="#14263f"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.4" fill="#14263f"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="8" cy="17" r="2.4" fill="#14263f"/></svg>';
 
-  var _fdAdminCache = null;
-  function fdIsAdmin(){
-    if (_fdAdminCache !== null) return _fdAdminCache;
-    var ok = false;
-    try { if (localStorage.getItem("cdfleet_role_hash") === FDT_ADMIN_HASH) ok = true; } catch(e){}
-    if (!ok) { // احتياط: شارة «المشرف» بترويسة الأساس (فحص خفيف مرة واحدة تُخزَّن نتيجته)
-      try {
-        var els = document.querySelectorAll(".side-rail ~ * span, header span, .rlb");
-        for (var i=0;i<els.length && i<400;i++){ if (((els[i].textContent||"").trim())==="\u0627\u0644\u0645\u0634\u0631\u0641"){ ok=true; break; } }
-      } catch(e){}
+  /* ============================================================
+     دفعة 25: قيد المتابعة + مقارنة الفترات + البيان الشهري
+     + تقرير الشعبة الشامل + آخر فحص يومي + الأسئلة الزمنية
+     ============================================================ */
+  var RAW_URL = "https://raw.githubusercontent.com/alsubhi1415-dev/Akram.Su/main/";
+  function fetchRaw(file, cb) {
+    try {
+      fetch(RAW_URL + file + "?t=" + Date.now()).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+        var j = null; if (t) { try { j = JSON.parse(t); } catch (e) { } } cb(j);
+      }).catch(function () { cb(null); });
+    } catch (e) { cb(null); }
+  }
+  function monthSerRange(off) {
+    var y = H_NOW.y, m = H_NOW.m + (off || 0);
+    while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; }
+    return [hSer({ y: y, m: m, d: 1 }), hSer({ y: y, m: m, d: 30 }), y, m];
+  }
+  function mLabel(y, m) { return ("0" + m).slice(-2) + "/" + y + "\u0647\u0640"; }
+  function faultsInRange(pool, a, b, useRepair) {
+    var out = [];
+    pool.forEach(function (v) {
+      (v.faults || []).forEach(function (f) {
+        var s = hSer(parseH(useRepair ? f.repairDate : f.date));
+        if (s && s >= a && s <= b) out.push({ v: v, f: f, s: s });
+      });
+    });
+    return out;
+  }
+  function followupData() {
+    var long = [];
+    VEH.forEach(function (v) {
+      if (v.status !== "\u0639\u0637\u0644\u0627\u0646\u0629") return;
+      var worst = null;
+      (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var s = hSer(parseH(f.date)); if (s && (!worst || s < worst)) worst = s; });
+      if (worst) { var dd = SER_NOW - worst; if (dd >= 30) long.push({ v: v, d: dd }); }
+    });
+    long.sort(function (a, b) { return b.d - a.d; });
+    var late = maintRows().filter(function (r) { return r.st === "\u0645\u062A\u0623\u062E\u0631\u0629"; });
+    return { long: long, late: late };
+  }
+  function opsExtrasHtml() {
+    var fu = followupData();
+    var longRows = fu.long.slice(0, 5).map(function (x) {
+      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "\u2014") + ' \u2014 ' + esc(x.v.plate || "") + '</span><b style="color:#FF8A90">' + x.d + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
+    }).join("") || '<div class="ops-fu-row ok">\u0644\u0627 \u0622\u0644\u064A\u0627\u062A \u0645\u062A\u0648\u0642\u0641\u0629 \u2265 30 \u064A\u0648\u0645\u0627\u064B \u2705</div>';
+    var lateRows = fu.late.slice(0, 3).map(function (r) {
+      return '<div class="ops-fu-row"><span>' + r.icon + ' ' + esc(r.task) + ' \u2014 ' + esc(r.v.plate || "") + '</span><b style="color:#E8C561">' + Math.abs(r.diff) + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
+    }).join("");
+    var fuCard =
+      '<div class="ops-card"><div class="ops-card-h">\uD83D\uDCCC \u0642\u064A\u062F \u0627\u0644\u0645\u062A\u0627\u0628\u0639\u0629</div>' +
+      '<div class="ops-fu-chips">' +
+      '<span class="ops-fu-chip r">\u0645\u062A\u0648\u0642\u0641\u0629 \u2265 30 \u064A\u0648\u0645\u0627\u064B <b>' + fu.long.length + '</b></span>' +
+      '<span class="ops-fu-chip y">\u0635\u064A\u0627\u0646\u0629 \u0645\u062A\u0623\u062E\u0631\u0629 <b>' + fu.late.length + '</b></span>' +
+      '<span class="ops-fu-chip b" id="ops-fu-rep">\u0628\u0644\u0627\u063A\u0627\u062A \u0645\u0639\u0644\u0651\u0642\u0629 <b>\u2026</b></span>' +
+      '</div>' +
+      '<div class="ops-fu-sec">\u0623\u0637\u0648\u0644 \u0627\u0644\u0622\u0644\u064A\u0627\u062A \u062A\u0648\u0642\u0641\u0627\u064B</div>' + longRows +
+      (lateRows ? '<div class="ops-fu-sec">\u0623\u0642\u0631\u0628 \u0645\u0647\u0627\u0645 \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u0645\u062A\u0623\u062E\u0631\u0629</div>' + lateRows : '') +
+      '</div>';
+    var r1 = monthSerRange(0), r0 = monthSerRange(-1);
+    var nf1 = faultsInRange(VEH, r1[0], r1[1]).length, nf0 = faultsInRange(VEH, r0[0], r0[1]).length;
+    var nr1 = faultsInRange(VEH, r1[0], r1[1], true).length, nr0 = faultsInRange(VEH, r0[0], r0[1], true).length;
+    function arrow(cur, prev, goodUp) {
+      if (cur === prev) return '<span class="ops-ar s">\u25C6 \u062B\u0627\u0628\u062A</span>';
+      var up = cur > prev, good = (up === goodUp);
+      return '<span class="ops-ar ' + (good ? "g" : "r") + '">' + (up ? "\u25B2" : "\u25BC") + " " + (prev ? Math.abs(Math.round((cur - prev) / prev * 100)) + "\u066A" : "\u2014") + '</span>';
     }
-    // لا نُخزّن "false" مبكراً قبل اكتمال تسجيل الدخول؛ نُخزّن فقط عند التأكد
-    if (ok) _fdAdminCache = true;
-    return ok;
+    var trend = (nf1 < nf0 && nr1 >= nr0) ? '<span class="ops-ar g">\u25B2 \u062A\u062A\u062D\u0633\u0651\u0646</span>'
+      : (nf1 > nf0 ? '<span class="ops-ar r">\u25BC \u062A\u062A\u0631\u0627\u062C\u0639</span>' : '<span class="ops-ar s">\u25C6 \u0645\u0633\u062A\u0642\u0631\u0629</span>');
+    var cmpCard =
+      '<div class="ops-card"><div class="ops-card-h">\uD83D\uDCC8 \u0645\u0642\u0627\u0631\u0646\u0629 \u0627\u0644\u0641\u062A\u0631\u0627\u062A \u2014 ' + mLabel(r1[2], r1[3]) + ' \u0645\u0642\u0627\u0628\u0644 ' + mLabel(r0[2], r0[3]) + '</div>' +
+      '<div class="ops-cmp-row"><span>\u0623\u0639\u0637\u0627\u0644 \u062C\u062F\u064A\u062F\u0629</span><b>' + nf1 + '</b>' + arrow(nf1, nf0, false) + '<i>(\u0627\u0644\u0633\u0627\u0628\u0642 ' + nf0 + ')</i></div>' +
+      '<div class="ops-cmp-row"><span>\u0625\u0635\u0644\u0627\u062D\u0627\u062A \u0645\u0646\u062C\u0632\u0629</span><b>' + nr1 + '</b>' + arrow(nr1, nr0, true) + '<i>(\u0627\u0644\u0633\u0627\u0628\u0642 ' + nr0 + ')</i></div>' +
+      '<div class="ops-cmp-row big"><span>\u0645\u0624\u0634\u0631 \u0627\u062A\u062C\u0627\u0647 \u0635\u062D\u0629 \u0627\u0644\u0622\u0644\u064A\u0627\u062A</span>' + trend + '</div>' +
+      '</div>';
+    return '<div class="ops-grid ops-extra">' + fuCard + cmpCard + '</div>';
   }
-  function fdtLighten(hex, amt){
-    try{ hex=hex.replace("#",""); if(hex.length===3) hex=hex.replace(/./g,function(c){return c+c;});
-      var r=parseInt(hex.substr(0,2),16),g=parseInt(hex.substr(2,2),16),b=parseInt(hex.substr(4,2),16);
-      r=Math.min(255,Math.round(r+(255-r)*amt)); g=Math.min(255,Math.round(g+(255-g)*amt)); b=Math.min(255,Math.round(b+(255-b)*amt));
-      return "#"+[r,g,b].map(function(x){return ("0"+x.toString(16)).slice(-2);}).join("");
-    }catch(e){ return hex; }
+  function fillPendingReports() {
+    fetchRaw("reports.json", function (j) {
+      var el2 = document.getElementById("ops-fu-rep"); if (!el2) return;
+      var n = 0;
+      if (j && j.length) j.forEach(function (r) {
+        var dec = ((r && (r.decision || r.status || r.state)) || "").toString();
+        if (!/\u0627\u0639\u062A\u0645\u062F|\u0645\u0639\u062A\u0645\u062F|\u0631\u0641\u0636|\u0645\u0631\u0641\u0648\u0636|approved|rejected|closed|done/i.test(dec)) n++;
+      });
+      el2.innerHTML = '\u0628\u0644\u0627\u063A\u0627\u062A \u0645\u0639\u0644\u0651\u0642\u0629 <b>' + n + '</b>';
+    });
   }
-  function fdtLoad(){
-    try{ var s=localStorage.getItem(FDT_KEY); if(s){ var o=JSON.parse(s); return { accent:o.accent||FDT_DEF.accent, accent2:o.accent2||fdtLighten(o.accent||FDT_DEF.accent,.28), fs:+o.fs||1, icon:+o.icon||1, radius:+o.radius||1, pad:+o.pad||1 }; } }catch(e){}
+  function monthlyStatementBody() {
+    var r1 = monthSerRange(0), lbl = mLabel(r1[2], r1[3]);
+    var d = readinessDetail(VEH), C = statCounts(VEH);
+    var nf = faultsInRange(VEH, r1[0], r1[1]), nr = faultsInRange(VEH, r1[0], r1[1], true);
+    var byT = {}; nf.forEach(function (x) { var t = x.f.faultType || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"; byT[t] = (byT[t] || 0) + 1; });
+    var byB = {}; nf.forEach(function (x) { var b = branchOf(x.v.unit) || "\u0623\u062E\u0631\u0649"; byB[b] = (byB[b] || 0) + 1; });
+    var late = maintRows().filter(function (r) { return r.st === "\u0645\u062A\u0623\u062E\u0631\u0629"; }).length;
+    var kT = '<table><tr><th colspan="2" style="background:#DCE3F0">\u0627\u0644\u0645\u0648\u0642\u0641 \u0627\u0644\u0639\u0627\u0645 \u2014 \u0634\u0647\u0631 ' + lbl + '</th></tr>' +
+      [["\u0646\u0633\u0628\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0639\u0627\u0645\u0629", "<b>" + d.pct + "\u066A</b> (" + d.up + " \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 " + VEH.length + ")"],
+      ["\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0622\u0644\u064A\u0627\u062A", VEH.length], ["\u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0639\u0637\u0644\u0627\u0646\u0629 \u062D\u0627\u0644\u064A\u0627\u064B", C["\u0639\u0637\u0644\u0627\u0646\u0629"] || 0],
+      ["\u0623\u0639\u0637\u0627\u0644 \u0633\u064F\u062C\u0651\u0644\u062A \u062E\u0644\u0627\u0644 \u0627\u0644\u0634\u0647\u0631", nf.length], ["\u0625\u0635\u0644\u0627\u062D\u0627\u062A \u0623\u064F\u0646\u062C\u0632\u062A \u062E\u0644\u0627\u0644 \u0627\u0644\u0634\u0647\u0631", nr.length],
+      ["\u0645\u0647\u0627\u0645 \u0635\u064A\u0627\u0646\u0629 \u0648\u0642\u0627\u0626\u064A\u0629 \u0645\u062A\u0623\u062E\u0631\u0629", late]].map(function (r) { return "<tr><td style='width:60%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
+    var tT = Object.keys(byT).sort(function (a, b) { return byT[b] - byT[a]; });
+    var tTbl = tT.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0634\u0647\u0631 \u062D\u0633\u0628 \u0627\u0644\u0646\u0648\u0639</div><table><tr><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th style="width:80px">\u0627\u0644\u0639\u062F\u062F</th></tr>' + tT.map(function (t) { return "<tr><td>" + esc(t) + "</td><td>" + byT[t] + "</td></tr>"; }).join("") + "</table>" : "";
+    var bT = Object.keys(byB).sort(function (a, b) { return byB[b] - byB[a]; }).slice(0, 8);
+    var bTbl = bT.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0623\u0643\u062B\u0631 \u0627\u0644\u062C\u0647\u0627\u062A \u062A\u0633\u062C\u064A\u0644\u0627\u064B \u0644\u0644\u0623\u0639\u0637\u0627\u0644 \u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631</div><table><tr><th>\u0627\u0644\u062C\u0647\u0629</th><th style="width:80px">\u0627\u0644\u0623\u0639\u0637\u0627\u0644</th></tr>' + bT.map(function (b) { return "<tr><td>" + esc(b) + "</td><td>" + byB[b] + "</td></tr>"; }).join("") + "</table>" : "";
+    return { body: kT + tTbl + bTbl, lbl: lbl };
+  }
+  function branchReportBody(x) {
+    var pool = x.list || [], C = statCounts(pool);
+    var kT = '<table><tr><th colspan="2" style="background:#DCE3F0">\u0627\u0644\u0645\u0648\u0642\u0641 \u0627\u0644\u0639\u0627\u0645 \u0644\u0634\u0639\u0628\u0629 ' + esc(x.name) + '</th></tr>' +
+      [["\u0625\u062C\u0645\u0627\u0644\u064A \u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0634\u0639\u0628\u0629", x.total], ["\u0622\u0644\u064A\u0627\u062A \u062C\u0627\u0647\u0632\u0629", x.up], ["\u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u0639\u0637\u0644\u0629", x.down], ["\u062A\u0639\u0645\u0644 \u0628\u0648\u062C\u0648\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A", x.notes],
+      ["\u0646\u0633\u0628\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629", "<b>" + x.pct + "\u066A</b> \u2014 " + x.up + " \u00F7 (" + x.total + " \u2212 " + (x.rej || 0) + " \u0631\u062C\u064A\u0639 \u2212 " + (x.prep || 0) + " \u062A\u062C\u0647\u064A\u0632)"]].map(function (r) { return "<tr><td style='width:60%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</table>";
+    var sT = '<div style="margin-top:12px;font-weight:800;font-size:13px">\u062A\u0648\u0632\u064A\u0639 \u0627\u0644\u062D\u0627\u0644\u0627\u062A \u0627\u0644\u0641\u0646\u064A\u0629</div><table><tr><th>\u0627\u0644\u062D\u0627\u0644\u0629</th><th style="width:80px">\u0627\u0644\u0639\u062F\u062F</th></tr>' + STATUSES.filter(function (s) { return C[s]; }).map(function (s) { return "<tr><td>" + s + "</td><td>" + C[s] + "</td></tr>"; }).join("") + "</table>";
+    var down = pool.filter(function (v) { return v.status === "\u0639\u0637\u0644\u0627\u0646\u0629"; });
+    var dRows = down.map(function (v, i) {
+      var worst = null, ft = "\u2014";
+      (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var s = hSer(parseH(f.date)); if (s && (!worst || s < worst)) { worst = s; ft = f.faultType || "\u2014"; } });
+      return "<tr><td>" + (i + 1) + "</td><td>" + esc(v.type || "\u2014") + "</td><td>" + esc(v.plate || "\u2014") + "</td><td>" + esc(ft) + "</td><td>" + (worst ? (SER_NOW - worst) + " \u064A\u0648\u0645\u0627\u064B" : "\u2014") + "</td></tr>";
+    }).join("");
+    var dTbl = down.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0627\u0644\u0622\u0644\u064A\u0627\u062A \u0627\u0644\u0645\u062A\u0639\u0637\u0644\u0629 (' + down.length + ')</div><table><tr><th style="width:24px">\u0645</th><th>\u0627\u0644\u0646\u0648\u0639</th><th>\u0627\u0644\u0644\u0648\u062D\u0629</th><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th>\u0645\u062F\u0629 \u0627\u0644\u062A\u0648\u0642\u0641</th></tr>' + dRows + "</table>" : '<div style="margin-top:12px;font-weight:800">\u0644\u0627 \u0622\u0644\u064A\u0627\u062A \u0645\u062A\u0639\u0637\u0644\u0629 \u0641\u064A \u0627\u0644\u0634\u0639\u0628\u0629 \u2705</div>';
+    var late = maintRows().filter(function (r) { return r.st === "\u0645\u062A\u0623\u062E\u0631\u0629" && branchOf(r.v.unit) === x.full; }).length;
+    var mT = '<div style="margin-top:12px">\u0645\u0647\u0627\u0645 \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u0648\u0642\u0627\u0626\u064A\u0629 \u0627\u0644\u0645\u062A\u0623\u062E\u0631\u0629 \u0644\u0644\u0634\u0639\u0628\u0629: <b>' + late + '</b></div>';
+    return kT + sT + dTbl + mT;
+  }
+  var _CHK_CACHE;
+  function loadVehCheckin(v) {
+    var box = document.getElementById("fdv-chk"); if (!box) return;
+    function show(list) {
+      var none = "\uD83D\uDDD3\uFE0F \u0627\u0644\u0641\u062D\u0635 \u0627\u0644\u064A\u0648\u0645\u064A: \u0644\u0627 \u0641\u062D\u0635 \u0645\u0633\u062C\u0651\u0644\u0627\u064B \u0628\u0639\u062F \u0644\u0647\u0630\u0647 \u0627\u0644\u0622\u0644\u064A\u0629";
+      if (!list || !list.length) { box.innerHTML = none; return; }
+      var hit = null;
+      list.forEach(function (r) {
+        if (!r) return;
+        var s = JSON.stringify(r);
+        if ((r.id && r.id === v.id) || (r.vid && r.vid === v.id) || (r.plate && v.plate && r.plate === v.plate) || (v.id && s.indexOf('"' + v.id + '"') >= 0)) hit = r;
+      });
+      if (!hit) { box.innerHTML = none; return; }
+      var drv = hit.driver || hit.name || hit.by || "\u2014";
+      var dt = hit.date || hit.at || hit.time || "\u2014";
+      var okF = (hit.ok === false || hit.notes === true || ((hit.note || hit.msg || "") + "").length > 1);
+      box.innerHTML = "\uD83D\uDDD3\uFE0F \u0622\u062E\u0631 \u0641\u062D\u0635 \u064A\u0648\u0645\u064A: " + (okF ? "\u26A0\uFE0F \u0628\u0645\u0644\u0627\u062D\u0638\u0627\u062A" : "\u2705 \u0633\u0644\u064A\u0645") + " \u00B7 \u0627\u0644\u0633\u0627\u0626\u0642: <b>" + esc(String(drv)) + "</b> \u00B7 " + esc(String(dt)) + (hit.num ? " \u00B7 " + esc(String(hit.num)) : "");
+    }
+    if (_CHK_CACHE !== undefined) { show(_CHK_CACHE); return; }
+    fetchRaw("checkins.json", function (j) { _CHK_CACHE = j || []; show(_CHK_CACHE); });
+  }
+  function detectTime(qn) {
+    if (/\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631|\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u062D\u0627\u0644\u064A/.test(qn)) { var r = monthSerRange(0); return { a: r[0], b: r[1], l: "\u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631 (" + mLabel(r[2], r[3]) + ")" }; }
+    if (/\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0645\u0627\u0636\u064A|\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0633\u0627\u0628\u0642/.test(qn)) { var r0 = monthSerRange(-1); return { a: r0[0], b: r0[1], l: "\u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u0645\u0627\u0636\u064A (" + mLabel(r0[2], r0[3]) + ")" }; }
+    if (/\u0647\u0630\u0627 \u0627\u0644\u0627\u0633\u0628\u0648\u0639|\u062E\u0644\u0627\u0644 \u0627\u0644\u0627\u0633\u0628\u0648\u0639|\u0627\u0644\u0627\u0633\u0628\u0648\u0639/.test(qn)) return { a: SER_NOW - 7, b: SER_NOW, l: "\u0647\u0630\u0627 \u0627\u0644\u0623\u0633\u0628\u0648\u0639" };
+    if (/(^|\s)\u0627\u0644\u064A\u0648\u0645(\s|$)/.test(qn)) return { a: SER_NOW, b: SER_NOW, l: "\u0627\u0644\u064A\u0648\u0645" };
     return null;
   }
-  function fdtApply(t){
-    var st=document.getElementById("fd31-theme-live");
-    if(!st){ st=document.createElement("style"); st.id="fd31-theme-live"; (document.head||document.documentElement).appendChild(st); }
-    if(!t){ st.textContent=""; return; } // إزالة = العودة للافتراضي
-    st.textContent = ":root{"
-      + "--fdt-accent:"+t.accent+";--fdt-accent2:"+t.accent2+";"
-      + "--fdt-fs:"+t.fs+";--fdt-icon:"+t.icon+";--fdt-radius:"+t.radius+";--fdt-pad:"+t.pad+";}";
+  function timeAnswer(q0) {
+    var qn = norm(q0), T = detectTime(qn);
+    if (!T) return null;
+    var wantRepair = /\u0639\u0627\u062F|\u0631\u062C\u0639|\u0627\u0635\u0644\u062D|\u062A\u0645 \u0627\u0644\u0627\u0635\u0644\u0627\u062D|\u0627\u0646\u062C\u0632/.test(qn);
+    var wantFault = /\u0639\u0637\u0644|\u0627\u0639\u0637\u0627\u0644|\u062A\u0639\u0637\u0644/.test(qn);
+    if (!wantRepair && !wantFault) return null;
+    var F = parseQuery(q0), pool = subjectPool(F), lbl = subjLabel(F);
+    var hits = faultsInRange(pool, T.a, T.b, wantRepair);
+    var seen = {}, rows = [];
+    hits.forEach(function (x) {
+      if (wantRepair) { if (seen[x.v.id]) return; seen[x.v.id] = 1; }
+      if (rows.length < 8) rows.push("<li>" + esc(x.v.type || "\u2014") + " \u2014 <b>" + esc(x.v.plate || "") + "</b>" + (wantRepair ? "" : " (" + esc(x.f.faultType || "\u2014") + ")") + " \u00B7 " + fmtH(wantRepair ? parseH(x.f.repairDate) : parseH(x.f.date)) + "</li>");
+    });
+    var n = wantRepair ? Object.keys(seen).length : hits.length;
+    var head = wantRepair
+      ? "\uD83D\uDD27 <b>" + n + "</b> \u0622\u0644\u064A\u0629 \u0639\u0627\u062F\u062A \u0644\u0644\u0639\u0645\u0644 \u062E\u0644\u0627\u0644 <b>" + T.l + "</b> \u0645\u0646 " + lbl
+      : "\u26A0\uFE0F \u0633\u064F\u062C\u0651\u0644 <b>" + n + "</b> \u0639\u0637\u0644\u0627\u064B \u062E\u0644\u0627\u0644 <b>" + T.l + "</b> \u0639\u0644\u0649 " + lbl;
+    var byT = {};
+    if (!wantRepair) hits.forEach(function (x) { var t = x.f.faultType || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"; byT[t] = (byT[t] || 0) + 1; });
+    var bd = Object.keys(byT).sort(function (a, b) { return byT[b] - byT[a]; }).map(function (t) { return t + " (" + byT[t] + ")"; }).join(" \u00B7 ");
+    var _say = wantRepair ? (n + " \u0622\u0644\u064A\u0629 \u0639\u0627\u062F\u062A \u0644\u0644\u0639\u0645\u0644 \u062E\u0644\u0627\u0644 " + T.l) : ("\u0633\u064F\u062C\u0651\u0644 " + n + " \u0639\u0637\u0644\u0627\u064B \u062E\u0644\u0627\u0644 " + T.l);
+    return { say: _say, html: "<div>" + head + (bd ? "<div style='font-size:12px;margin-top:5px;opacity:.85'>\u0627\u0644\u062A\u0648\u0632\u064A\u0639: " + bd + "</div>" : "") + (rows.length ? "<ul style='margin:7px 0 0;padding-inline-start:18px'>" + rows.join("") + "</ul>" : "") + "</div>" };
   }
-  function applySavedTheme(){ var t=fdtLoad(); if(t) fdtApply(t); }
 
-  function openThemePanel(){
-    if (document.querySelector(".fdtp-ov")) return;
-    var cur = fdtLoad() || JSON.parse(JSON.stringify(FDT_DEF));
-    if(!cur.accent2) cur.accent2 = fdtLighten(cur.accent,.28);
-    var draft = { accent:cur.accent, accent2:cur.accent2, fs:cur.fs, icon:cur.icon, radius:cur.radius, pad:cur.pad };
-
-    var SWATCH = [
-      { c:"#C69B2E", n:"ذهبي" }, { c:"#B3121C", n:"أحمر الدفاع المدني" }, { c:"#0E7A5F", n:"أخضر" },
-      { c:"#2C6BB3", n:"أزرق" }, { c:"#7A4BC9", n:"بنفسجي" }, { c:"#C2632B", n:"نحاسي" }
-    ];
-    function seg(label, key, opts){
-      var h='<div class="fdtp-row"><label>'+label+'</label><div class="fdtp-seg" data-key="'+key+'">';
-      opts.forEach(function(o){ h+='<button data-v="'+o.v+'"'+(Math.abs(draft[key]-o.v)<0.001?' class="on"':'')+'>'+o.t+'</button>'; });
-      return h+'</div></div>';
-    }
-    var swHtml = SWATCH.map(function(s){ return '<button data-c="'+s.c+'"'+(s.c.toLowerCase()===draft.accent.toLowerCase()?' class="on"':'')+' title="'+s.n+'" style="background:'+s.c+'"></button>'; }).join("");
-    swHtml += '<button class="fdtp-pick" title="لون مخصّص">\uD83C\uDFA8<input type="color" value="'+draft.accent+'"></button>';
-
-    var ov=document.createElement("div"); ov.className="fdtp-ov";
-    ov.innerHTML =
-      '<div class="fdtp-card" role="dialog" aria-modal="true" aria-label="\u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631">'
-      + '<div class="fdtp-hd"><div><h3>\uD83C\uDFA8 \u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631</h3><p>\u062A\u062A\u062D\u0643\u0645 \u0628\u0623\u0644\u0648\u0627\u0646 \u0648\u0623\u062D\u062C\u0627\u0645 \u0648\u0645\u0633\u0627\u0641\u0627\u062A \u0648\u0627\u062C\u0647\u0629 \u0627\u0644\u0645\u0646\u0635\u0629 \u2014 \u0645\u0639\u0627\u064A\u0646\u0629 \u0641\u0648\u0631\u064A\u0629</p></div><button class="fdtp-x" aria-label="\u0625\u063A\u0644\u0627\u0642">\u2715</button></div>'
-      + '<div class="fdtp-body">'
-      +   '<div class="fdtp-row"><label>\u0627\u0644\u0644\u0648\u0646 \u0627\u0644\u0645\u0645\u064A\u0651\u0632</label><div class="fdtp-sw">'+swHtml+'</div></div>'
-      +   seg("\u062D\u062C\u0645 \u0627\u0644\u062E\u0637", "fs", [{v:0.9,t:"\u0635\u063A\u064A\u0631"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.12,t:"\u0643\u0628\u064A\u0631"},{v:1.25,t:"\u0623\u0643\u0628\u0631"}])
-      +   seg("\u062D\u062C\u0645 \u0627\u0644\u0623\u064A\u0642\u0648\u0646\u0627\u062A", "icon", [{v:0.85,t:"\u0635\u063A\u064A\u0631"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.2,t:"\u0643\u0628\u064A\u0631"}])
-      +   seg("\u0627\u0644\u0643\u062B\u0627\u0641\u0629 \u0648\u0627\u0644\u0645\u0633\u0627\u0641\u0627\u062A", "pad", [{v:0.85,t:"\u0645\u0636\u063A\u0648\u0637"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.2,t:"\u0645\u0631\u064A\u062D"}])
-      +   seg("\u0627\u0633\u062A\u062F\u0627\u0631\u0629 \u0627\u0644\u0632\u0648\u0627\u064A\u0627", "radius", [{v:0.4,t:"\u062D\u0627\u062F\u0651"},{v:1,t:"\u0639\u0627\u062F\u064A"},{v:1.5,t:"\u062F\u0627\u0626\u0631\u064A"}])
-      + '</div>'
-      + '<div class="fdtp-note">\u062A\u064F\u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062C\u0647\u0627\u0632 (\u0644\u0644\u0645\u0634\u0631\u0641)</div>'
-      + '<div class="fdtp-ft"><button class="fdtp-btn fdtp-reset">\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0636\u0628\u0637</button><button class="fdtp-btn fdtp-save">\u062D\u0641\u0638</button></div>'
-      + '</div>';
-    document.body.appendChild(ov);
-
-    function preview(){ fdtApply(draft); }
-    preview();
-    function close(){ ov.classList.remove("on"); setTimeout(function(){ if(ov&&ov.parentNode) ov.parentNode.removeChild(ov); },300); document.removeEventListener("keydown",onKey); }
-    function onKey(e){ if(e.key==="Escape"){ applySavedTheme(); close(); } }
-
-    // اختيار اللون (حوامل + منتقٍ)
-    ov.querySelectorAll(".fdtp-sw button[data-c]").forEach(function(b){
-      b.addEventListener("click", function(){
-        ov.querySelectorAll(".fdtp-sw button").forEach(function(x){ x.classList.remove("on"); });
-        b.classList.add("on");
-        draft.accent=b.getAttribute("data-c"); draft.accent2=fdtLighten(draft.accent,.28);
-        var ci=ov.querySelector(".fdtp-pick input"); if(ci) ci.value=draft.accent;
-        preview();
+  /* ============================================================
+     \u062F\u0641\u0639\u0629 26: \u0627\u0644\u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 + \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u0643\u0631\u0631\u0629
+     + \u0645\u062A\u0627\u0628\u0639\u0629 \u0632\u0645\u0646 \u0627\u0644\u0625\u0635\u0644\u0627\u062D + \u0645\u0648\u062C\u0632 \u00AB\u0645\u0646\u0630 \u0622\u062E\u0631 \u0632\u064A\u0627\u0631\u0629\u00BB
+     ============================================================ */
+  var CRIT_GROUPS = [
+    ["\u0625\u0637\u0641\u0627\u0621", function (t) { return t.indexOf("\u0627\u0637\u0641\u0627\u0621") >= 0; }],
+    ["\u0625\u0646\u0642\u0627\u0630", function (t) { return t.indexOf("\u0627\u0646\u0642\u0627\u0630") >= 0; }],
+    ["\u0633\u0644\u0627\u0644\u0645", function (t) { return t.indexOf("\u0633\u0644\u0645") >= 0; }],
+    ["\u0648\u0627\u064A\u062A\u0627\u062A", function (t) { return t.indexOf("\u0648\u0627\u064A\u062A") >= 0; }],
+    ["\u0625\u0633\u0639\u0627\u0641", function (t) { return t.indexOf("\u0627\u0633\u0639\u0627\u0641") >= 0; }],
+    ["\u062F\u0631\u0627\u062C\u0627\u062A", function (t) { return t.indexOf("\u062F\u0631\u0627\u062C") >= 0; }]
+  ];
+  var READY_ST = { "\u062A\u0639\u0645\u0644": 1, "\u062A\u0645 \u0627\u0644\u0625\u0635\u0644\u0627\u062D": 1, "\u062A\u0639\u0645\u0644 \u0628\u0648\u062C\u0648\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A": 1 };
+  function matrixData() {
+    var rows = FIELD12.map(function (b) {
+      var pool = VEH.filter(function (v) { return branchOf(v.unit) === b; });
+      var cells = CRIT_GROUPS.map(function (g) {
+        var n = 0; pool.forEach(function (v) { if (READY_ST[v.status] && g[1](norm(v.type || ""))) n++; });
+        return n;
+      });
+      return { b: b.replace("\u0634\u0639\u0628\u0629 ", ""), cells: cells };
+    });
+    var recs = [];
+    CRIT_GROUPS.forEach(function (g, gi) {
+      var zero = rows.filter(function (r) { return r.cells[gi] === 0; });
+      if (!zero.length) return;
+      var best = rows.slice().sort(function (a, b) { return b.cells[gi] - a.cells[gi]; })[0];
+      if (best && best.cells[gi] >= 3) zero.slice(0, 2).forEach(function (z) {
+        if (recs.length < 5) recs.push("\u0646\u0642\u0644 \u0622\u0644\u064A\u0629 " + g[0] + " \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 \u0634\u0639\u0628\u0629 " + best.b + " (" + best.cells[gi] + ") \u0625\u0644\u0649 \u0634\u0639\u0628\u0629 " + z.b + " (0)");
       });
     });
-    var picker=ov.querySelector(".fdtp-pick input");
-    if(picker) picker.addEventListener("input", function(){
-      ov.querySelectorAll(".fdtp-sw button").forEach(function(x){ x.classList.remove("on"); });
-      ov.querySelector(".fdtp-pick").classList.add("on");
-      draft.accent=picker.value; draft.accent2=fdtLighten(draft.accent,.28); preview();
+    return { rows: rows, recs: recs };
+  }
+  function matrixTable(M, forReport) {
+    var head = "<tr><th>\u0627\u0644\u0634\u0639\u0628\u0629</th>" + CRIT_GROUPS.map(function (g) { return "<th>" + g[0] + "</th>"; }).join("") + "</tr>";
+    var body = M.rows.map(function (r) {
+      return "<tr><td style='font-weight:800'>" + esc(r.b) + "</td>" + r.cells.map(function (n) {
+        var c = n === 0 ? "#B3121C" : (n === 1 ? "#8A5D0B" : "#1B6E42");
+        var bg = forReport ? "" : (n === 0 ? "background:rgba(255,107,114,.14);" : (n === 1 ? "background:rgba(232,197,97,.12);" : "background:rgba(47,211,127,.10);"));
+        return "<td style='text-align:center;font-weight:900;color:" + c + ";" + bg + "'>" + n + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    return "<table class='ops-mx-t'>" + head + body + "</table>";
+  }
+  function opsMatrixHtml() {
+    var M = matrixData();
+    var recs = M.recs.length ? '<div class="ops-mx-recs"><b>\u062A\u0648\u0635\u064A\u0627\u062A \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0648\u0632\u064A\u0639:</b><ul>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul></div>" : '<div class="ops-mx-recs ok">\u0644\u0627 \u0641\u062C\u0648\u0627\u062A \u062A\u063A\u0637\u064A\u0629 \u062D\u0631\u062C\u0629 \u2014 \u0643\u0644 \u0634\u0639\u0628\u0629 \u0644\u062F\u064A\u0647\u0627 \u062C\u0627\u0647\u0632 \u0645\u0646 \u0643\u0644 \u0646\u0648\u0639 \u062D\u0631\u062C \u2705</div>';
+    return '<div class="ops-card ops-mx"><div class="ops-card-h">\u1F9ED \u0645\u0635\u0641\u0648\u0641\u0629 \u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0646\u0648\u0639\u064A\u0629 \u0644\u0644\u0634\u064F\u0651\u0639\u0628 \u2014 <span style="opacity:.8;font-weight:700">\u0622\u0644\u064A\u0627\u062A \u062C\u0627\u0647\u0632\u0629 \u0645\u0646 \u0643\u0644 \u0646\u0648\u0639 \u062D\u0631\u062C</span>' +
+      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-mx-p">\u1F5A8\uFE0F \u0637\u0628\u0627\u0639\u0629</button><button class="omd-rep omd-repw" id="ops-mx-w">\u1F4C4</button></span></div>' +
+      '<div class="ops-mx-wrap">' + matrixTable(M) + '</div>' + recs + '</div>';
+  }
+  function repeatFaults() {
+    var out = [];
+    VEH.forEach(function (v) {
+      var fs = (v.faults || []).map(function (f) { return { f: f, a: hSer(parseH(f.date)), r: hSer(parseH(f.repairDate)) }; }).filter(function (x) { return x.a; }).sort(function (x, y) { return x.a - y.a; });
+      for (var i = 0; i < fs.length; i++) {
+        if (!fs[i].r) continue;
+        for (var j = i + 1; j < fs.length; j++) {
+          var gap = fs[j].a - fs[i].r;
+          if (gap < 0 || gap > 30) continue;
+          if (norm(fs[j].f.faultType || "") === norm(fs[i].f.faultType || "")) { out.push({ v: v, first: fs[i].f, again: fs[j].f, gap: gap }); break; }
+        }
+      }
     });
-    // القطاعات (خط/أيقونات/كثافة/استدارة)
-    ov.querySelectorAll(".fdtp-seg").forEach(function(seg){
-      var key=seg.getAttribute("data-key");
-      seg.querySelectorAll("button").forEach(function(b){
-        b.addEventListener("click", function(){
-          seg.querySelectorAll("button").forEach(function(x){ x.classList.remove("on"); });
-          b.classList.add("on"); draft[key]=parseFloat(b.getAttribute("data-v")); preview();
-        });
+    out.sort(function (a, b) { return a.gap - b.gap; });
+    return out;
+  }
+  function repeatTable(list, lim) {
+    var rows = (lim ? list.slice(0, lim) : list).map(function (x, i) {
+      return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.v.type || "\u2014") + "</td><td>" + esc(x.v.plate || "\u2014") + "</td><td>" + esc(x.first.faultType || "\u2014") + "</td><td>" + fmtH(parseH(x.first.repairDate)) + "</td><td style='color:#B3121C;font-weight:900'>" + x.gap + " \u064A\u0648\u0645\u0627\u064B</td><td>" + esc(x.first.causedBy || "\u2014") + "</td></tr>";
+    }).join("");
+    return "<table><tr><th style='width:24px'>\u0645</th><th>\u0627\u0644\u0646\u0648\u0639</th><th>\u0627\u0644\u0644\u0648\u062D\u0629</th><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th>\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0625\u0635\u0644\u0627\u062D</th><th>\u0639\u0627\u062F \u0627\u0644\u0639\u0637\u0644 \u0628\u0639\u062F</th><th>\u0627\u0644\u062C\u0647\u0629 \u0627\u0644\u0645\u062A\u0633\u0628\u0628\u0629</th></tr>" + (rows || "<tr><td colspan='7' style='text-align:center'>\u0644\u0627 \u0623\u0639\u0637\u0627\u0644 \u0645\u062A\u0643\u0631\u0631\u0629 \u2705</td></tr>") + "</table>";
+  }
+  function opsQualityHtml() {
+    var rep = repeatFaults();
+    var repRows = rep.slice(0, 6).map(function (x) {
+      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "\u2014") + ' \u2014 ' + esc(x.v.plate || "") + ' (' + esc(x.first.faultType || "\u2014") + ')</span><b style="color:#FF8A90">\u0639\u0627\u062F \u0628\u0639\u062F ' + x.gap + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
+    }).join("") || '<div class="ops-fu-row ok">\u0644\u0627 \u0623\u0639\u0637\u0627\u0644 \u0645\u062A\u0643\u0631\u0631\u0629 \u062E\u0644\u0627\u0644 30 \u064A\u0648\u0645\u0627\u064B \u0645\u0646 \u0627\u0644\u0625\u0635\u0644\u0627\u062D \u2705</div>';
+    var slow = [];
+    VEH.forEach(function (v) {
+      (v.faults || []).forEach(function (f) {
+        if ((f.repairDate || "").trim()) return;
+        var a = hSer(parseH(f.date)); if (!a) return;
+        var dd = SER_NOW - a; if (dd > 14) slow.push({ v: v, f: f, d: dd });
       });
     });
-    // إعادة الضبط
-    ov.querySelector(".fdtp-reset").addEventListener("click", function(){
-      draft={ accent:FDT_DEF.accent, accent2:FDT_DEF.accent2, fs:1, icon:1, radius:1, pad:1 };
-      try{ localStorage.removeItem(FDT_KEY); }catch(e){}
-      fdtApply(null); close();
-    });
-    // حفظ
-    ov.querySelector(".fdtp-save").addEventListener("click", function(){
-      try{ localStorage.setItem(FDT_KEY, JSON.stringify(draft)); }catch(e){}
-      fdtApply(draft); close();
-    });
-    ov.querySelector(".fdtp-x").addEventListener("click", function(){ applySavedTheme(); close(); });
-    ov.addEventListener("click", function(e){ if(e.target===ov){ applySavedTheme(); close(); } });
-    document.addEventListener("keydown", onKey);
-    requestAnimationFrame(function(){ requestAnimationFrame(function(){ ov.classList.add("on"); }); });
+    slow.sort(function (a, b) { return b.d - a.d; });
+    var slowRows = slow.slice(0, 6).map(function (x) {
+      return '<div class="ops-fu-row"><span>' + esc(x.v.type || "\u2014") + ' \u2014 ' + esc(x.v.plate || "") + ' (' + esc(x.f.faultType || "\u2014") + ')</span><b style="color:#E8C561">' + x.d + ' \u064A\u0648\u0645\u0627\u064B</b></div>';
+    }).join("") || '<div class="ops-fu-row ok">\u0644\u0627 \u0623\u0639\u0637\u0627\u0644 \u0645\u0641\u062A\u0648\u062D\u0629 \u0645\u062A\u062C\u0627\u0648\u0632\u0629 14 \u064A\u0648\u0645\u0627\u064B \u2705</div>';
+    return '<div class="ops-grid ops-q">' +
+      '<div class="ops-card"><div class="ops-card-h">\u1F501 \u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u062A\u0643\u0631\u0631\u0629 \u2014 \u062C\u0648\u062F\u0629 \u0627\u0644\u0625\u0635\u0644\u0627\u062D <b style="color:#FF8A90">' + rep.length + '</b>' +
+      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-rq-p">\u1F5A8\uFE0F</button><button class="omd-rep omd-repw" id="ops-rq-w">\u1F4C4</button></span></div>' +
+      '<div class="ops-fu-sec">\u0622\u0644\u064A\u0629 \u0623\u064F\u0635\u0644\u062D\u062A \u062B\u0645 \u062A\u0639\u0637\u0644\u062A \u0628\u0646\u0641\u0633 \u0627\u0644\u0646\u0648\u0639 \u062E\u0644\u0627\u0644 \u2264 30 \u064A\u0648\u0645\u0627\u064B</div>' + repRows + '</div>' +
+      '<div class="ops-card"><div class="ops-card-h">\u23F1\uFE0F \u0623\u0639\u0637\u0627\u0644 \u0645\u0641\u062A\u0648\u062D\u0629 \u0645\u062A\u062C\u0627\u0648\u0632\u0629 14 \u064A\u0648\u0645\u0627\u064B <b style="color:#E8C561">' + slow.length + '</b>' +
+      '<span class="ops-mx-btns"><button class="omd-rep" id="ops-sla-p">\u1F5A8\uFE0F</button><button class="omd-rep omd-repw" id="ops-sla-w">\u1F4C4</button></span></div>' +
+      '<div class="ops-fu-sec">\u0645\u0631\u062A\u0628\u0629 \u0628\u0627\u0644\u0623\u0642\u062F\u0645 \u2014 \u0623\u062F\u0627\u0629 \u0645\u062A\u0627\u0628\u0639\u0629 \u062C\u0647\u0627\u062A \u0627\u0644\u0625\u0635\u0644\u0627\u062D</div>' + slowRows + '</div>' +
+      '</div>';
   }
-  try { window.fd31Theme = function(){ try{ openThemePanel(); }catch(e){} }; } catch(e){}
-
-  // زر «تخصيص المظهر» بالقائمة الجانبية (للمشرف فقط)
-  function placeRailTheme(){
-    var rail = document.querySelector(".side-rail"); if (!rail) return;
-    if (!fdIsAdmin()) return; // غير مشرف: لا زر (لا نحذف بتكلفة كل نبضة)
-    // موجود بالفعل داخل القائمة؟ لا تفعل شيئاً (تفادي عاصفة إعادة الإدراج)
-    if (rail.querySelector("#fd31-rail-theme")) return;
-    var th = el("button", "fd31-rail-theme", '<span class="ric">' + FDT_ICON + '</span><span class="rlb">\u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631</span>');
-    th.id="fd31-rail-theme"; th.title="\u062A\u062E\u0635\u064A\u0635 \u0627\u0644\u0645\u0638\u0647\u0631 (\u0644\u0644\u0645\u0634\u0631\u0641)"; th.type="button";
-    th.onclick=openThemePanel; th.style.marginTop="0";
-    var aiBtn = rail.querySelector("#fd31-rail-ai");
-    if (aiBtn && aiBtn.nextSibling) rail.insertBefore(th, aiBtn.nextSibling);
-    else if (aiBtn) rail.appendChild(th);
-    else rail.appendChild(th);
+  function slaReportBody() {
+    var slow = [];
+    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { if ((f.repairDate || "").trim()) return; var a = hSer(parseH(f.date)); if (!a) return; var dd = SER_NOW - a; if (dd > 14) slow.push({ v: v, f: f, d: dd }); }); });
+    slow.sort(function (a, b) { return b.d - a.d; });
+    var t1 = "<table><tr><th style='width:24px'>\u0645</th><th>\u0627\u0644\u0646\u0648\u0639</th><th>\u0627\u0644\u0644\u0648\u062D\u0629</th><th>\u0646\u0648\u0639 \u0627\u0644\u0639\u0637\u0644</th><th>\u0645\u0641\u062A\u0648\u062D \u0645\u0646\u0630</th><th>\u0645\u0648\u0642\u0639 \u0627\u0644\u0622\u0644\u064A\u0629</th></tr>" + slow.map(function (x, i) { return "<tr><td>" + (i + 1) + "</td><td>" + esc(x.v.type || "\u2014") + "</td><td>" + esc(x.v.plate || "\u2014") + "</td><td>" + esc(x.f.faultType || "\u2014") + "</td><td style='font-weight:900'>" + x.d + " \u064A\u0648\u0645\u0627\u064B</td><td>" + esc(x.v.location || "\u2014") + "</td></tr>"; }).join("") + "</table>";
+    var by = {};
+    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { var a = hSer(parseH(f.date)), r = hSer(parseH(f.repairDate)); if (!a || !r || r < a) return; var k = f.causedBy || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F"; (by[k] = by[k] || []).push(r - a); }); });
+    var ks = Object.keys(by).sort(function (a, b) { return by[b].length - by[a].length; }).slice(0, 10);
+    var t2 = ks.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">\u0645\u062A\u0648\u0633\u0637 \u0645\u062F\u0629 \u0627\u0644\u0625\u0635\u0644\u0627\u062D \u062D\u0633\u0628 \u0627\u0644\u062C\u0647\u0629 \u0627\u0644\u0645\u062A\u0633\u0628\u0628\u0629 (\u0627\u0644\u0623\u0639\u0637\u0627\u0644 \u0627\u0644\u0645\u063A\u0644\u0642\u0629)</div><table><tr><th>\u0627\u0644\u062C\u0647\u0629 \u0627\u0644\u0645\u062A\u0633\u0628\u0628\u0629</th><th>\u0639\u062F\u062F \u0627\u0644\u0625\u0635\u0644\u0627\u062D\u0627\u062A</th><th>\u0645\u062A\u0648\u0633\u0637 \u0627\u0644\u0645\u062F\u0629</th></tr>' + ks.map(function (k) { var arr = by[k], avg = Math.round(arr.reduce(function (s, x) { return s + x; }, 0) / arr.length); return "<tr><td>" + esc(k) + "</td><td>" + arr.length + "</td><td><b>" + avg + " \u064A\u0648\u0645\u0627\u064B</b></td></tr>"; }).join("") + "</table>" : "";
+    return t1 + t2;
+  }
+  /* ---------- \u0645\u0648\u062C\u0632 \u00AB\u0645\u0646\u0630 \u0622\u062E\u0631 \u0632\u064A\u0627\u0631\u0629\u00BB ---------- */
+  var LV_KEY = "fd_lastvisit_v1";
+  function visitSnap() {
+    var sigs = [], down = [];
+    VEH.forEach(function (v) { (v.faults || []).forEach(function (f) { sigs.push(v.id + "|" + (f.date || "")); }); if (v.status === "\u0639\u0637\u0644\u0627\u0646\u0629") down.push(v.id); });
+    return { at: Date.now(), sigs: sigs, down: down, pct: readinessDetail(VEH).pct };
+  }
+  function showVisitBrief() {
+    if (!VEH.length || document.querySelector(".fd31-brief")) return;
+    var prev = null; try { prev = JSON.parse(localStorage.getItem(LV_KEY) || "null"); } catch (e) { }
+    var cur = visitSnap();
+    try { localStorage.setItem(LV_KEY, JSON.stringify(cur)); } catch (e) { }
+    if (!prev || !prev.sigs || (Date.now() - (prev.at || 0)) < 6 * 3600 * 1000) return;
+    var oldSigs = {}; prev.sigs.forEach(function (s) { oldSigs[s] = 1; });
+    var newFaults = cur.sigs.filter(function (s) { return !oldSigs[s]; }).length;
+    var curDown = {}; cur.down.forEach(function (i2) { curDown[i2] = 1; });
+    var returned = (prev.down || []).filter(function (i2) { return !curDown[i2]; }).length;
+    var dp = cur.pct - (prev.pct || cur.pct);
+    if (!newFaults && !returned && !dp) return;
+    var el2 = el("div", "fd31-brief");
+    el2.innerHTML = '<b>\u1F4CB \u0645\u0646\u0630 \u0622\u062E\u0631 \u0632\u064A\u0627\u0631\u0629:</b> ' +
+      (newFaults ? '<span class="r">' + newFaults + ' \u0639\u0637\u0644\u0627\u064B \u062C\u062F\u064A\u062F\u0627\u064B</span>' : '') +
+      (returned ? '<span class="g">' + returned + ' \u0622\u0644\u064A\u0629 \u0639\u0627\u062F\u062A \u0644\u0644\u0639\u0645\u0644</span>' : '') +
+      (dp ? '<span class="' + (dp > 0 ? "g" : "r") + '">\u0627\u0644\u062C\u0627\u0647\u0632\u064A\u0629 ' + (dp > 0 ? "\u25B2 +" : "\u25BC ") + dp + '\u066A</span>' : '') +
+      '<button class="fd31-brief-x" title="\u0625\u063A\u0644\u0627\u0642">\u2715</button>';
+    document.body.appendChild(el2);
+    el2.querySelector(".fd31-brief-x").onclick = function () { el2.remove(); };
+    setTimeout(function () { if (el2.parentNode) el2.classList.add("hide"); }, 25000);
+    setTimeout(function () { if (el2.parentNode) el2.remove(); }, 26000);
   }
 
   function boot() {
     if (!document.body) { setTimeout(boot, 300); return; }
-    try { applySavedTheme(); } catch (e) { }
     placeRailAI();
     fillMounts();
     try { initWelcomeTour(); } catch (e) { }
-    if (!VEH.length && !boot._dbTried) { boot._dbTried = true; try { loadDB(function () { }); } catch (e) { } }
+    if (!VEH.length && !boot._dbTried) { boot._dbTried = true; try { loadDB(function () { setTimeout(function(){ try { showVisitBrief(); } catch (e) { } }, 3500); }); } catch (e) { } } else if (VEH.length) { setTimeout(function(){ try { showVisitBrief(); } catch (e) { } }, 3500); }
     try { new MutationObserver(function () { fillMounts(); }).observe(document.body, { childList: true, subtree: true }); } catch (e) { }
     setInterval(fillMounts, 700);
   }

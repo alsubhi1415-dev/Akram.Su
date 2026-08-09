@@ -399,76 +399,93 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
   .fdwt-card,.fdwt-fade{ animation:none!important; transition:opacity .25s ease!important; transform:none!important; }
 }
 
+/* ---------- أزرار تصدير Word (fd31) ---------- */
+.fdv-word{ background:linear-gradient(135deg,#2C6BB3,#1B3E6E)!important; }
+.fdls-word{ background:linear-gradient(135deg,#2C6BB3,#1B3E6E); color:#fff; border:none; border-radius:10px; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; padding:8px 14px; white-space:nowrap; transition:filter .18s,transform .18s; }
+.fdls-word:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+#fdp-word{ background:linear-gradient(135deg,#2C6BB3,#1B3E6E); color:#fff; }
+#ops-word{ background:linear-gradient(135deg,#2C6BB3,#1B3E6E)!important; }
+
+
 /* ============================================================
-   نظام رموز تصميم fd31 + لوحة «تخصيص المظهر» (للمشرف)
-   القِيَم الافتراضية = المظهر الحالي تماماً → لا يتغيّر شيء حتى يعدّل المشرف
-   الأثر مقصور على مناطق fd31 فقط (لا يمسّ الأساس)
+   تحسين تباعد ومحاذاة القائمة الجانبية (بعد إزالة زر المظهر)
+   + إبراز الأيقونات الملوّنة الجديدة بمحاذاة موحّدة
    ============================================================ */
-:root{ --fdt-accent:#C69B2E; --fdt-accent2:#E7C651; --fdt-fs:1; --fdt-icon:1; --fdt-radius:1; --fdt-pad:1; }
+.side-rail button{ margin-bottom:3px; }
+.side-rail button:last-child{ margin-bottom:0; }
+/* أيقونات التبويبات SVG الجديدة: أوضح قليلاً ومحاذاة موحّدة */
+.side-rail .ric-img{ width:30px; min-width:30px; flex-shrink:0; justify-content:center; }
+.side-rail .ric-img img{ height:19px!important; }
+/* فصل بصري لطيف بين تبويبات التنقّل ومجموعة الأسفل (المساعد/تحميل/نشر) */
+.side-rail #fd31-rail-ai{ margin-top:auto!important; position:relative; }
+.side-rail #fd31-rail-ai::before{ content:""; position:absolute; left:8px; right:8px; top:-8px; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(212,175,55,.35),transparent); }
 
-/* اللون المميّز (الذهبي) — عناصر fd31 الذهبية */
-.side-rail #fd31-rail-ai{ background:linear-gradient(135deg,var(--fdt-accent2),var(--fdt-accent))!important; }
-.fd31-msg.bot .big{ color:var(--fdt-accent2); }
+/* ============================================================
+   احتواء نافذة باركود الآلية داخل شاشة الجوال (صنف خاص بها فقط)
+   بطاقتها بلا className فلا يشملها تنسيق modal-card — نضيف حدّ
+   ارتفاع بوحدة vh المدعومة عالمياً (+ dvh للمتصفحات الأحدث) وتمرير
+   ============================================================ */
+.qr-veh-card{ box-sizing:border-box; max-height:calc(100vh - 26px); max-height:calc(100dvh - 26px);
+  overflow-y:auto; overflow-x:hidden; }
+.qr-veh-card img{ max-width:100%; height:auto; }
+@media (max-width:640px){
+  .qr-veh-card{ max-width:calc(100vw - 20px)!important; max-height:88vh!important; max-height:88dvh!important;
+    padding:18px 16px!important; margin:6px auto; }
+}
 
-/* حجم الخط + الكثافة + الاستدارة — مناطق نصية آمنة (المساعد/الجولة/ملخّص السجل) */
-.fd31-msg{ font-size:calc(13.5px * var(--fdt-fs)); line-height:1.9;
-  border-radius:calc(16px * var(--fdt-radius)); padding:calc(11px*var(--fdt-pad)) calc(15px*var(--fdt-pad)); }
-.fd31-msg.bot .big{ font-size:calc(30px * var(--fdt-fs)); }
-.fdwt-title{ font-size:calc(19px * var(--fdt-fs)); }
-.fdwt-desc{ font-size:calc(13.5px * var(--fdt-fs)); }
-.fdwt-card{ border-radius:calc(24px * var(--fdt-radius)); }
-.fdwt-ic{ font-size:calc(46px * var(--fdt-icon)); }
-.fdwt-emoji{ font-size:calc(46px * var(--fdt-icon)); }
 
-/* حجم أيقونة زر المساعد بالقائمة */
-.side-rail #fd31-rail-ai .ric svg{ width:calc(18px*var(--fdt-icon)); height:calc(18px*var(--fdt-icon)); }
+/* ---------- دفعة 25: قيد المتابعة + المقارنة + أزرار تقرير الشعبة + فحص الآلية ---------- */
+.ops-extra{ margin-top:14px; }
+.ops-fu-chips{ display:flex; flex-wrap:wrap; gap:7px; margin:6px 0 10px; }
+.ops-fu-chip{ font-size:11.5px; font-weight:800; padding:5px 10px; border-radius:20px; background:rgba(255,255,255,.07); color:#CFD9E8; border:1px solid rgba(255,255,255,.10); }
+.ops-fu-chip b{ margin-inline-start:4px; font-size:13px; }
+.ops-fu-chip.r b{ color:#FF8A90; } .ops-fu-chip.y b{ color:#E8C561; } .ops-fu-chip.b b{ color:#7FB8F0; }
+.ops-fu-sec{ font-size:11px; font-weight:800; color:#9FB0C8; margin:9px 0 4px; }
+.ops-fu-row{ display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; color:#DCE4F0; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,.07); }
+.ops-fu-row.ok{ color:#7FE0A8; border:none; }
+.ops-cmp-row{ display:flex; align-items:center; gap:9px; font-size:12.5px; font-weight:700; color:#DCE4F0; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.08); }
+.ops-cmp-row span{ flex:1; }
+.ops-cmp-row b{ font-size:19px; color:#fff; }
+.ops-cmp-row i{ font-style:normal; font-size:10.5px; color:#8CA0BC; }
+.ops-cmp-row.big{ border:none; margin-top:4px; }
+.ops-cmp-row.big .ops-ar{ font-size:15px; padding:4px 12px; }
+.ops-ar{ font-size:11.5px; font-weight:900; padding:2px 8px; border-radius:12px; }
+.ops-ar.g{ color:#5FE3A5; background:rgba(47,211,127,.12); }
+.ops-ar.r{ color:#FF8A90; background:rgba(255,107,114,.12); }
+.ops-ar.s{ color:#C9D3E2; background:rgba(255,255,255,.08); }
+.omd-btns{ display:flex; gap:6px; margin-inline-start:auto; }
+.omd-rep{ border:none; border-radius:9px; padding:6px 11px; font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer;
+  background:linear-gradient(135deg,#2C6FB8,#1F5A9E); color:#fff; transition:filter .15s; }
+.omd-rep:hover{ filter:brightness(1.12); }
+.omd-repw{ padding:6px 9px; }
+.fdv-chk{ margin:10px 0 2px; padding:9px 13px; border-radius:11px; font-size:12.5px; font-weight:700;
+  background:#F1F7F1; border:1.5px solid #CDE3CF; color:#1E4B2E; }
 
-/* لوحة KPI بغرفة العمليات — تكبير النص/الأيقونة بأمان (لها متّسع) */
-.ops-kpi-n{ font-size:calc(34px * var(--fdt-fs)); }
-.ops-kpi-ic{ font-size:calc(23px * var(--fdt-icon)); }
-.ops-kpi-l{ font-size:calc(12px * var(--fdt-fs)); }
-
-/* ---------- زر القائمة «تخصيص المظهر» ---------- */
-.side-rail #fd31-rail-theme .ric{ width:26px!important; min-width:26px!important; height:26px!important; border-radius:7px;
-  display:flex!important; align-items:center; justify-content:center;
-  background:linear-gradient(135deg,#2C4A78,#1B3355)!important; }
-.side-rail #fd31-rail-theme .ric svg{ width:18px; height:18px; }
-.side-rail #fd31-rail-theme:hover{ filter:brightness(1.08); transform:translateY(-1px); }
-
-/* ---------- لوحة تخصيص المظهر ---------- */
-.fdtp-ov{ position:fixed; inset:0; z-index:2147482900; display:flex; align-items:center; justify-content:center; padding:20px;
-  background:rgba(8,14,26,.72); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
-  opacity:0; transition:opacity .3s ease; direction:rtl; font-family:inherit; }
-.fdtp-ov.on{ opacity:1; }
-.fdtp-card{ width:min(460px,96vw); max-height:92vh; overflow:auto; border-radius:22px;
-  background:linear-gradient(165deg,#14263f,#0e1a2e); border:1px solid rgba(212,175,55,.28);
-  box-shadow:0 30px 80px rgba(0,0,0,.55); color:#E7ECF4;
-  transform:translateY(16px) scale(.97); opacity:0; transition:transform .34s cubic-bezier(.2,.85,.3,1),opacity .3s ease; }
-.fdtp-ov.on .fdtp-card{ transform:none; opacity:1; }
-.fdtp-hd{ display:flex; align-items:center; justify-content:space-between; padding:18px 22px 6px; }
-.fdtp-hd h3{ margin:0; font-size:17px; font-weight:900; color:#fff; }
-.fdtp-hd p{ margin:3px 0 0; font-size:11.5px; color:#9FB0C8; font-weight:600; }
-.fdtp-x{ background:rgba(255,255,255,.08); border:none; color:#cfd8e6; width:30px; height:30px; border-radius:9px; cursor:pointer; font-size:16px; }
-.fdtp-x:hover{ background:rgba(255,255,255,.16); }
-.fdtp-body{ padding:8px 22px 4px; }
-.fdtp-row{ margin:14px 0; }
-.fdtp-row>label{ display:block; font-size:12.5px; font-weight:800; color:#C6D2E4; margin-bottom:8px; }
-.fdtp-seg{ display:flex; gap:6px; }
-.fdtp-seg button{ flex:1; padding:9px 4px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
-  background:rgba(255,255,255,.05); color:#B9C6DA; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; transition:all .18s; }
-.fdtp-seg button:hover{ background:rgba(255,255,255,.1); }
-.fdtp-seg button.on{ background:linear-gradient(135deg,var(--fdt-accent2),var(--fdt-accent)); color:#20180a; border-color:transparent; }
-.fdtp-sw{ display:flex; gap:9px; flex-wrap:wrap; }
-.fdtp-sw button{ width:34px; height:34px; border-radius:9px; border:2px solid rgba(255,255,255,.15); cursor:pointer; padding:0; transition:transform .15s,border-color .15s; }
-.fdtp-sw button:hover{ transform:scale(1.08); }
-.fdtp-sw button.on{ border-color:#fff; box-shadow:0 0 0 2px rgba(255,255,255,.25); }
-.fdtp-sw .fdtp-pick{ display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); font-size:15px; color:#C6D2E4; position:relative; overflow:hidden; }
-.fdtp-pick input[type=color]{ position:absolute; inset:-6px; width:46px; height:46px; border:none; padding:0; cursor:pointer; opacity:0; }
-.fdtp-ft{ display:flex; gap:9px; padding:12px 22px 20px; border-top:1px solid rgba(255,255,255,.06); margin-top:6px; }
-.fdtp-btn{ border:none; border-radius:12px; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; padding:11px 16px; transition:all .18s; }
-.fdtp-reset{ background:rgba(255,255,255,.07); color:#C6D2E4; }
-.fdtp-reset:hover{ background:rgba(255,255,255,.13); }
-.fdtp-save{ background:linear-gradient(135deg,var(--fdt-accent2),var(--fdt-accent)); color:#20180a; flex:1; box-shadow:0 8px 20px rgba(201,155,46,.35); }
-.fdtp-save:hover{ filter:brightness(1.06); transform:translateY(-1px); }
-.fdtp-note{ font-size:11px; color:#8298B4; text-align:center; padding:0 22px 14px; margin-top:-4px; }
-@media (prefers-reduced-motion:reduce){ .fdtp-ov,.fdtp-card{ transition:opacity .2s ease!important; transform:none!important; } }
+/* ---------- دفعة 26: المصفوفة النوعية + جودة الإصلاح + موجز الزيارة ---------- */
+.ops-mx{ margin-top:14px; }
+.ops-mx .ops-card-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ops-mx-btns{ margin-inline-start:auto; display:flex; gap:6px; }
+.ops-mx-wrap{ overflow-x:auto; margin-top:8px; }
+.ops-mx-t{ width:100%; border-collapse:collapse; font-size:12px; }
+.ops-mx-t th{ background:rgba(255,255,255,.08); color:#D9E2EF; font-weight:800; padding:7px 8px; border:1px solid rgba(255,255,255,.10); }
+.ops-mx-t td{ padding:6px 8px; border:1px solid rgba(255,255,255,.08); color:#E5EBF4; }
+.ops-mx-recs{ margin-top:10px; font-size:12px; color:#DCE4F0; }
+.ops-mx-recs ul{ margin:5px 0 0; padding-inline-start:18px; }
+.ops-mx-recs li{ margin-bottom:3px; color:#F0D58A; font-weight:700; }
+.ops-mx-recs.ok{ color:#7FE0A8; font-weight:800; }
+.ops-q{ margin-top:14px; }
+.ops-q .ops-card-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+/* موجز منذ آخر زيارة — عائم يسار (القائمة يمين) */
+.fd31-brief{ position:fixed; left:16px; bottom:16px; z-index:2147482800; max-width:min(430px,86vw);
+  background:linear-gradient(160deg,#14263f,#0e1a2e); border:1px solid rgba(212,175,55,.35); border-radius:14px;
+  padding:12px 40px 12px 16px; color:#E7EEF8; font-size:13px; font-weight:700; box-shadow:0 16px 44px rgba(0,0,0,.45);
+  display:flex; flex-wrap:wrap; align-items:center; gap:9px; direction:rtl; animation:briefIn .45s cubic-bezier(.2,.8,.3,1); }
+@keyframes briefIn{ from{ transform:translateY(14px); opacity:0; } to{ transform:none; opacity:1; } }
+.fd31-brief.hide{ opacity:0; transition:opacity .9s ease; }
+.fd31-brief span{ padding:3px 10px; border-radius:12px; font-size:12px; }
+.fd31-brief span.r{ background:rgba(255,107,114,.16); color:#FF9AA0; }
+.fd31-brief span.g{ background:rgba(47,211,127,.14); color:#7FE0A8; }
+.fd31-brief-x{ position:absolute; top:8px; inset-inline-end:8px; background:rgba(255,255,255,.08); border:none; color:#cfd8e6;
+  width:24px; height:24px; border-radius:8px; cursor:pointer; font-size:12px; }
+@media print{ .fd31-brief{ display:none!important; } }
