@@ -1,4 +1,4 @@
-<!--APP_BUILD:الإصدار 34.3 · 1448/03/02هـ-->
+<!--APP_BUILD:الإصدار 34.5 · 1448/03/02هـ-->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head><script>(function(){try{var h=location.hash||"";var a=h.match(/#v=([A-Za-z0-9]+)/);var b=h.match(/#veh=(.+)/);if(!a&&!b)return;var d=(location.protocol==="https:"||location.protocol==="http:")?location.href.split("#")[0].split("?")[0].replace(/[^/]*$/,""):"https://alsubhi1415-dev.github.io/Akram.Su/";location.replace(d+"v.html?"+(a?("c="+a[1]):("p="+b[1])));}catch(e){}})();</script>
@@ -1879,7 +1879,7 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 </style>
 <script id="fd31">
 /* ============================================================
-   FD31 · الإصدار 34.3 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 34.5 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -2573,7 +2573,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 34.3</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 34.5</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
@@ -3237,7 +3237,7 @@ var SPECIAL2 = [
     else if (snap.parentNode !== rail) rail.appendChild(snap);
   }
   /* ---------- دفعة 31: نقاط «الجديد» بعد كل تحديث ---------- */
-  var WN_VER = "34.3";
+  var WN_VER = "34.5";
   var WN_ITEMS = [
     { id: "vlife", rail: "سجل الآليات", sel: ".fdv-life", tip: "جديد: بطاقة العمر التشغيلي و«الملف الرقمي الكامل» في صفحة كل آلية — افتح أي آلية من السجل" },
     { id: "dq", rail: "المؤشرات والتحليلات", sel: ".ops-dq", tip: "جديد: بطاقة «جودة البيانات» بكواشفها الأربعة وتقرير المراجعة" }
@@ -3857,33 +3857,61 @@ var SPECIAL2 = [
      + وضع العرض التقديمي + تفسير الأرقام بنقرة
      ============================================================ */
   function fixQrCard() {
-    var cards = document.querySelectorAll(".qr-veh-card");
-    for (var i = 0; i < cards.length; i++) {
-      var c = cards[i];
-      var mh = (window.innerHeight || 600) - 22, mw = (window.innerWidth || 360) - 14;
-      var wantH = mh + "px", wantW = (mw < 560 ? mw + "px" : "");
-      if (c.style.maxHeight !== wantH) c.style.maxHeight = wantH;
-      if (c.style.overflowY !== "auto") { c.style.overflowY = "auto"; c.style.overflowX = "hidden"; }
-      if (wantW && c.style.maxWidth !== wantW) c.style.maxWidth = wantW;
-      c.style.boxSizing = "border-box";
-      if (mw < 560 && c.style.padding !== "16px 14px") c.style.padding = "16px 14px";
-      /* 34.2: أب بتأثير transform يكسر fixed للغطاء بالجوال → نقل الغطاء لـbody وفرض التغطية الكاملة فوق كل شيء */
-      var ov = c.parentElement;
-      if (ov && ov.classList && ov.classList.contains("modal-overlay")) {
-        if (ov.parentElement !== document.body) { try { document.body.appendChild(ov); } catch (e) { } }
-        /* فرض دائم كل استدعاء — إعادة تصيير React تمسح الأنماط فتُعاد قسراً */
-        var OP = { position: "fixed", top: "0", left: "0", right: "0", bottom: "0",
-          width: "100vw", height: "100vh", margin: "0", transform: "none",
-          display: "flex", "align-items": "center", "justify-content": "center",
-          "z-index": "2147482000" };
-        for (var k in OP) {
-          if (ov.style.getPropertyValue(k) !== OP[k] || ov.style.getPropertyPriority(k) !== "important") {
-            try { ov.style.setProperty(k, OP[k], "important"); } catch (e) { }
+    /* 34.5 نهائي: لا نقل للعقدة إطلاقاً (يكسر أحداث/إزالة React) —
+       بل تحييد الكاسرات (transform/filter/perspective) عن الأسلاف مؤقتاً + فرض أنماط الغطاء بمكانه */
+    var ovs = document.querySelectorAll(".modal-overlay");
+    var mh = (window.innerHeight || 600) - 22, mw = (window.innerWidth || 360) - 14;
+    if (!ovs.length) {
+      /* لا نوافذ مفتوحة → استرداد زخرفة الأسلاف المحيَّدة */
+      var neut = document.querySelectorAll("[data-fdneut]");
+      for (var r = 0; r < neut.length; r++) {
+        try { neut[r].style.removeProperty("transform"); neut[r].style.removeProperty("filter"); neut[r].style.removeProperty("perspective"); neut[r].style.removeProperty("will-change"); neut[r].removeAttribute("data-fdneut"); } catch (e) { }
+      }
+      return;
+    }
+    for (var i = 0; i < ovs.length; i++) {
+      var ov = ovs[i];
+      /* تحييد أي سلف كاسر لـfixed */
+      var p = ov.parentElement;
+      while (p && p !== document.body && p !== document.documentElement) {
+        try {
+          var cs = getComputedStyle(p);
+          if (cs.transform !== "none" || cs.filter !== "none" || cs.perspective !== "none" || /transform/.test(cs.willChange || "")) {
+            p.style.setProperty("transform", "none", "important");
+            p.style.setProperty("filter", "none", "important");
+            p.style.setProperty("perspective", "none", "important");
+            p.style.setProperty("will-change", "auto", "important");
+            p.setAttribute("data-fdneut", "1");
           }
+        } catch (e) { }
+        p = p.parentElement;
+      }
+      /* فرض أنماط الغطاء بمكانه (يصمد أمام مسح React كل دورة) */
+      var OP = { position: "fixed", top: "0", left: "0", right: "0", bottom: "0",
+        width: "100vw", height: "100vh", margin: "0", transform: "none",
+        display: "flex", "align-items": "center", "justify-content": "center",
+        "z-index": "2147482000" };
+      for (var k in OP) {
+        if (ov.style.getPropertyValue(k) !== OP[k] || ov.style.getPropertyPriority(k) !== "important") {
+          try { ov.style.setProperty(k, OP[k], "important"); } catch (e) { }
+        }
+      }
+      var c = ov.firstElementChild;
+      if (c) {
+        var wantH = mh + "px";
+        if (c.style.maxHeight !== wantH) c.style.maxHeight = wantH;
+        if (c.style.overflowY !== "auto") { c.style.overflowY = "auto"; c.style.overflowX = "hidden"; }
+        c.style.boxSizing = "border-box";
+        if (mw < 560) {
+          var wantW = mw + "px";
+          if (c.style.maxWidth !== wantW) c.style.maxWidth = wantW;
+          if (c.classList && c.classList.contains("qr-veh-card") && c.style.padding !== "16px 14px") c.style.padding = "16px 14px";
         }
       }
     }
   }
+
+
   /* ---------- البحث الشامل الفوري ---------- */
   function vehHay(v) {
     if (v.__hay) return v.__hay;
