@@ -1,4 +1,4 @@
-<!--APP_BUILD:الإصدار 34.0 · 1448/03/02هـ-->
+<!--APP_BUILD:الإصدار 34.2 · 1448/03/02هـ-->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head><script>(function(){try{var h=location.hash||"";var a=h.match(/#v=([A-Za-z0-9]+)/);var b=h.match(/#veh=(.+)/);if(!a&&!b)return;var d=(location.protocol==="https:"||location.protocol==="http:")?location.href.split("#")[0].split("?")[0].replace(/[^/]*$/,""):"https://alsubhi1415-dev.github.io/Akram.Su/";location.replace(d+"v.html?"+(a?("c="+a[1]):("p="+b[1])));}catch(e){}})();</script>
@@ -1867,11 +1867,10 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 @media (max-width:640px){ .fda-g{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 /* ---------- 34.0: نقاط الجديد ---------- */
-.fd31-wn-dot{ position:absolute; top:7px; left:9px; width:11px; height:11px; border-radius:50%;
-  background:radial-gradient(circle at 35% 35%, #FFE9A8, #D4AF37); box-shadow:0 0 0 2px rgba(212,175,55,.35), 0 2px 8px rgba(0,0,0,.35);
-  cursor:pointer; z-index:8; animation:fd31wnp 1.6s ease-in-out infinite; }
-@keyframes fd31wnp{ 0%,100%{ transform:scale(1); box-shadow:0 0 0 2px rgba(212,175,55,.35),0 2px 8px rgba(0,0,0,.35);} 50%{ transform:scale(1.25); box-shadow:0 0 0 5px rgba(212,175,55,.15),0 2px 10px rgba(0,0,0,.4);} }
-.ops-dq .fd31-wn-dot,.fdv-life .fd31-wn-dot{ top:-5px; left:-5px; }
+.fd31-wn-dot{ background:radial-gradient(circle at 35% 35%, #FFE9A8, #D4AF37);
+  box-shadow:0 0 0 2px rgba(212,175,55,.35), 0 2px 8px rgba(0,0,0,.35);
+  cursor:pointer; animation:fd31wnp 1.5s ease-in-out infinite; }
+@keyframes fd31wnp{ 0%,100%{ box-shadow:0 0 0 2px rgba(212,175,55,.4),0 2px 8px rgba(0,0,0,.35);} 50%{ box-shadow:0 0 0 6px rgba(212,175,55,.12),0 2px 10px rgba(0,0,0,.4);} }
 .fd31-wn-tip{ position:absolute; top:100%; left:8px; margin-top:7px; z-index:80; max-width:300px; width:max-content;
   background:#0d1a2e; border:1px solid rgba(212,175,55,.6); border-radius:11px; padding:9px 12px;
   color:#EDF2FA; font-size:11.5px; font-weight:800; line-height:1.8; text-align:right; box-shadow:0 12px 34px rgba(0,0,0,.5); }
@@ -1880,7 +1879,7 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 </style>
 <script id="fd31">
 /* ============================================================
-   FD31 · الإصدار 34.0 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 34.2 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -2574,7 +2573,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 34.0</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 34.2</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
@@ -3238,7 +3237,7 @@ var SPECIAL2 = [
     else if (snap.parentNode !== rail) rail.appendChild(snap);
   }
   /* ---------- دفعة 31: نقاط «الجديد» بعد كل تحديث ---------- */
-  var WN_VER = "34.0";
+  var WN_VER = "34.1";
   var WN_ITEMS = [
     { id: "vlife", rail: "سجل الآليات", sel: ".fdv-life", tip: "جديد: بطاقة العمر التشغيلي و«الملف الرقمي الكامل» في صفحة كل آلية — افتح أي آلية من السجل" },
     { id: "dq", rail: "المؤشرات والتحليلات", sel: ".ops-dq", tip: "جديد: بطاقة «جودة البيانات» بكواشفها الأربعة وتقرير المراجعة" }
@@ -3261,13 +3260,19 @@ var SPECIAL2 = [
     anchor.appendChild(t);
     setTimeout(function () { if (t.parentNode) t.remove(); }, 6000);
   }
-  function wnDot(host, key, tip) {
+  function wnDot(host, key, tip, tx, ty) {
     if (host.querySelector('.fd31-wn-dot[data-wn="' + key + '"]')) return;
     var d = el("span", "fd31-wn-dot");
     d.setAttribute("data-wn", key); d.title = tip;
     d.onclick = function (ev) { ev.stopPropagation(); ev.preventDefault(); wnTip(host, tip); };
     var cs = ""; try { cs = getComputedStyle(host).position; } catch (e) { }
     if (cs !== "relative" && cs !== "absolute" && cs !== "fixed") host.style.position = "relative";
+    /* تثبيت صارم inline!important — يغلب أي أنماط أساس محقونة (درس الباركود) */
+    var P = { position: "absolute", top: (ty == null ? 6 : ty) + "px", left: (tx == null ? 6 : tx) + "px",
+      width: "10px", height: "10px", "min-width": "10px", "max-width": "10px", "min-height": "10px", "max-height": "10px",
+      padding: "0", margin: "0", border: "0", display: "block", "border-radius": "50%", "box-sizing": "border-box",
+      flex: "0 0 auto", "line-height": "0", "font-size": "0", "z-index": "9", right: "auto", bottom: "auto", transform: "none" };
+    for (var k in P) { try { d.style.setProperty(k, P[k], "important"); } catch (e) { } }
     host.appendChild(d);
   }
   var _wnVis = {};
@@ -3280,7 +3285,7 @@ var SPECIAL2 = [
         var btns = document.querySelectorAll(".side-rail button");
         for (var i = 0; i < btns.length; i++) {
           if (norm(btns[i].textContent).indexOf(norm(it.rail)) >= 0) {
-            wnDot(btns[i], railKey, it.tip);
+            wnDot(btns[i], railKey, it.tip, 6, 6);
             if (!btns[i].__wnWired) { btns[i].__wnWired = 1; btns[i].addEventListener("click", function () { wnMark(railKey); }); }
             break;
           }
@@ -3290,7 +3295,7 @@ var SPECIAL2 = [
       if (!s.seen[it.id]) {
         var elx = document.querySelector(it.sel);
         if (elx) {
-          wnDot(elx, it.id, it.tip);
+          wnDot(elx, it.id, it.tip, -5, -5);
           if (!elx.__wnWired) { elx.__wnWired = 1; elx.addEventListener("click", function () { wnMark(it.id); }); }
           if (elx.offsetParent !== null || elx.getClientRects().length) {
             _wnVis[it.id] = (_wnVis[it.id] || 0) + 1;
@@ -3841,6 +3846,19 @@ var SPECIAL2 = [
       if (wantW && c.style.maxWidth !== wantW) c.style.maxWidth = wantW;
       c.style.boxSizing = "border-box";
       if (mw < 560 && c.style.padding !== "16px 14px") c.style.padding = "16px 14px";
+      /* 34.2: أب بتأثير transform يكسر fixed للغطاء بالجوال → نقل الغطاء لـbody وفرض التغطية الكاملة فوق كل شيء */
+      var ov = c.parentElement;
+      if (ov && ov.classList && ov.classList.contains("modal-overlay")) {
+        if (ov.parentElement !== document.body) { try { document.body.appendChild(ov); } catch (e) { } }
+        if (!ov.__fdFixed) {
+          ov.__fdFixed = 1;
+          var OP = { position: "fixed", top: "0", left: "0", right: "0", bottom: "0",
+            width: "100vw", height: "100vh", margin: "0", transform: "none",
+            display: "flex", "align-items": "center", "justify-content": "center",
+            "z-index": "2147482000" };
+          for (var k in OP) { try { ov.style.setProperty(k, OP[k], "important"); } catch (e) { } }
+        }
+      }
     }
   }
   /* ---------- البحث الشامل الفوري ---------- */
