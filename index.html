@@ -1,4 +1,4 @@
-<!--APP_BUILD:الإصدار 34.2 · 1448/03/02هـ-->
+<!--APP_BUILD:الإصدار 34.3 · 1448/03/02هـ-->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head><script>(function(){try{var h=location.hash||"";var a=h.match(/#v=([A-Za-z0-9]+)/);var b=h.match(/#veh=(.+)/);if(!a&&!b)return;var d=(location.protocol==="https:"||location.protocol==="http:")?location.href.split("#")[0].split("?")[0].replace(/[^/]*$/,""):"https://alsubhi1415-dev.github.io/Akram.Su/";location.replace(d+"v.html?"+(a?("c="+a[1]):("p="+b[1])));}catch(e){}})();</script>
@@ -1879,7 +1879,7 @@ body.dark .fdls-clear{background:rgba(158,27,34,.22);color:#FFB4A2;border-color:
 </style>
 <script id="fd31">
 /* ============================================================
-   FD31 · الإصدار 34.2 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 34.3 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -2573,7 +2573,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 34.2</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 34.3</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
@@ -3237,7 +3237,7 @@ var SPECIAL2 = [
     else if (snap.parentNode !== rail) rail.appendChild(snap);
   }
   /* ---------- دفعة 31: نقاط «الجديد» بعد كل تحديث ---------- */
-  var WN_VER = "34.1";
+  var WN_VER = "34.3";
   var WN_ITEMS = [
     { id: "vlife", rail: "سجل الآليات", sel: ".fdv-life", tip: "جديد: بطاقة العمر التشغيلي و«الملف الرقمي الكامل» في صفحة كل آلية — افتح أي آلية من السجل" },
     { id: "dq", rail: "المؤشرات والتحليلات", sel: ".ops-dq", tip: "جديد: بطاقة «جودة البيانات» بكواشفها الأربعة وتقرير المراجعة" }
@@ -3276,7 +3276,16 @@ var SPECIAL2 = [
     host.appendChild(d);
   }
   var _wnVis = {};
+  var WN_ADMIN_HASH = "a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49";
+  function wnIsAdmin() {
+    try { return localStorage.getItem("cdfleet_role_hash") === WN_ADMIN_HASH; } catch (e) { return false; }
+  }
   function placeWnDots() {
+    if (!wnIsAdmin()) {
+      var olds = document.querySelectorAll(".fd31-wn-dot, .fd31-wn-tip");
+      for (var q = 0; q < olds.length; q++) olds[q].remove();
+      return;
+    }
     var s = wnState();
     WN_ITEMS.forEach(function (it) {
       // نقطة التبويب بالقائمة الجانبية
@@ -3331,6 +3340,17 @@ var SPECIAL2 = [
     ov.querySelector(".fda-ok").onclick = close;
     ov.onclick = function (ev) { if (ev.target === ov) close(); };
   }
+  var _qrMo = null;
+  function armQrWatch() {
+    if (_qrMo || !window.MutationObserver) return;
+    try {
+      _qrMo = new MutationObserver(function () {
+        if (document.querySelector(".qr-veh-card")) fixQrCard();
+      });
+      _qrMo.observe(document.body, { childList: true, subtree: true });
+      document.addEventListener("click", function () { setTimeout(fixQrCard, 60); }, true);
+    } catch (e) { }
+  }
   function watchImportAudit() {
     var A = window.__fdImportAudit;
     if (A && A.at && watchImportAudit._last !== A.at) { watchImportAudit._last = A.at; openImportAudit(A); }
@@ -3339,6 +3359,7 @@ var SPECIAL2 = [
     placeRailAI();
     placeHomeSearch();
     fixQrCard();
+    armQrWatch();
     watchImportAudit();
     placeWnDots();
     var mp = document.getElementById("fd-maint-page");
@@ -3850,13 +3871,15 @@ var SPECIAL2 = [
       var ov = c.parentElement;
       if (ov && ov.classList && ov.classList.contains("modal-overlay")) {
         if (ov.parentElement !== document.body) { try { document.body.appendChild(ov); } catch (e) { } }
-        if (!ov.__fdFixed) {
-          ov.__fdFixed = 1;
-          var OP = { position: "fixed", top: "0", left: "0", right: "0", bottom: "0",
-            width: "100vw", height: "100vh", margin: "0", transform: "none",
-            display: "flex", "align-items": "center", "justify-content": "center",
-            "z-index": "2147482000" };
-          for (var k in OP) { try { ov.style.setProperty(k, OP[k], "important"); } catch (e) { } }
+        /* فرض دائم كل استدعاء — إعادة تصيير React تمسح الأنماط فتُعاد قسراً */
+        var OP = { position: "fixed", top: "0", left: "0", right: "0", bottom: "0",
+          width: "100vw", height: "100vh", margin: "0", transform: "none",
+          display: "flex", "align-items": "center", "justify-content": "center",
+          "z-index": "2147482000" };
+        for (var k in OP) {
+          if (ov.style.getPropertyValue(k) !== OP[k] || ov.style.getPropertyPriority(k) !== "important") {
+            try { ov.style.setProperty(k, OP[k], "important"); } catch (e) { }
+          }
         }
       }
     }
