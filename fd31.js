@@ -1,5 +1,5 @@
 /* ============================================================
-   FD31 · الإصدار 33.6 — مساعد ذكي فائق + ثلاث أدوات مستقلة
+   FD31 · الإصدار 35.7 — مساعد ذكي فائق + ثلاث أدوات مستقلة
    وحدة معزولة كلياً خارج React
    ============================================================ */
 (function () {
@@ -693,7 +693,7 @@ var SPECIAL2 = [
       '</style></head><body><div class="doc-h"><div class="o">الإدارة العامة للدفاع المدني بمحافظة جدة<br>إدارة العمليات - شعبة الإطفاء والإنقاذ</div>' +
       '<div class="t">' + title + '</div><div class="d">التاريخ: ' + fmtH(H_NOW) + '</div></div>' + bodyHtml +
       '<div class="sig"><div>معد التقرير<div class="ln">&nbsp;</div></div><div>الاعتماد<div class="ln">&nbsp;</div></div></div>' +
-      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 33.6</div></body></html>';
+      '<div class="foot">صدر آلياً من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية · الإصدار 35.7</div></body></html>';
   }
   function printDoc(title, bodyHtml, opts) {
     var w = null; try { w = window.open("", "_blank"); } catch (e) { }
@@ -834,49 +834,335 @@ var SPECIAL2 = [
   function cfgBox(k, ic, lbl, val) { return '<div class="fdp-cbox"><div class="cb-ic">' + ic + '</div><div class="cb-body"><label>' + lbl + '</label><div class="cb-row"><input id="fdp-c-' + k + '" class="fdp-num" type="number" min="1" value="' + val + '"><span>شهر</span></div></div></div>'; }
 
   /* ===================== الخط الزمني (خانة في صفحة تفاصيل الآلية) ===================== */
+  function isoSer(iso) {
+    var ms = Date.parse(iso || ""); if (!ms) return 0;
+    return SER_NOW - Math.round((Date.now() - ms) / 864e5);
+  }
+  var HIST_FN = { status: "الحالة الفنية", repairDate: "تاريخ الإصلاح", desc: "وصف العطل", causedBy: "الجهة المتسببة", notes: "الملاحظات" };
+  function vehLife(v) {
+    var fs = v.faults || [], down = 0, maxD = 0, closed = [], causes = {};
+    /* 35.2: توحيد الحساب مع faultCalc (بقايا الكتابة-فوق تُعامل مفتوحة) */
+    faultCalc(v).forEach(function (C) {
+      var d = C.dur != null ? C.dur : 0;
+      down += d; if (d > maxD) maxD = d;
+      if (!C.open && C.dur != null) closed.push(C.dur);
+      var c = (C.f.causedBy || "").trim(); if (c) causes[c] = (causes[c] || 0) + 1;
+    });
+    var top = "", topN = 0; Object.keys(causes).forEach(function (c) { if (causes[c] > topN) { topN = causes[c]; top = c; } });
+    var avg = closed.length ? Math.round(closed.reduce(function (a, b) { return a + b; }, 0) / closed.length) : null;
+    return { faults: fs.length, down: down, maxDown: maxD, avgRepair: avg, topCause: top, topCauseN: topN, moves: (v.transfers || []).length, changes: (v.hist || []).length };
+  }
+  function faultCalc(v) {
+    /* 35.2: كشف بقايا «الكتابة فوق» — repairDate <= date يعني تاريخ الإصلاح يخص عطلاً سابقاً:
+       rs<fs بأي سجل = بقايا قطعاً؛ rs==fs بأحدث سجل وآلية عطلانة = الحالة تشهد أن العطل بعده.
+       الناتج لكل عطل: {fs,rs,open,dur,ghost:(""|"prev"|"drop")} — prev: يُعرض «إصلاح عطل سابق»، drop: يُسقط */
+    var down = /\u0639\u0637\u0644\u0627\u0646/.test(String(v.status || ""));
+    var mxF = 0, hasExplicitOpen = false;
+    (v.faults || []).forEach(function (f) { var q = hSer(parseH(f.date)); if (q > mxF) mxF = q; if (q && !hSer(parseH(f.repairDate))) hasExplicitOpen = true; });
+    return (v.faults || []).map(function (f) {
+      var fs = hSer(parseH(f.date)), rs = hSer(parseH(f.repairDate));
+      var ghost = "";
+      if (rs && fs) {
+        if (rs < fs) ghost = "prev";
+        else if (rs === fs && down && fs === mxF && !hasExplicitOpen) ghost = "drop";
+      }
+      var open = fs ? (!rs || ghost !== "") : false;
+      var dur = fs ? (open ? (SER_NOW - fs) : (rs >= fs ? rs - fs : null)) : null;
+      return { f: f, fs: fs, rs: rs, open: open, dur: dur, ghost: ghost };
+    });
+  }
   function vehEvents(v) {
     var evs = [];
     evs.push({ s: hSer(parseH(v.createdAt)) || 0, t: "c", h: "دخول سجل المنصة", d: parseH(v.createdAt), x: "أُدرجت الآلية في قاعدة بيانات المنصة" });
-    (v.faults || []).forEach(function (f) {
-      var fs = hSer(parseH(f.date)), rs = hSer(parseH(f.repairDate));
-      evs.push({ s: fs || 1, t: "f", h: "عطل: " + (f.faultType || "غير محدد"), d: parseH(f.date), x: (f.desc ? "الوصف: " + esc(f.desc) : "") + (f.causedBy ? (f.desc ? "<br>" : "") + "الجهة المتسببة: " + esc(f.causedBy) : ""), dur: (rs && fs) ? rs - fs : (fs ? SER_NOW - fs : null), open: !rs });
-      if (rs) evs.push({ s: rs, t: "r", h: "إصلاح: " + (f.faultType || ""), d: parseH(f.repairDate), x: "أُغلق العطل وعادت الآلية للخدمة" });
+    faultCalc(v).forEach(function (C) {
+      var f = C.f;
+      evs.push({ s: C.fs || 1, t: "f", h: "عطل: " + (f.faultType || "غير محدد"), d: parseH(f.date), x: (f.desc ? "الوصف: " + esc(f.desc) : "") + (f.causedBy ? (f.desc ? "<br>" : "") + "الجهة المتسببة: " + esc(f.causedBy) : ""), dur: C.dur, open: C.open });
+      if (C.rs) {
+        if (C.ghost === "prev") evs.push({ s: C.rs, t: "r", h: "إصلاح عطل سابق", d: parseH(f.repairDate), x: "إصلاح مؤرشف لعطل سبق هذا العطل (من نفس السجل)" });
+        else if (C.ghost !== "drop") evs.push({ s: C.rs, t: "r", h: "إصلاح: " + (f.faultType || ""), d: parseH(f.repairDate), x: "أُغلق العطل وعادت الآلية للخدمة" });
+      }
     });
     (v.transfers || []).forEach(function (t) { evs.push({ s: hSer(parseH(t.date || t.at)) || 2, t: "t", h: "نقل بين الجهات", d: parseH(t.date || t.at), x: (t.from ? "من: " + esc(t.from) : "") + (t.to ? (t.from ? "<br>" : "") + "إلى: " + esc(t.to) : "") }); });
+    (v.hist || []).forEach(function (h) {
+      evs.push({ s: isoSer(h.at) || 4, t: "h", h: "تحديث بيان: " + (HIST_FN[h.f] || esc(h.f || "")), d: null, iso: h.at || "", x: "من «" + esc(String(h.from || "—")) + "» إلى «" + esc(String(h.to || "—")) + "»" + (h.fd ? "<br>لعطل: " + esc(h.fd) : "") });
+    });
     (v.log || []).forEach(function (L) { evs.push({ s: hSer(parseH(L.date || L.at)) || 3, t: "t", h: "تعديل: " + esc(L.field || L.k || "بيان"), d: parseH(L.date || L.at), x: (L.old != null ? "من «" + esc(L.old) + "» " : "") + (L["new"] != null ? "إلى «" + esc(L["new"]) + "»" : "") }); });
-    evs.sort(function (a, b) { return a.s - b.s; });
+    /* 35.2: open الآن صادقة بعد faultCalc — القاعدة العامة تكفي: مفتوح>إصلاح>مغلق */
+    function _rk(e) { return e.t === "f" ? (e.open ? 3 : 1) : e.t === "r" ? 2 : 0; }
+    evs.sort(function (a, b) { return (a.s - b.s) || (_rk(a) - _rk(b)); });
     return evs;
   }
+  /* ===================== 35.3: ملف حياة الآليات (صفحة التقارير) ===================== */
+  function lifeSectionFor(v) {
+    var c = vehReportContent(v);
+    return '<div style="page-break-before:always"></div>' +
+      '<div style="border:2.5px solid #1B2440;border-radius:4px;padding:10px 14px;margin:4px 0 10px;background:#F4F6FB">' +
+      '<div style="font-size:15px;font-weight:900;color:#1B2440">' + esc(v.type || "") + ' — ' + esc(v.plate || "بلا لوحة") + '</div>' +
+      '<div style="font-size:11.5px;font-weight:700;color:#3A4152;margin-top:2px">' + esc(v.unit || "") + (v.location ? ' · الموقع الحالي: ' + esc(v.location) : '') + '</div></div>' +
+      c.body;
+  }
+  function lifeReportBody(list, fdesc) {
+    var downN = 0, openN = 0;
+    list.forEach(function (v) { var st = GROUP[(v.status || "").trim()] || ""; if (st === "متعطل") downN++; faultCalc(v).forEach(function (C) { if (C.open) openN++; }); });
+    var cover = '<table><tr><th colspan="2" style="background:#DCE3F0">موجز البيان</th></tr>' +
+      '<tr><td style="width:32%;font-weight:800;background:#F4F6FB">عدد الآليات المشمولة</td><td>' + list.length + '</td></tr>' +
+      '<tr><td style="font-weight:800;background:#F4F6FB">نطاق الاختيار</td><td>' + esc(fdesc || "اختيار يدوي") + '</td></tr>' +
+      '<tr><td style="font-weight:800;background:#F4F6FB">المتعطلة ضمن البيان</td><td>' + downN + '</td></tr>' +
+      '<tr><td style="font-weight:800;background:#F4F6FB">الأعطال المفتوحة ضمن البيان</td><td>' + openN + '</td></tr></table>' +
+      '<div style="margin-top:8px;font-size:11.5px;color:#3A4152">يشتمل هذا البيان لكل آلية على: البطاقة التعريفية، ملخص العمر التشغيلي، سجل الأعطال والإصلاحات، سجل التغييرات المؤرشف، السيرة الزمنية الكاملة (شاملة التنقلات بين الجهات)، والخلاصة.</div>';
+    return cover + list.map(lifeSectionFor).join("");
+  }
+  function lifePool() {
+    var q = norm(($("#fdlr-q") || {}).value || "");
+    var br = ($("#fdlr-br") || {}).value || "";
+    var un = ($("#fdlr-un") || {}).value || "";
+    var st = ($("#fdlr-st") || {}).value || "";
+    return VEH.filter(function (v) {
+      if (br && branchOf(v.unit) !== br) return false;
+      if (un && (v.unit || "") !== un) return false;
+      if (st && (v.status || "").trim() !== st) return false;
+      if (q && norm((v.plate || "") + " " + (v.type || "") + " " + (v.unit || "") + " " + (v.location || "")).indexOf(q) < 0) return false;
+      return true;
+    });
+  }
+  var lifeSel = {};
+  function lifeDesc() {
+    var p = [];
+    var br = ($("#fdlr-br") || {}).value; if (br) p.push("الشعبة: " + br);
+    var un = ($("#fdlr-un") || {}).value; if (un) p.push("الجهة: " + un);
+    var st = ($("#fdlr-st") || {}).value; if (st) p.push("الحالة: " + st);
+    var q = ($("#fdlr-q") || {}).value; if (q) p.push("بحث: " + q);
+    return p.length ? p.join(" · ") : "اختيار يدوي من كامل السجل";
+  }
+  function lifeRefresh() {
+    var pool = lifePool();
+    var box = $("#fdlr-list"); if (!box) return;
+    var lim = pool.slice(0, 500);
+    box.innerHTML = lim.map(function (v) {
+      var k = String(v.id);
+      var st = (v.status || "").trim(), g = GROUP[st] || "";
+      var cl = g === "متعطل" ? "#C4353C" : g === "يعمل" ? "#0E7A5F" : "#8A6D1F";
+      return '<label class="fdlr-row"><input type="checkbox" data-k="' + k + '"' + (lifeSel[k] ? " checked" : "") + '>' +
+        '<b>' + esc(v.plate || "—") + '</b><span class="fdlr-t">' + esc(v.type || "") + '</span>' +
+        '<i class="fdlr-st" style="color:' + cl + '">' + esc(st) + '</i></label>';
+    }).join("") + (pool.length > 500 ? '<div class="fdlr-more">عُرضت 500 من ' + pool.length + ' — ضيّق الفلاتر</div>' : "");
+    box.querySelectorAll("input[type=checkbox]").forEach(function (cb) {
+      cb.onchange = function () { if (cb.checked) lifeSel[cb.dataset.k] = 1; else delete lifeSel[cb.dataset.k]; lifeCount(); };
+    });
+    var cnt = $("#fdlr-shown"); if (cnt) cnt.textContent = "المعروض: " + lim.length + " من " + pool.length;
+    lifeCount();
+  }
+  function lifeCount() {
+    var n = Object.keys(lifeSel).length;
+    var el = $("#fdlr-n"); if (el) el.textContent = n;
+    var w = $("#fdlr-warn"); if (w) w.style.display = n > 80 ? "block" : "none";
+  }
+  function lifeChosen() {
+    return VEH.filter(function (v) { return lifeSel[String(v.id)]; });
+  }
+  function openLifeSelect() {
+    var old = $("#fdlr-ov"); if (old) old.remove();
+    lifeSel = {};
+    var brs = (typeof FIELD12 !== "undefined" && FIELD12.length) ? FIELD12.slice() : [];
+    var units = {}; VEH.forEach(function (v) { if (v.unit) units[v.unit] = 1; });
+    var sts = ["تعمل","عطلانة","تم الإصلاح","تعمل بوجود ملاحظات","تحت التجهيز والتسليم","تحت إجراءات الرجيع","صدر قرار الرجيع"];
+    var ov = document.createElement("div");
+    ov.id = "fdlr-ov"; ov.className = "fdlr-ov";
+    ov.innerHTML = '<div class="fdlr-modal">' +
+      '<div class="fdlr-h"><b>ملف حياة الآليات — بيان شامل</b><button id="fdlr-x" class="fdlr-x" type="button">✕</button></div>' +
+      '<div class="fdlr-filters">' +
+      '<input id="fdlr-q" placeholder="بحث: لوحة / نوع / جهة / موقع">' +
+      '<select id="fdlr-br"><option value="">كل الشُّعب</option>' + brs.map(function (b) { return '<option>' + esc(b) + '</option>'; }).join("") + '</select>' +
+      '<select id="fdlr-un"><option value="">كل الجهات</option>' + Object.keys(units).sort().map(function (u) { return '<option>' + esc(u) + '</option>'; }).join("") + '</select>' +
+      '<select id="fdlr-st"><option value="">كل الحالات</option>' + sts.map(function (s) { return '<option>' + s + '</option>'; }).join("") + '</select>' +
+      '</div>' +
+      '<div class="fdlr-tools"><button id="fdlr-all" type="button">تحديد المعروض</button><button id="fdlr-clr" type="button">إلغاء التحديد</button><span id="fdlr-shown"></span><span class="fdlr-cnt">المحدد: <b id="fdlr-n">0</b></span></div>' +
+      '<div id="fdlr-list" class="fdlr-list"></div>' +
+      '<div id="fdlr-warn" class="fdlr-warn">تنبيه: عدد كبير من الآليات — سيكون البيان طويلاً وقد تستغرق الطباعة وقتاً.</div>' +
+      '<div class="fdlr-acts"><button id="fdlr-view" class="fdlr-go" type="button">استعراض البيان</button><button id="fdlr-print" class="fdlr-go fdlr-p" type="button">طباعة</button><button id="fdlr-word" class="fdlr-go fdlr-w" type="button">تصدير Word</button></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
+    $("#fdlr-x").onclick = function () { ov.remove(); };
+    ["fdlr-q", "fdlr-br", "fdlr-un", "fdlr-st"].forEach(function (id) {
+      var el = $("#" + id); if (!el) return;
+      el.oninput = lifeRefresh; el.onchange = lifeRefresh;
+    });
+    $("#fdlr-all").onclick = function () { lifePool().slice(0, 500).forEach(function (v) { lifeSel[String(v.id)] = 1; }); lifeRefresh(); };
+    $("#fdlr-clr").onclick = function () { lifeSel = {}; lifeRefresh(); };
+    function build() {
+      var list = lifeChosen();
+      if (!list.length) { var w = $("#fdlr-warn"); if (w) { w.style.display = "block"; w.textContent = "اختر آلية واحدة على الأقل."; } return null; }
+      var ttl = "ملف حياة الآليات — بيان شامل (" + list.length + " آلية)";
+      return { ttl: ttl, body: lifeReportBody(list, lifeDesc()) };
+    }
+    $("#fdlr-view").onclick = function () { var r = build(); if (r) openLifePreview(r.ttl, r.body); };
+    $("#fdlr-print").onclick = function () { var r = build(); if (r) printDoc(r.ttl, r.body, {}); };
+    $("#fdlr-word").onclick = function () { var r = build(); if (r) fd31DocExport(r.ttl, r.body, {}, r.ttl); };
+    lifeRefresh();
+  }
+  function openLifePreview(ttl, body) {
+    var old = $("#fdlr-pv"); if (old) old.remove();
+    var pv = document.createElement("div");
+    pv.id = "fdlr-pv"; pv.className = "fdlr-ov fdlr-pvov";
+    pv.innerHTML = '<div class="fdlr-modal fdlr-pvcard">' +
+      '<div class="fdlr-h"><b>معاينة: ' + esc(ttl) + '</b>' +
+      '<span class="fdlr-pvbtns"><button id="fdlr-pv-print" class="fdlr-go fdlr-p" type="button">طباعة</button>' +
+      '<button id="fdlr-pv-word" class="fdlr-go fdlr-w" type="button">Word</button>' +
+      '<button id="fdlr-pv-x" class="fdlr-x" type="button">✕</button></span></div>' +
+      '<iframe id="fdlr-frame" class="fdlr-frame"></iframe></div>';
+    document.body.appendChild(pv);
+    pv.onclick = function (e) { if (e.target === pv) pv.remove(); };
+    $("#fdlr-pv-x").onclick = function () { pv.remove(); };
+    $("#fdlr-pv-print").onclick = function () { printDoc(ttl, body, {}); };
+    $("#fdlr-pv-word").onclick = function () { fd31DocExport(ttl, body, {}, ttl); };
+    try {
+      var fr = $("#fdlr-frame");
+      var doc2 = fr.contentDocument || fr.contentWindow.document;
+      doc2.open(); doc2.write(buildReportHtml(ttl, body, {})); doc2.close();
+    } catch (e) { }
+  }
+
+  function placeLifeBtn() {
+    if (document.getElementById("fdlr-gridbtn")) return;
+    var grids = document.querySelectorAll(".btn-grid");
+    if (!grids.length) return;
+    var ref = document.querySelector(".btn-grid .grid-btn");
+    var b = document.createElement("button");
+    b.id = "fdlr-gridbtn";
+    b.className = ref ? ref.className.replace(/\bact\b/, "").trim() : "grid-btn";
+    b.type = "button";
+    b.textContent = "ملف حياة الآليات";
+    b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); openLifeSelect(); };
+    grids[0].appendChild(b);
+  }
+
   function renderVehTimeline(host, v) {
     var evs = vehEvents(v);
     var of = openFaults(v), totalFaults = (v.faults || []).length;
-    var downDays = 0; (v.faults || []).forEach(function (f) { var a = hSer(parseH(f.date)), b = hSer(parseH(f.repairDate)); if (a && b && b >= a) downDays += (b - a); else if (a && !b) downDays += (SER_NOW - a); });
+    var downDays = 0; faultCalc(v).forEach(function (C) { if (C.dur != null) downDays += C.dur; });
+    /* ===== 35.0: بطاقة رأس السيرة + نبض الأحداث + فلاتر + خط فاخر ===== */
+    var isDown = of.length > 0;
+    var stClr = isDown ? "#C4353C" : "#0E7A5F";
+    var stTxt = isDown ? ("عطلانة حالياً — " + of.length + " عطل مفتوح") : "في الخدمة";
+    /* نبض آخر 12 شهراً هجرياً: خريطة y-m ← عدد الأحداث */
+    var months = [], mkey = {};
+    (function () {
+      var y = H_NOW.y, m = H_NOW.m;
+      for (var k = 11; k >= 0; k--) {
+        var mm = m - k, yy = y;
+        while (mm <= 0) { mm += 12; yy -= 1; }
+        var key = yy + "-" + mm;
+        months.push({ key: key, y: yy, m: mm, f: 0, r: 0, n: 0 });
+        mkey[key] = months[months.length - 1];
+      }
+      evs.forEach(function (e) {
+        if (!e.d || !e.d.y) return;
+        var b = mkey[e.d.y + "-" + e.d.m];
+        if (b) { b.n++; if (e.t === "f") b.f++; else if (e.t === "r") b.r++; }
+      });
+    })();
+    var maxN = 1; months.forEach(function (b) { if (b.n > maxN) maxN = b.n; });
+    var HMON = ["محرم","صفر","ربيع الأول","ربيع الآخر","جمادى الأولى","جمادى الآخرة","رجب","شعبان","رمضان","شوال","ذو القعدة","ذو الحجة"];
+    var pulse = '<div class="fdtl-pulse"><div class="fdtl-pulse-t">' + ICO.trend + ' نبض الأحداث — آخر 12 شهراً</div><div class="fdtl-pulse-bars">' +
+      months.map(function (b) {
+        var h = b.n ? Math.max(8, Math.round(b.n / maxN * 44)) : 3;
+        var c = b.n === 0 ? "#D8DDE6" : (b.f > b.r ? "#C4353C" : (b.r > 0 ? "#0E7A5F" : "#8A6D1F"));
+        return '<div class="fdtl-pb" title="' + (HMON[b.m - 1] || b.m) + ' ' + b.y + 'هـ — ' + b.n + ' حدث"><i style="height:' + h + 'px;background:' + c + '"></i><span>' + b.m + '</span></div>';
+      }).join("") + '</div></div>';
+    /* بطاقات الأحداث مع فواصل السنوات وشريط المدة */
+    var lastIdx = evs.length - 1;
+    var seenYear = {};
+    var DUR_MAX = 60, DUR_WMAX = 150, DUR_WMIN = 26;
+    var lineHtml = evs.slice().reverse().map(function (e, ri) {
+      var idx = lastIdx - ri;                     /* الفهرس الأصلي؛ الأعلى بالعرض = الأحدث */
+      var isNow = idx === lastIdx;
+      var yr = e.d && e.d.y ? e.d.y : null;
+      var ysep = "";
+      if (yr && !seenYear[yr]) { seenYear[yr] = 1; ysep = '<div class="fdtl-year"><span>' + yr + 'هـ</span></div>'; }
+      var ic = e.t === "f" ? ICO.wrench : e.t === "r" ? ICO.check : e.t === "t" ? ICO.truck : e.t === "h" ? ICO.pencil : ICO.pin;
+      var durBar = "";
+      if (e.dur != null) {
+        var w = Math.max(DUR_WMIN, Math.min(DUR_WMAX, Math.round(e.dur / DUR_MAX * DUR_WMAX)));
+        durBar = '<div class="fdtl-dur' + (e.open ? " open" : "") + '"><i style="width:' + w + 'px"></i><b>' + (e.open ? "متوقفة منذ " + e.dur + " يوماً" : "توقفت " + e.dur + " يوماً") + '</b></div>';
+      }
+      var dl = Math.min(ri, 10) * 55;             /* حركة دخول متتابعة بسقف */
+      return ysep +
+        '<div class="fdtl-ev" data-t="' + e.t + '" style="transition-delay:' + dl + 'ms">' +
+        '<div class="fdtl-node ' + e.t + (isNow ? " now" : "") + '">' + ic + (isNow ? '<em class="fdtl-nowtag">الآن</em>' : "") + '</div>' +
+        '<div class="fdtl-card' + (isNow ? " now" : "") + '">' +
+        '<div class="fdtl-date">' + ICO.calendar + ' ' + (e.d ? fmtH(e.d) : esc(e.iso || "")) + '</div>' +
+        '<div class="fdtl-title">' + esc(e.h) + '</div>' +
+        (e.x ? '<div class="fdtl-desc">' + e.x + '</div>' : "") + durBar +
+        '</div></div>';
+    }).join("");
     host.innerHTML =
-      '<div class="fdv">' +
-      '<div class="fdv-h"><span class="fdv-ic">' + ICO.clock + '</span><h2>الخط الزمني وسيرة الآلية</h2>' +
-      '<button class="fdv-print" id="fdv-print">' + ICO.printer + ' طباعة تقرير مفصّل</button><button class="fdv-print fdv-word" id="fdv-word">' + ICO.file + ' تصدير Word</button></div>' +
+      '<div class="fdv fdtl-wrap">' +
+      '<div class="fdtl-hero"><div class="fdtl-hero-r">' +
+      '<span class="fdtl-badge" style="background:' + stClr + '"><i></i>' + stTxt + '</span>' +
+      '<h2>' + ICO.clock + ' الخط الزمني وسيرة الآلية</h2></div>' +
+      '<div class="fdtl-hero-btns"><button class="fdv-print" id="fdv-print">' + ICO.printer + ' طباعة تقرير مفصّل</button><button class="fdv-print fdv-word" id="fdv-word">' + ICO.file + ' تصدير Word</button></div></div>' +
       '<div class="fdv-stats"><div class="fdv-st"><b>' + totalFaults + '</b><span>إجمالي الأعطال</span></div>' +
       '<div class="fdv-st ' + (of.length ? "warn" : "") + '"><b>' + of.length + '</b><span>أعطال مفتوحة</span></div>' +
       '<div class="fdv-st"><b>' + downDays + '</b><span>إجمالي أيام التوقف</span></div>' +
       '<div class="fdv-st"><b>' + evs.length + '</b><span>حدث مسجّل</span></div></div>' +
+      (function () {
+        var L = vehLife(v);
+        var t = function (val, lbl) { return '<div class="fdv-lt"><b>' + val + '</b><span>' + lbl + '</span></div>'; };
+        return '<div class="fdv-life">' +
+          t(L.faults, "عطلاً مسجّلاً") +
+          t(L.down + " يوم", "إجمالي التوقف") +
+          t(L.avgRepair != null ? L.avgRepair + " يوم" : "—", "متوسط مدة الإصلاح") +
+          t(L.maxDown + " يوم", "أطول توقف") +
+          t(L.topCause ? esc(L.topCause) : "—", "الأكثر تسبباً بالأعطال" + (L.topCauseN ? " (" + L.topCauseN + ")" : "")) +
+          t(L.moves + " / " + L.changes, "تنقلات / تحديثات مؤرشفة") +
+          '</div>';
+      })() + pulse +
+      '<div class="fdtl-chips"><button class="fdtl-chip on" data-k="all">الكل</button><button class="fdtl-chip" data-k="f">الأعطال</button><button class="fdtl-chip" data-k="r">الإصلاحات</button><button class="fdtl-chip" data-k="m">الحركة والتحديثات</button></div>' +
       '<div class="fdv-chk" id="fdv-chk">⏳ جارِ جلب آخر فحص يومي…</div>' +
-      '<div class="fdv-line">' + evs.map(function (e) {
-        return '<div class="fdv-ev ' + e.t + '"><div class="fdv-dot"></div><div class="fdv-card"><div class="fdv-date">' + fmtH(e.d) + '</div><div class="fdv-title">' + esc(e.h) + '</div>' + (e.x ? '<div class="fdv-desc">' + e.x + '</div>' : "") + (e.dur != null ? '<span class="fdv-dur ' + (e.open ? "open" : "") + '">' + (e.open ? "متوقفة منذ " + e.dur + " يوماً — مفتوح" : "مدة التوقف " + e.dur + " يوماً") + '</span>' : "") + '</div></div>';
-      }).join("") + '</div></div>';
+      (function () {
+        var H = v.hist || [];
+        if (!H.length) return "";
+        var FN = { status: "الحالة الفنية", repairDate: "تاريخ الإصلاح", desc: "وصف العطل", causedBy: "الجهة المتسببة", notes: "الملاحظات" };
+        return '<div class="fdv-hist"><div class="fdv-hist-h">' + ICO.clock + ' سجل التغييرات المؤرشف (' + H.length + ')</div>' + H.slice().reverse().map(function (h) {
+          return '<div class="fdv-hev"><span class="fdv-hat">' + esc(h.at || "") + '</span><b>' + (FN[h.f] || esc(h.f || "")) + '</b>' + (h.fd ? '<i class="fdv-hfd">لعطل ' + esc(h.fd) + '</i>' : "") + '<span class="fdv-harr">' + esc(String(h.from || "—")) + ' ← ' + esc(String(h.to || "—")) + '</span></div>';
+        }).join("") + '</div>';
+      })() +
+      '<div class="fdtl-line">' + lineHtml + '</div></div>';
     $("#fdv-print", host).onclick = function () { printVehReport(v); };
     var _fdvw = $("#fdv-word", host); if (_fdvw) _fdvw.onclick = function () { wordVehReport(v); };
+    /* الفلاتر: تبديل صنف على الجذر */
+    var wrap = host.querySelector(".fdtl-wrap");
+    host.querySelectorAll(".fdtl-chip").forEach(function (ch) {
+      ch.onclick = function () {
+        host.querySelectorAll(".fdtl-chip").forEach(function (x) { x.classList.remove("on"); });
+        ch.classList.add("on");
+        wrap.classList.remove("fdtl-only-f", "fdtl-only-r", "fdtl-only-m");
+        if (ch.dataset.k !== "all") wrap.classList.add("fdtl-only-" + ch.dataset.k);
+      };
+    });
+    /* حركة الدخول المتتابعة */
+    setTimeout(function () { try { wrap.classList.add("fdtl-in"); } catch (e) { } }, 60);
     try { loadVehCheckin(v); } catch (e) { }
+  }
+  function vehAge(v) {
+    var y = parseInt(v.model, 10), now = new Date().getFullYear();
+    return (y >= 1950 && y <= now + 1) ? (now - y) + " سنة" : "غير مدوّن";
   }
   function vehReportContent(v) {
     var evs = vehEvents(v), of = openFaults(v);
-    var age = parseInt(v.model, 10) > 1980 ? (2026 - parseInt(v.model, 10)) + " سنة" : "—";
-    var idRows = [["اللوحة", v.plate || "—"], ["النوع", v.type], ["الموديل", (v.model || "—") + " (العمر " + age + ")"], ["رقم الهيكل", v.chassis || "—"], ["اللون", v.color || "—"], ["الرقم التسلسلي", v.itemNo || "—"], ["الجهة", v.unit], ["الشعبة", branchOf(v.unit) || "—"], ["الموقع", v.location || "—"], ["الحالة الحالية", v.status + " (تصنيف: " + (GROUP[v.status] || "—") + ")"]];
+    var age = vehAge(v);
+    var idRows = [["اللوحة", v.plate || "—"], ["النوع", v.type], ["الموديل", (v.model || "غير مدوّن") + " (العمر: " + age + ")"], ["رقم الهيكل", v.chassis || "—"], ["اللون", v.color || "—"], ["الرقم التسلسلي", v.itemNo || "—"], ["الجهة", v.unit], ["الشعبة", branchOf(v.unit) || "—"], ["الموقع", v.location || "—"], ["الحالة الحالية", v.status + " (تصنيف: " + (GROUP[v.status] || "—") + ")"]];
     var idTbl = '<table><tr><th colspan="2" style="background:#DCE3F0">البطاقة التعريفية للآلية</th></tr>' + idRows.map(function (r) { return "<tr><td style='width:32%;font-weight:800;background:#F4F6FB'>" + r[0] + "</td><td>" + esc(r[1]) + "</td></tr>"; }).join("") + "</table>";
     var faults = (v.faults || []);
-    var fTbl = '<div style="margin-top:12px;font-weight:800;font-size:13px">سجل الأعطال والإصلاحات (' + faults.length + ')</div><table><tr><th style="width:24px">م</th><th>نوع العطل</th><th>تاريخ العطل</th><th>تاريخ الإصلاح</th><th>مدة التوقف</th><th>الجهة المتسببة</th><th>الوصف</th></tr>' + (faults.length ? faults.map(function (f, i) { var a = hSer(parseH(f.date)), b = hSer(parseH(f.repairDate)); var dur = (a && b) ? (b - a) + " يوماً" : (a ? "مفتوح (" + (SER_NOW - a) + "ي)" : "—"); return "<tr><td>" + (i + 1) + "</td><td>" + esc(f.faultType || "—") + "</td><td>" + fmtH(parseH(f.date)) + "</td><td>" + (f.repairDate ? fmtH(parseH(f.repairDate)) : "<b>لم يُصلح</b>") + "</td><td>" + dur + "</td><td>" + esc(f.causedBy || "—") + "</td><td>" + esc(f.desc || "—") + "</td></tr>"; }).join("") : '<tr><td colspan="7" style="text-align:center">لا أعطال مسجّلة</td></tr>') + "</table>";
-    var tl = '<div style="margin-top:12px;font-weight:800;font-size:13px">السيرة الزمنية الكاملة</div><table><tr><th style="width:24px">م</th><th style="width:110px">التاريخ</th><th style="width:70px">النوع</th><th>البيان</th></tr>' + evs.map(function (e, i) { var kind = e.t === "f" ? "عطل" : e.t === "r" ? "إصلاح" : e.t === "c" ? "تسجيل" : "حركة"; return "<tr><td>" + (i + 1) + "</td><td>" + fmtH(e.d) + "</td><td>" + kind + "</td><td>" + esc(e.h) + (e.x ? " — " + e.x.replace(/<br>/g, "، ") : "") + (e.dur != null ? " (توقف " + e.dur + " يوماً)" : "") + "</td></tr>"; }).join("") + "</table>";
+    var fTbl = '<div style="margin-top:12px;font-weight:800;font-size:13px">سجل الأعطال والإصلاحات (' + faults.length + ')</div><table><tr><th style="width:24px">م</th><th>نوع العطل</th><th>تاريخ العطل</th><th>تاريخ الإصلاح</th><th>مدة التوقف</th><th>الجهة المتسببة</th><th>الوصف</th></tr>' + (faults.length ? faults.map(function (f, i) { var C = faultCalc(v)[i]; var dur = C.open ? "<b>مفتوح (" + (C.dur != null ? C.dur : "؟") + "ي)</b>" : (C.dur != null ? C.dur + " يوماً" : "—"); var repCell = C.open ? "<b>لم يُصلح</b>" + (C.ghost ? " <i style=\'font-size:10px\'>(التاريخ المدوّن يخص عطلاً سابقاً)</i>" : "") : (f.repairDate ? fmtH(parseH(f.repairDate)) : "<b>لم يُصلح</b>"); return "<tr><td>" + (i + 1) + "</td><td>" + esc(f.faultType || "—") + "</td><td>" + fmtH(parseH(f.date)) + "</td><td>" + repCell + "</td><td>" + dur + "</td><td>" + esc(f.causedBy || "—") + "</td><td>" + esc(f.desc || "—") + "</td></tr>"; }).join("") : '<tr><td colspan="7" style="text-align:center">لا أعطال مسجّلة</td></tr>') + "</table>";
+    var tl = '<div style="margin-top:12px;font-weight:800;font-size:13px">السيرة الزمنية الكاملة</div><table><tr><th style="width:24px">م</th><th style="width:110px">التاريخ</th><th style="width:70px">النوع</th><th>البيان</th></tr>' + evs.map(function (e, i) { var kind = e.t === "f" ? "عطل" : e.t === "r" ? "إصلاح" : e.t === "c" ? "تسجيل" : e.t === "h" ? "تحديث" : "حركة"; return "<tr><td>" + (i + 1) + "</td><td>" + (e.d ? fmtH(e.d) : esc(e.iso || "—")) + "</td><td>" + kind + "</td><td>" + esc(e.h) + (e.x ? " — " + e.x.replace(/<br>/g, "، ") : "") + (e.dur != null ? " (توقف " + e.dur + " يوماً)" : "") + "</td></tr>"; }).join("") + "</table>";
     var summary = '<div style="margin-top:12px;padding:8px 12px;border:1px solid #999;background:#F4F6FB;font-size:12.5px">الخلاصة: سُجّل لهذه الآلية <b>' + faults.length + '</b> عطلاً، منها <b>' + of.length + '</b> مفتوح حالياً. حالتها الراهنة <b>' + esc(v.status) + '</b>.' + (v.notes ? ' ملاحظات: ' + esc(v.notes) : "") + '</div>';
-    return { title: "تقرير مفصّل عن الآلية — " + (v.plate || v.type), body: idTbl + fTbl + tl + summary };
+    var L = vehLife(v);
+    var lifeTbl = '<div style="margin-top:12px;font-weight:800;font-size:13px">ملخص العمر التشغيلي</div><table><tr><th>عمر الآلية</th><th>الأعطال المسجّلة</th><th>إجمالي أيام التوقف</th><th>متوسط مدة الإصلاح</th><th>أطول توقف</th><th>الجهة الأكثر تسبباً</th><th>التنقلات</th><th>التحديثات المؤرشفة</th></tr><tr><td>' + vehAge(v) + '</td><td>' + L.faults + '</td><td>' + L.down + ' يوماً</td><td>' + (L.avgRepair != null ? L.avgRepair + " يوماً" : "—") + '</td><td>' + L.maxDown + ' يوماً</td><td>' + esc(L.topCause || "—") + (L.topCauseN ? " (" + L.topCauseN + ")" : "") + '</td><td>' + L.moves + '</td><td>' + L.changes + '</td></tr></table>';
+    var hist = v.hist || [];
+    var hTbl = hist.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">سجل التغييرات المؤرشف (' + hist.length + ')</div><table><tr><th style="width:24px">م</th><th style="width:100px">التاريخ</th><th>الحقل</th><th>من</th><th>إلى</th><th>مرتبط بعطل</th></tr>' + hist.map(function (h, i) { return "<tr><td>" + (i + 1) + "</td><td>" + esc(h.at || "—") + "</td><td>" + (HIST_FN[h.f] || esc(h.f || "—")) + "</td><td>" + esc(String(h.from || "—")) + "</td><td>" + esc(String(h.to || "—")) + "</td><td>" + esc(h.fd || "—") + "</td></tr>"; }).join("") + "</table>" : "";
+    return { title: "الملف الرقمي الكامل للآلية — " + (v.plate || v.type), body: idTbl + lifeTbl + fTbl + hTbl + tl + summary };
   }
   function printVehReport(v) { var c = vehReportContent(v); printDoc(c.title, c.body, {}); }
   function wordVehReport(v) { var c = vehReportContent(v); fd31DocExport(c.title, c.body, {}, c.title); }
@@ -1169,6 +1455,7 @@ var SPECIAL2 = [
       opsExtrasHtml() +
       opsMatrixHtml() +
       opsQualityHtml() +
+      opsDqHtml() +
 
       '</div>';
     opsAnimate(host);
@@ -1216,6 +1503,7 @@ var SPECIAL2 = [
     _bindRep("#ops-mx-p", "#ops-mx-w", "مصفوفة الجاهزية النوعية للشُّعب الميدانية", function () { var M = matrixData(); return matrixTable(M, true) + (M.recs.length ? '<div style="margin-top:12px;font-weight:800;font-size:13px">توصيات إعادة التوزيع</div><ol>' + M.recs.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ol>" : ""); });
     _bindRep("#ops-rq-p", "#ops-rq-w", "كشف الأعطال المتكررة — جودة الإصلاح", function () { return repeatTable(repeatFaults()); });
     _bindRep("#ops-sla-p", "#ops-sla-w", "متابعة زمن الإصلاح — الأعطال المتجاوزة", slaReportBody);
+    _bindRep("#ops-dq-p", "#ops-dq-w", "تقرير مراجعة جودة البيانات", dataQualityBody);
     try { fillPendingReports(); } catch (e) { }
     if (host._opsClk) clearInterval(host._opsClk);
     host._opsClk = setInterval(function () { var el = document.getElementById("ops-clock"); if (!el) { clearInterval(host._opsClk); return; } var n = new Date(); el.textContent = ("0" + n.getHours()).slice(-2) + ":" + ("0" + n.getMinutes()).slice(-2); }, 30000);
@@ -1309,14 +1597,146 @@ var SPECIAL2 = [
     if (ai && ai.parentNode === rail) { if (snap.nextSibling !== ai || snap.parentNode !== rail) rail.insertBefore(snap, ai); }
     else if (snap.parentNode !== rail) rail.appendChild(snap);
   }
+  /* ---------- دفعة 31: نقاط «الجديد» بعد كل تحديث ---------- */
+  var WN_VER = "35.7";
+  var WN_ITEMS = [
+    { id: "pulse", rail: "الصفحة الرئيسية", sel: "#fdpl-wrap", tip: "جديد: «نبض المنصة» — ملخص حي لليوم والأسبوع والشهر، وكل رقم فيه ينقر لعرض دليله التفصيلي" },
+    { id: "lr", rail: "التقارير والبيانات", sel: "#fdlr-gridbtn", tip: "جديد: «ملف حياة الآليات» — اختر آليات بأي فلتر واستعرض واطبع لكل واحدة ملفها الكامل" }
+  ];
+  function wnState() {
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem("fd_wn_seen_v1") || "null"); } catch (e) { }
+    if (!s || s.ver !== WN_VER) { s = { ver: WN_VER, seen: {} }; try { localStorage.setItem("fd_wn_seen_v1", JSON.stringify(s)); } catch (e) { } }
+    return s;
+  }
+  function wnMark(key) {
+    var s = wnState(); if (s.seen[key]) return;
+    s.seen[key] = 1;
+    try { localStorage.setItem("fd_wn_seen_v1", JSON.stringify(s)); } catch (e) { }
+    document.querySelectorAll('.fd31-wn-dot[data-wn="' + key + '"]').forEach(function (d) { d.remove(); });
+  }
+  function wnTip(anchor, txt) {
+    var old = document.querySelector(".fd31-wn-tip"); if (old) old.remove();
+    var t = el("div", "fd31-wn-tip", esc(txt));
+    anchor.appendChild(t);
+    setTimeout(function () { if (t.parentNode) t.remove(); }, 6000);
+  }
+  function wnDot(host, key, tip, tx, ty) {
+    if (host.querySelector('.fd31-wn-dot[data-wn="' + key + '"]')) return;
+    var d = el("span", "fd31-wn-dot");
+    d.setAttribute("data-wn", key); d.title = tip;
+    d.onclick = function (ev) { ev.stopPropagation(); ev.preventDefault(); wnTip(host, tip); };
+    var cs = ""; try { cs = getComputedStyle(host).position; } catch (e) { }
+    if (cs !== "relative" && cs !== "absolute" && cs !== "fixed") host.style.position = "relative";
+    /* تثبيت صارم inline!important — يغلب أي أنماط أساس محقونة (درس الباركود) */
+    var P = { position: "absolute", top: (ty == null ? 6 : ty) + "px", left: (tx == null ? 6 : tx) + "px",
+      width: "10px", height: "10px", "min-width": "10px", "max-width": "10px", "min-height": "10px", "max-height": "10px",
+      padding: "0", margin: "0", border: "0", display: "block", "border-radius": "50%", "box-sizing": "border-box",
+      flex: "0 0 auto", "line-height": "0", "font-size": "0", "z-index": "9", right: "auto", bottom: "auto", transform: "none" };
+    for (var k in P) { try { d.style.setProperty(k, P[k], "important"); } catch (e) { } }
+    host.appendChild(d);
+  }
+  var _wnVis = {};
+  var WN_ADMIN_HASH = "a05d586a098b79c3fc8c3a58160bed5734c62cebf955bd2bd146102fcdd92e49";
+  function wnIsAdmin() {
+    try { return localStorage.getItem("cdfleet_role_hash") === WN_ADMIN_HASH; } catch (e) { return false; }
+  }
+  function placeWnDots() {
+    if (!wnIsAdmin()) {
+      var olds = document.querySelectorAll(".fd31-wn-dot, .fd31-wn-tip");
+      for (var q = 0; q < olds.length; q++) olds[q].remove();
+      return;
+    }
+    var s = wnState();
+    WN_ITEMS.forEach(function (it) {
+      // نقطة التبويب بالقائمة الجانبية
+      var railKey = "rail:" + it.id;
+      if (!s.seen[railKey]) {
+        var btns = document.querySelectorAll(".side-rail button");
+        for (var i = 0; i < btns.length; i++) {
+          if (norm(btns[i].textContent).indexOf(norm(it.rail)) >= 0) {
+            wnDot(btns[i], railKey, it.tip, 6, 6);
+            if (!btns[i].__wnWired) { btns[i].__wnWired = 1; btns[i].addEventListener("click", function () { wnMark(railKey); }); }
+            break;
+          }
+        }
+      }
+      // نقطة العنصر الداخلي
+      if (!s.seen[it.id]) {
+        var elx = document.querySelector(it.sel);
+        if (elx) {
+          wnDot(elx, it.id, it.tip, -5, -5);
+          if (!elx.__wnWired) { elx.__wnWired = 1; elx.addEventListener("click", function () { wnMark(it.id); }); }
+          if (elx.offsetParent !== null || elx.getClientRects().length) {
+            _wnVis[it.id] = (_wnVis[it.id] || 0) + 1;
+            if (_wnVis[it.id] >= 9) wnMark(it.id);
+          }
+        }
+      }
+    });
+  }
+  /* ---------- دفعة 30: حارس الاستيراد الرقيب ---------- */
+  function openImportAudit(a) {
+    var old = document.getElementById("fd31-audit"); if (old) old.remove();
+    var chip = function (n, l) { return '<div class="fda-t"><b>' + n + '</b><span>' + l + '</span></div>'; };
+    var secs = "";
+    if ((a.missing || []).length) {
+      var ms = a.missing.slice(0, 20).map(esc).join(" · ") + (a.missing.length > 20 ? " · +" + (a.missing.length - 20) + " أخرى" : "");
+      secs += '<div class="fda-sec bad"><b>' + ICO.alert + ' آليات لم ترد في ملف الإكسل (' + a.missing.length + ')</b><p>تأكد أن صفوفها لم تُحذف سهواً — بياناتها محفوظة بالبرنامج ولم تُمسّ:</p><div class="fda-list">' + ms + '</div></div>';
+    }
+    if ((a.jumps || []).length) {
+      secs += '<div class="fda-sec warn"><b>' + ICO.alert + ' عادت للعمل دون تسجيل تاريخ إصلاح (' + a.jumps.length + ')</b><p>حالتها تغيّرت من «عطلانة» إلى صالحة لكن صفّها لم يحمل تاريخ إصلاح — يُنصح بإكماله بالإكسل ليكتمل الأرشيف:</p><div class="fda-list">' + a.jumps.slice(0, 20).map(esc).join(" · ") + '</div></div>';
+    }
+    if ((a.statusChanges || 0) >= 20) {
+      secs += '<div class="fda-sec warn"><b>' + ICO.alert + ' تغيير جماعي</b><p>تغيّرت الحالة الفنية لـ' + a.statusChanges + ' آلية دفعة واحدة — إن لم يكن ذلك مقصوداً راجع الملف.</p></div>';
+    }
+    if (!secs) secs = '<div class="fda-sec ok"><b>' + ICO.check + ' لا ملاحظات حرجة</b><p>الاستيراد سليم — كل التغييرات منطقية ومؤرشفة.</p></div>';
+    var ov = el("div", "fd31-audit-ov"); ov.id = "fd31-audit";
+    ov.innerHTML = '<div class="fd31-audit-card"><div class="fda-h">' + ICO.shield + ' الرقيب — موجز الاستيراد<button class="fda-x">✕</button></div>' +
+      '<div class="fda-g">' + chip(a.added || 0, "آلية جديدة") + chip(a.updated || 0, "سجل أُضيف أو حُدّث") + chip(a.statusChanges || 0, "تغيّر حالة") + chip(a.total || 0, "إجمالي الآليات") + '</div>' +
+      secs + '<button class="fd31-btn gold fda-ok">اطّلعت</button></div>';
+    document.body.appendChild(ov);
+    var close = function () { ov.remove(); };
+    ov.querySelector(".fda-x").onclick = close;
+    ov.querySelector(".fda-ok").onclick = close;
+    ov.onclick = function (ev) { if (ev.target === ov) close(); };
+  }
+  var _qrMo = null;
+  function armQrWatch() {
+    if (_qrMo || !window.MutationObserver) return;
+    try {
+      _qrMo = new MutationObserver(function () {
+        if (document.querySelector(".modal-overlay")) fixQrCard();
+      });
+      _qrMo.observe(document.body, { childList: true, subtree: true });
+      document.addEventListener("click", function () { setTimeout(fixQrCard, 60); }, true);
+      /* 34.6: إعادة ضبط النوافذ عند ظهور/إخفاء لوحة مفاتيح الجوال (visualViewport يتغيّر) */
+      if (window.visualViewport && !_vvArmed) {
+        _vvArmed = true;
+        var _vvFit = function () { if (document.querySelector(".modal-overlay")) fixQrCard(); };
+        window.visualViewport.addEventListener("resize", _vvFit);
+        window.visualViewport.addEventListener("scroll", _vvFit);
+      }
+    } catch (e) { }
+  }
+  var _vvArmed = false;
+  function watchImportAudit() {
+    var A = window.__fdImportAudit;
+    if (A && A.at && watchImportAudit._last !== A.at) { watchImportAudit._last = A.at; openImportAudit(A); }
+  }
   function fillMounts() {
     placeRailAI();
     placeHomeSearch();
+    if (document.querySelector(".ov-banner") && !document.getElementById("fdpl-wrap")) { loadDB(function () { placePulse(); }); }
     fixQrCard();
+    armQrWatch();
+    watchImportAudit();
+    placeWnDots();
     var mp = document.getElementById("fd-maint-page");
     if (mp && !mp.querySelector(".fdp")) { loadDB(function () { if (document.getElementById("fd-maint-page")) renderMaintPage(mp); }); }
     var od = document.getElementById("fd-ops-dash");
     if (od && !od.querySelector(".ops-wrap")) { loadDB(function () { if (document.getElementById("fd-ops-dash")) renderOpsDash(od); }); }
+    if (document.querySelector(".btn-grid") && !document.getElementById("fdlr-gridbtn")) { loadDB(function () { placeLifeBtn(); }); }
     var vm = document.getElementById("fd-veh-mount");
     if (vm) {
       var vid = vm.getAttribute("data-vid");
@@ -1684,6 +2104,57 @@ var SPECIAL2 = [
     }).join("");
     return "<table><tr><th style='width:24px'>م</th><th>النوع</th><th>اللوحة</th><th>نوع العطل</th><th>تاريخ الإصلاح</th><th>عاد العطل بعد</th><th>الجهة المتسببة</th></tr>" + (rows || "<tr><td colspan='7' style='text-align:center'>لا أعطال متكررة</td></tr>") + "</table>";
   }
+  /* ---------- دفعة 29: جودة البيانات (كاشف الشذوذ ومرشحات الإغلاق الضمني) ---------- */
+  function dqData() {
+    var stale = [], twins = [], badRep = [], noFault = [];
+    VEH.forEach(function (v) {
+      var fs = v.faults || [], seen = {};
+      var serAll = fs.map(function (f) { return hSer(parseH(f.date)) || 0; });
+      var maxSer = Math.max.apply(null, serAll.concat([0]));
+      fs.forEach(function (f) {
+        var s = hSer(parseH(f.date));
+        var rd = String(f.repairDate || "").trim();
+        if (!rd && s && s < maxSer) stale.push({ v: v, f: f, days: SER_NOW - s });
+        if (rd) { var rs = hSer(parseH(f.repairDate)); if (rs && s && rs < s) badRep.push({ v: v, f: f }); }
+        var key = (f.date || "") + "|" + norm(f.faultType || "");
+        if (seen[key]) twins.push({ v: v, f: f }); else seen[key] = 1;
+      });
+      var hasOpen = fs.some(function (f) { return !String(f.repairDate || "").trim(); });
+      if (v.status === "عطلانة" && !hasOpen) noFault.push(v);
+    });
+    stale.sort(function (a, b) { return b.days - a.days; });
+    return { stale: stale, twins: twins, badRep: badRep, noFault: noFault };
+  }
+  function dqRows(list, cols) {
+    return list.map(function (r, i) {
+      return "<tr><td style='width:26px'>" + (i + 1) + "</td>" + cols(r).map(function (c) { return "<td>" + esc(String(c == null || c === "" ? "—" : c)) + "</td>"; }).join("") + "</tr>";
+    }).join("");
+  }
+  function dataQualityBody() {
+    var D = dqData(), h = "";
+    h += "<h3>أولاً: أعطال مفتوحة يليها سجل أحدث بنفس الآلية (مرشحة للإغلاق الضمني — يُرجَّح أن إصلاحها لم يُدوَّن قبل تحديث السجل) — " + D.stale.length + " حالة</h3>";
+    h += D.stale.length ? "<table><tr><th>م</th><th>النوع</th><th>اللوحة</th><th>الجهة</th><th>نوع العطل</th><th>تاريخه</th><th>مفتوح منذ (يوم)</th></tr>" + dqRows(D.stale, function (r) { return [r.v.type, r.v.plate, r.v.unit, r.f.faultType, r.f.date, r.days]; }) + "</table>" : "<p>لا حالات.</p>";
+    h += "<h3>ثانياً: سجلات مكررة (نفس التاريخ ونوع العطل) — " + D.twins.length + "</h3>";
+    h += D.twins.length ? "<table><tr><th>م</th><th>النوع</th><th>اللوحة</th><th>نوع العطل</th><th>التاريخ</th></tr>" + dqRows(D.twins, function (r) { return [r.v.type, r.v.plate, r.f.faultType, r.f.date]; }) + "</table>" : "<p>لا حالات.</p>";
+    h += "<h3>ثالثاً: تاريخ إصلاح أقدم من تاريخ العطل — " + D.badRep.length + "</h3>";
+    h += D.badRep.length ? "<table><tr><th>م</th><th>النوع</th><th>اللوحة</th><th>نوع العطل</th><th>تاريخ العطل</th><th>تاريخ الإصلاح</th></tr>" + dqRows(D.badRep, function (r) { return [r.v.type, r.v.plate, r.f.faultType, r.f.date, r.f.repairDate]; }) + "</table>" : "<p>لا حالات.</p>";
+    h += "<h3>رابعاً: حالتها «عطلانة» دون أي عطل مفتوح مسجّل — " + D.noFault.length + "</h3>";
+    h += D.noFault.length ? "<table><tr><th>م</th><th>النوع</th><th>اللوحة</th><th>الجهة</th></tr>" + dqRows(D.noFault, function (v) { return [v.type, v.plate, v.unit]; }) + "</table>" : "<p>لا حالات.</p>";
+    h += "<p style='margin-top:14px'>التوصية: تصحيح الحالات أعلاه في ملف Excel المصدر (إكمال تواريخ الإصلاح المفقودة وحذف المكرر) ثم إعادة الاستيراد — منطق الاستيراد التراكمي الجديد يحدّث السجلات القائمة دون تكرار ويؤرشف كل قيمة تتغير.</p>";
+    return h;
+  }
+  function opsDqHtml() {
+    var D = dqData();
+    var tile = function (n, l, cls) { return '<div class="ops-dq-t ' + cls + '"><b>' + n + '</b><span>' + l + '</span></div>'; };
+    return '<div class="ops-card ops-dq"><div class="ops-card-h">' + ICO.clipboard + ' جودة البيانات (مراجعة ما بعد الاستيراد)' +
+      '<span class="ops-mini-btns"><button class="ops-full" id="ops-dq-p">' + ICO.printer + ' تقرير المراجعة</button><button class="ops-full" id="ops-dq-w">' + ICO.file + ' Word</button></span></div>' +
+      '<div class="ops-dq-g">' +
+      tile(D.stale.length, "مفتوحة يليها سجل أحدث (مرشحة إغلاق)", D.stale.length ? "warn" : "ok") +
+      tile(D.twins.length, "سجلات مكررة", D.twins.length ? "warn" : "ok") +
+      tile(D.badRep.length, "إصلاح أقدم من عطله", D.badRep.length ? "bad" : "ok") +
+      tile(D.noFault.length, "عطلانة بلا عطل مفتوح", D.noFault.length ? "warn" : "ok") +
+      '</div><div class="ops-mx-note">تُحدَّث تلقائياً بعد كل استيراد — التفاصيل الكاملة بالتقرير</div></div>';
+  }
   function opsQualityHtml() {
     var rep = repeatFaults();
     var repRows = rep.slice(0, 6).map(function (x) {
@@ -1757,18 +2228,86 @@ var SPECIAL2 = [
      + وضع العرض التقديمي + تفسير الأرقام بنقرة
      ============================================================ */
   function fixQrCard() {
-    var cards = document.querySelectorAll(".qr-veh-card");
-    for (var i = 0; i < cards.length; i++) {
-      var c = cards[i];
-      var mh = (window.innerHeight || 600) - 22, mw = (window.innerWidth || 360) - 14;
-      var wantH = mh + "px", wantW = (mw < 560 ? mw + "px" : "");
-      if (c.style.maxHeight !== wantH) c.style.maxHeight = wantH;
-      if (c.style.overflowY !== "auto") { c.style.overflowY = "auto"; c.style.overflowX = "hidden"; }
-      if (wantW && c.style.maxWidth !== wantW) c.style.maxWidth = wantW;
-      c.style.boxSizing = "border-box";
-      if (mw < 560 && c.style.padding !== "16px 14px") c.style.padding = "16px 14px";
+    /* 34.5 نهائي: لا نقل للعقدة إطلاقاً (يكسر أحداث/إزالة React) —
+       بل تحييد الكاسرات (transform/filter/perspective) عن الأسلاف مؤقتاً + فرض أنماط الغطاء بمكانه */
+    var ovs = document.querySelectorAll(".modal-overlay");
+    /* 34.6: مراعاة لوحة مفاتيح الجوال — visualViewport يتقلّص عند ظهورها بعكس innerHeight
+       فنُثبّت النافذة داخل الشريط المرئي فوق اللوحة (رأس+حقل+نتيجة يبقون ظاهرين) */
+    var vv = window.visualViewport || null;
+    var fullH = window.innerHeight || 600;
+    var visH = vv ? vv.height : fullH;
+    var visTop = vv ? vv.offsetTop : 0;
+    var kbUp = vv ? (fullH - visH > 120) : false;   /* لوحة المفاتيح ظاهرة */
+    var mh = visH - 22, mw = (window.innerWidth || 360) - 14;
+    if (!ovs.length) {
+      /* لا نوافذ مفتوحة → استرداد زخرفة الأسلاف المحيَّدة */
+      var neut = document.querySelectorAll("[data-fdneut]");
+      for (var r = 0; r < neut.length; r++) {
+        try { neut[r].style.removeProperty("transform"); neut[r].style.removeProperty("filter"); neut[r].style.removeProperty("perspective"); neut[r].style.removeProperty("backdrop-filter"); neut[r].style.removeProperty("will-change"); neut[r].style.removeProperty("contain"); neut[r].style.removeProperty("container-type"); neut[r].removeAttribute("data-fdneut"); } catch (e) { }
+      }
+      return;
+    }
+    for (var i = 0; i < ovs.length; i++) {
+      var ov = ovs[i];
+      /* تحييد أي سلف كاسر لـfixed */
+      var p = ov.parentElement;
+      while (p && p !== document.body && p !== document.documentElement) {
+        try {
+          var cs = getComputedStyle(p);
+          var willCh = cs.willChange || "";
+          var contain = cs.contain || "";
+          var ctype = cs.containerType || "";
+          if (cs.transform !== "none" || cs.filter !== "none" || cs.perspective !== "none"
+              || (cs.backdropFilter && cs.backdropFilter !== "none")
+              || /transform|filter|perspective/.test(willCh)
+              || /paint|layout|strict|content/.test(contain)
+              || (ctype && ctype !== "normal")) {
+            p.style.setProperty("transform", "none", "important");
+            p.style.setProperty("filter", "none", "important");
+            p.style.setProperty("perspective", "none", "important");
+            p.style.setProperty("backdrop-filter", "none", "important");
+            p.style.setProperty("will-change", "auto", "important");
+            p.style.setProperty("contain", "none", "important");
+            p.style.setProperty("container-type", "normal", "important");
+            p.setAttribute("data-fdneut", "1");
+          }
+        } catch (e) { }
+        p = p.parentElement;
+      }
+      /* فرض أنماط الغطاء بمكانه (يصمد أمام مسح React كل دورة) —
+         عند ظهور لوحة المفاتيح: نُثبّت الغطاء على الشريط المرئي ونحاذي للأعلى فيبقى الرأس والحقل والنتيجة ظاهرين */
+      var OP = kbUp ? {
+        position: "fixed", top: visTop + "px", left: "0", right: "0", bottom: "auto",
+        width: "100vw", height: visH + "px", margin: "0", transform: "none",
+        display: "flex", "align-items": "flex-start", "justify-content": "center",
+        padding: "10px 12px 0", "box-sizing": "border-box", "z-index": "2147482000"
+      } : {
+        position: "fixed", top: "0", left: "0", right: "0", bottom: "0",
+        width: "100vw", height: "100vh", margin: "0", transform: "none",
+        display: "flex", "align-items": "center", "justify-content": "center",
+        padding: "0", "box-sizing": "border-box", "z-index": "2147482000"
+      };
+      for (var k in OP) {
+        if (ov.style.getPropertyValue(k) !== OP[k] || ov.style.getPropertyPriority(k) !== "important") {
+          try { ov.style.setProperty(k, OP[k], "important"); } catch (e) { }
+        }
+      }
+      var c = ov.firstElementChild;
+      if (c) {
+        var wantH = mh + "px";
+        if (c.style.maxHeight !== wantH) c.style.maxHeight = wantH;
+        if (c.style.overflowY !== "auto") { c.style.overflowY = "auto"; c.style.overflowX = "hidden"; }
+        c.style.boxSizing = "border-box";
+        if (mw < 560) {
+          var wantW = mw + "px";
+          if (c.style.maxWidth !== wantW) c.style.maxWidth = wantW;
+          if (c.classList && c.classList.contains("qr-veh-card") && c.style.padding !== "16px 14px") c.style.padding = "16px 14px";
+        }
+      }
     }
   }
+
+
   /* ---------- البحث الشامل الفوري ---------- */
   function vehHay(v) {
     if (v.__hay) return v.__hay;
@@ -1882,6 +2421,177 @@ var SPECIAL2 = [
     shield: "<svg class='fdi' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l7.5 3v5.5c0 4.7-3.2 8-7.5 9.5-4.3-1.5-7.5-4.8-7.5-9.5V6l7.5-3z'/><path d='M8.8 12.2l2.3 2.3 4.2-4.7'/></svg>"
   };
   var SRCH_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.2"></circle><line x1="15.3" y1="15.3" x2="20.5" y2="20.5"></line></svg>';
+  /* ===================== 35.6: نبض المنصة — بعد بانر الجاهزية، رسم أكبر بمحور هجري ===================== */
+  function pulseStats(days) {
+    /* أيام الفترة بالميلادي ثم gToH — يضمن مفاتيح ser صحيحة ووسوماً هجرية دقيقة */
+    var dayKeys = [], byDay = {};
+    for (var k = days - 1; k >= 0; k--) {
+      var g = new Date(); g.setDate(g.getDate() - k);
+      var h = gToH(g) || H_NOW;
+      var s = hSer(h);
+      dayKeys.push({ s: s, h: h });
+      byDay[s] = { f: 0, r: 0, h: h };
+    }
+    var since = dayKeys[0].s;
+    var f = 0, r = 0, brF = {}, brR = {}, tpF = {}, evF = [], evR = [];
+    VEH.forEach(function (v) {
+      var br = branchOf(v.unit) || v.unit || "أخرى";
+      faultCalc(v).forEach(function (C) {
+        if (C.fs && C.fs >= since && byDay[C.fs]) {
+          f++; byDay[C.fs].f++;
+          brF[br] = (brF[br] || 0) + 1;
+          var t = (C.f.faultType || "غير محدد").trim(); tpF[t] = (tpF[t] || 0) + 1;
+          evF.push({ p: v.plate || "—", ty: v.type || "", br: br, ft: t, h: byDay[C.fs].h, s: C.fs, open: C.open });
+        }
+        if (C.rs && C.ghost !== "drop" && C.rs >= since && byDay[C.rs]) {
+          r++; byDay[C.rs].r++;
+          brR[br] = (brR[br] || 0) + 1;
+          evR.push({ p: v.plate || "—", ty: v.type || "", br: br, ft: (C.f.faultType || "غير محدد").trim(), h: byDay[C.rs].h, s: C.rs, prev: C.ghost === "prev" });
+        }
+      });
+    });
+    function top(o) { var k = "", n = 0; Object.keys(o).forEach(function (x) { if (o[x] > n) { n = o[x]; k = x; } }); return k ? { k: k, n: n } : null; }
+    var series = dayKeys.map(function (d) { return byDay[d.s]; });
+    var peak = null; series.forEach(function (d) { var n = d.f + d.r; if (n && (!peak || n > peak.n)) peak = { n: n, h: d.h, s: hSer(d.h) }; });
+    var downNow = 0; VEH.forEach(function (v) { if (GROUP[(v.status || "").trim()] === "متعطل") downNow++; });
+    return { f: f, r: r, net: r - f, series: series, topF: top(brF), topR: top(brR), topType: top(tpF), peak: peak, downNow: downNow, evF: evF, evR: evR, brF: brF, brR: brR, tpF: tpF, days: days };
+  }
+  var _plLast = null;
+  function pulseProofOpen(title, sub, bodyHtml) {
+    var old = $("#fdpl-proof"); if (old) old.remove();
+    var ov = document.createElement("div");
+    ov.id = "fdpl-proof"; ov.className = "fdlr-ov";
+    ov.innerHTML = '<div class="fdlr-modal fdpl-pm">' +
+      '<div class="fdlr-h"><b>الدليل: ' + esc(title) + '</b><button id="fdpl-px" class="fdlr-x" type="button">✕</button></div>' +
+      (sub ? '<div class="fdpl-psub">' + sub + '</div>' : "") +
+      '<div class="fdpl-pbody">' + bodyHtml + '</div></div>';
+    document.body.appendChild(ov);
+    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
+    $("#fdpl-px").onclick = function () { ov.remove(); };
+  }
+  function _plTbl(rows, cols) {
+    var LIM = 60;
+    var body = rows.slice(0, LIM).map(function (r, i) {
+      return "<tr><td>" + (i + 1) + "</td>" + cols.map(function (c) { return "<td>" + r[c] + "</td>"; }).join("") + "</tr>";
+    }).join("");
+    var more = rows.length > LIM ? '<div class="fdpl-pmore">و' + (rows.length - LIM) + ' سجلاً آخر بنفس المعيار…</div>' : "";
+    return '<table class="fdpl-ptbl"><thead><tr><th>م</th>' + cols.map(function (c) { return "<th>" + ({ p: "اللوحة", ty: "النوع", br: "الجهة/الشعبة", ft: "نوع العطل", d: "التاريخ", st: "الحالة" })[c] + "</th>"; }).join("") + "</tr></thead><tbody>" + body + "</tbody></table>" + more;
+  }
+  function _plFmtEv(list) {
+    return list.map(function (e) {
+      return { p: "<b>" + esc(e.p) + "</b>", ty: esc(e.ty), br: esc(e.br), ft: esc(e.ft) + (e.prev ? ' <i style="font-size:10px;color:#8A6D1F">(إصلاح عطل سابق)</i>' : "") + (e.open ? ' <i style="font-size:10px;color:#C4353C">(ما زال مفتوحاً)</i>' : ""), d: e.h.d + "/" + e.h.m + "/" + e.h.y + "هـ" };
+    });
+  }
+  function _plRank(o, unit) {
+    var ks = Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }).slice(0, 8);
+    return '<table class="fdpl-ptbl"><thead><tr><th>الترتيب</th><th>الجهة/الشعبة</th><th>' + unit + '</th></tr></thead><tbody>' +
+      ks.map(function (k, i) { return "<tr" + (i === 0 ? ' class="fdpl-top"' : "") + "><td>" + (i + 1) + "</td><td>" + esc(k) + "</td><td><b>" + o[k] + "</b></td></tr>"; }).join("") + "</tbody></table>";
+  }
+  function pulseProof(kind, arg) {
+    var S = _plLast; if (!S) return;
+    var period = S.days === 1 ? "اليوم" : S.days === 7 ? "آخر ٧ أيام" : "آخر ٣٠ يوماً";
+    if (kind === "f") {
+      pulseProofOpen("الأعطال المسجّلة (" + period + ")", "العدد = <b>" + S.f + "</b> عطلاً، محسوبة من سجلات الآليات التي يقع تاريخ عطلها ضمن الفترة", _plTbl(_plFmtEv(S.evF), ["p", "ty", "br", "ft", "d"]));
+    } else if (kind === "r") {
+      pulseProofOpen("الإصلاحات (" + period + ")", "العدد = <b>" + S.r + "</b> إصلاحاً يقع تاريخه ضمن الفترة (بعد استبعاد تواريخ الإصلاح التي كشف النظام أنها بقايا كتابة فوق)", _plTbl(_plFmtEv(S.evR), ["p", "ty", "br", "ft", "d"]));
+    } else if (kind === "net") {
+      var up = S.net >= 0;
+      pulseProofOpen("المحصلة (" + period + ")", "", '<div class="fdpl-peq">' + S.r + ' إصلاحاً − ' + S.f + ' عطلاً = <b style="color:' + (up ? "#0E7A5F" : "#C4353C") + '">' + (up ? "▲ +" : "▼ −") + Math.abs(S.net) + '</b><br><span>' + (up ? "الإصلاحات تغلب الأعطال بالفترة — المنصة تتعافى" : "الأعطال تغلب الإصلاحات بالفترة — الضغط يتزايد") + '</span></div>');
+    } else if (kind === "down") {
+      var byBr = {}, sample = [];
+      VEH.forEach(function (v) { if (GROUP[(v.status || "").trim()] === "متعطل") { var b = branchOf(v.unit) || v.unit || "أخرى"; byBr[b] = (byBr[b] || 0) + 1; if (sample.length < 60) sample.push({ p: "<b>" + esc(v.plate || "—") + "</b>", ty: esc(v.type || ""), br: esc(b), ft: esc((v.status || "").trim()), d: "—" }); } });
+      pulseProofOpen("المتعطلة الآن", "العدد = <b>" + S.downNow + "</b> آلية حالتها الفنية الحالية ضمن مجموعة «متعطل» (لحظي — لا يرتبط بالفترة)", _plRank(byBr, "متعطلة") + '<div style="height:10px"></div>' + _plTbl(sample, ["p", "ty", "br", "ft"]));
+    } else if (kind === "avg") {
+      pulseProofOpen("متوسط الأعطال اليومي (" + period + ")", "", '<div class="fdpl-peq">' + S.f + ' عطلاً ÷ ' + S.days + ' يوماً = <b>' + (Math.round(S.f / S.days * 10) / 10) + '</b> عطل/يوم</div>');
+    } else if (kind === "peak") {
+      if (!S.peak) return;
+      var evs = S.evF.filter(function (e) { return e.s === S.peak.s; }).concat(S.evR.filter(function (e) { return e.s === S.peak.s; }).map(function (e) { var c = {}; for (var k in e) c[k] = e[k]; c.ft = "إصلاح: " + c.ft; return c; }));
+      pulseProofOpen("أكثر يوم حركة: " + S.peak.h.d + "/" + S.peak.h.m + "/" + S.peak.h.y + "هـ", "شهد <b>" + S.peak.n + "</b> حدثاً (أعطال + إصلاحات) — أعلى أيام الفترة", _plTbl(_plFmtEv(evs), ["p", "ty", "br", "ft", "d"]));
+    } else if (kind === "topF") {
+      if (!S.topF) return;
+      var evs = S.evF.filter(function (e) { return e.br === S.topF.k; });
+      pulseProofOpen("الأكثر أعطالاً: " + S.topF.k + " (" + period + ")", "سجّلت <b>" + S.topF.n + "</b> عطلاً بالفترة — الأعلى بين كل الجهات. الترتيب الكامل ثم التفصيل:", _plRank(S.brF, "أعطال") + '<div style="height:10px"></div>' + _plTbl(_plFmtEv(evs), ["p", "ty", "ft", "d"]));
+    } else if (kind === "topR") {
+      if (!S.topR) return;
+      var evs = S.evR.filter(function (e) { return e.br === S.topR.k; });
+      pulseProofOpen("الأكثر إصلاحاً: " + S.topR.k + " (" + period + ")", "أُغلق فيها <b>" + S.topR.n + "</b> إصلاحاً بالفترة — الأعلى بين كل الجهات. الترتيب الكامل ثم التفصيل:", _plRank(S.brR, "إصلاحات") + '<div style="height:10px"></div>' + _plTbl(_plFmtEv(evs), ["p", "ty", "ft", "d"]));
+    } else if (kind === "topType") {
+      if (!S.topType) return;
+      var ks = Object.keys(S.tpF).sort(function (a, b) { return S.tpF[b] - S.tpF[a]; });
+      var tot = S.f || 1;
+      pulseProofOpen("توزيع أنواع الأعطال (" + period + ")", "النوع الأعلى: <b>" + esc(S.topType.k) + "</b> بـ" + S.topType.n + " من أصل " + S.f, '<table class="fdpl-ptbl"><thead><tr><th>النوع</th><th>العدد</th><th>النسبة</th></tr></thead><tbody>' + ks.map(function (k, i) { return "<tr" + (i === 0 ? ' class="fdpl-top"' : "") + "><td>" + esc(k) + "</td><td><b>" + S.tpF[k] + "</b></td><td>" + Math.round(S.tpF[k] / tot * 100) + "٪</td></tr>"; }).join("") + "</tbody></table>");
+    } else if (kind === "day") {
+      var idx = parseInt(arg, 10), d = S.series[idx]; if (!d) return;
+      var s = hSer(d.h);
+      var evs = S.evF.filter(function (e) { return e.s === s; }).concat(S.evR.filter(function (e) { return e.s === s; }).map(function (e) { var c = {}; for (var k in e) c[k] = e[k]; c.ft = "إصلاح: " + c.ft; return c; }));
+      pulseProofOpen("يوم " + d.h.d + "/" + d.h.m + "/" + d.h.y + "هـ", "<b>" + d.f + "</b> عطلاً و<b>" + d.r + "</b> إصلاحاً", evs.length ? _plTbl(_plFmtEv(evs), ["p", "ty", "br", "ft"]) : '<div class="fdpl-peq">لا أحداث مسجّلة بهذا اليوم</div>');
+    }
+  }
+  var _plMode = 7;
+  function renderPulse() {
+    var host = document.getElementById("fdpl-wrap"); if (!host) return;
+    var days = _plMode, S = pulseStats(days); _plLast = S;
+    var netUp = S.net >= 0;
+    var maxD = 1; S.series.forEach(function (d) { var m = Math.max(d.f, d.r); if (m > maxD) maxD = m; });
+    var bars = S.series.map(function (d, i) {
+      var hf = d.f ? Math.max(6, Math.round(d.f / maxD * 84)) : 3;
+      var hr = d.r ? Math.max(6, Math.round(d.r / maxD * 84)) : 3;
+      var isToday = i === S.series.length - 1;
+      var lbl = days === 30 ? (i % 5 === 0 || isToday ? d.h.d + "/" + d.h.m : "") : (d.h.d + "/" + d.h.m);
+      var nums = "";
+      if (d.f) nums += '<em class="nf">' + d.f + '</em>';
+      if (d.r) nums += '<em class="nr">' + d.r + '</em>';
+      return '<div class="fdpl-day' + (isToday ? " today" : "") + '" data-proof="day" data-di="' + i + '" title="' + d.h.d + "/" + d.h.m + "/" + d.h.y + 'هـ — ' + d.f + ' عطل · ' + d.r + ' إصلاح — انقر للتفصيل">' +
+        '<span class="fdpl-nums">' + nums + '</span>' +
+        '<span class="fdpl-cols"><i class="pf" style="height:' + hf + 'px"></i><i class="pr" style="height:' + hr + 'px"></i></span>' +
+        '<span class="fdpl-dl">' + lbl + '</span></div>';
+    }).join("");
+    var lbl = days === 1 ? "اليوم" : days === 7 ? "الأسبوع" : "الشهر";
+    var avg = days > 1 ? (Math.round(S.f / days * 10) / 10) : S.f;
+    host.innerHTML =
+      '<div class="fdpl">' +
+      '<div class="fdpl-head">' +
+      '<div class="fdpl-t"><svg class="fdpl-ecg' + (netUp ? " up" : " dn") + '" viewBox="0 0 90 24" preserveAspectRatio="none"><polyline points="0,12 14,12 20,12 26,3 32,21 38,12 52,12 58,7 64,17 70,12 90,12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '<b>نبض المنصة</b><span>' + lbl + '</span></div>' +
+      '<div class="fdpl-chips">' +
+      [[1, "اليوم"], [7, "الأسبوع"], [30, "الشهر"]].map(function (m) {
+        return '<button type="button" class="fdpl-chip' + (m[0] === days ? " on" : "") + '" data-d="' + m[0] + '">' + m[1] + '</button>';
+      }).join("") + '</div></div>' +
+      '<div class="fdpl-kpis">' +
+      '<div class="fdpl-kpi kf" data-proof="f" title="انقر للدليل"><b data-cnt="' + S.f + '">0</b><span>أعطال</span></div>' +
+      '<div class="fdpl-kpi kr" data-proof="r" title="انقر للدليل"><b data-cnt="' + S.r + '">0</b><span>إصلاحات</span></div>' +
+      '<div class="fdpl-kpi ' + (netUp ? "kr" : "kf") + '" data-proof="net" title="انقر للدليل"><b>' + (netUp ? "▲" : "▼") + " " + Math.abs(S.net) + '</b><span>المحصلة</span></div>' +
+      '<div class="fdpl-kpi kf" data-proof="down" title="انقر للدليل"><b data-cnt="' + S.downNow + '">0</b><span>متعطلة الآن</span></div>' +
+      (days > 1 ? '<div class="fdpl-kpi kn" data-proof="avg" title="انقر للدليل"><b>' + avg + '</b><span>عطل / يوم</span></div>' : "") +
+      (S.peak ? '<div class="fdpl-kpi kn" data-proof="peak" title="انقر للدليل"><b>' + S.peak.h.d + "/" + S.peak.h.m + '</b><span>أكثر يوم حركة (' + S.peak.n + ')</span></div>' : "") +
+      '</div>' +
+      '<div class="fdpl-bars"><div class="fdpl-barsin">' + bars + '</div><span class="fdpl-blb">أحمر: أعطال · أخضر: إصلاحات · التواريخ هجرية</span></div>' +
+      '<div class="fdpl-foot">' +
+      (S.topF ? '<span class="fdpl-tag tf" data-proof="topF" title="انقر للدليل">الأكثر أعطالاً: <b>' + esc(S.topF.k) + '</b> (' + S.topF.n + ')</span>' : '<span class="fdpl-tag ok">لا أعطال بهذه الفترة</span>') +
+      (S.topR ? '<span class="fdpl-tag tr" data-proof="topR" title="انقر للدليل">الأكثر إصلاحاً: <b>' + esc(S.topR.k) + '</b> (' + S.topR.n + ')</span>' : "") +
+      (S.topType ? '<span class="fdpl-tag tt" data-proof="topType" title="انقر للدليل">أكثر الأعطال: <b>' + esc(S.topType.k) + '</b></span>' : "") +
+      '</div></div>';
+    host.querySelectorAll(".fdpl-chip").forEach(function (ch) {
+      ch.onclick = function () { _plMode = parseInt(ch.dataset.d, 10); renderPulse(); };
+    });
+    host.querySelectorAll("[data-proof]").forEach(function (el) {
+      el.onclick = function (e) { e.stopPropagation(); pulseProof(el.getAttribute("data-proof"), el.getAttribute("data-di")); };
+    });
+    host.querySelectorAll("b[data-cnt]").forEach(function (el) {
+      var target = parseInt(el.getAttribute("data-cnt"), 10) || 0, cur = 0;
+      if (!target) { el.textContent = "0"; return; }
+      var step = Math.max(1, Math.round(target / 22));
+      (function tick() { cur += step; if (cur >= target) { el.textContent = target; return; } el.textContent = cur; setTimeout(tick, 28); })();
+    });
+  }
+  function placePulse() {
+    if (document.getElementById("fdpl-wrap")) return;
+    var banner = document.querySelector(".ov-banner"); if (!banner || !banner.parentElement) return;
+    var w = document.createElement("div");
+    w.id = "fdpl-wrap";
+    banner.parentElement.insertBefore(w, banner.nextSibling);
+    renderPulse();
+  }
   function placeHomeSearch() {
     var old = document.getElementById("fd31-rail-srch"); if (old) old.remove();
     if (document.getElementById("fd31-home-srch")) return;
