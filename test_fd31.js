@@ -40,8 +40,12 @@ const checks=[]; const ok=(n,c)=>checks.push([n,!!c]);
   ok("توريث الموضوع: كلاهما سلالم",(inh.textContent.match(/السلالم/g)||[]).length>=2);
 
   // بُعد الموقع مفرد
-  ok("في الصيانة المركزية = 50",(await ask("كم آلية في الصيانة المركزية")).textContent.includes("50"));
-  ok("في روزنباور = 7 (موقع لا صانع)",(await ask("كم آلية في روزنباور")).textContent.includes("7"));
+  // أعداد مواقع الصيانة تُحسب ديناميكياً من data.json (لا أرقام متيبّسة تتهرّأ مع حركة الآليات)
+  const _nrm=t=>String(t||"").replace(/[\u0640]/g,"").replace(/\u0629/g,"\u0647").replace(/[\u0623\u0625\u0622]/g,"\u0627").trim();
+  const _locCnt=k=>data.db.vehicles.filter(v=>_nrm(v.location).includes(_nrm(k))).length;
+  const _cm=_locCnt("الصيانة المركزية"), _rz=_locCnt("روزنباور");
+  ok("في الصيانة المركزية = "+_cm+" (ديناميكي)",(await ask("كم آلية في الصيانة المركزية")).textContent.includes(String(_cm)));
+  ok("في روزنباور = "+_rz+" (موقع لا صانع، ديناميكي)",(await ask("كم آلية في روزنباور")).textContent.includes(String(_rz)));
 
   // أين موقعها
   const wh=await ask("كم عطلانة في شعبة أبحر وأين موقعها");
