@@ -1,0 +1,33 @@
+{
+ "name": "المنصة الرقمية لجاهزية الآليات",
+ "short_name": "منصة الجاهزية",
+ "description": "الإدارة العامة للدفاع المدني بمحافظة جدة — جاهزية الآليات والمراكز الميدانية",
+ "lang": "ar",
+ "dir": "rtl",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#12304A",
+ "theme_color": "#12304A",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-maskable.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
