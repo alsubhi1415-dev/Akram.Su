@@ -908,7 +908,7 @@ tr.fdxp85-row > td:has(.fdxp-tags){
         WF.__fd175=1; window.fetch=WF;
       }
     }catch(e){}
-    var SZ=[6581787,101281,3870694,4343448,2238314];/*FDP_SIZES*/
+    var SZ=[6583741,101281,3870694,4344014,2239702];/*FDP_SIZES*/
     var span=c.querySelector(".splash-bar span"), anim=null;
     /* منحنى الزحف: خطّي متقطّع (ثانية → قيمة) — يتحرك دائماً ويبطؤ */
     var KT=[0,4,10,20,40], KV=[0.02,0.35,0.6,0.8,0.95], DUR=40000;
@@ -7427,24 +7427,32 @@ nav.app-nav .fdlink202-btn:hover, .fdlink202-btn:hover{ background:rgba(255,255,
 /* ═════════ 42.228 — التقرير النوعي في صفحة واحدة (على منوال ملف المالك) ═════════
    القياس من ملفه الوورد: خط Sakkal Majalla، والمقاسات 7pt للجدول المصفوفي
    و8pt لصفوف المتعطلة و9pt لرؤوسها و10pt للتواقيع و11pt للعنوان — وهوامش
-   0.25سم أعلى و0.5سم جانباً. وهنا تُترجَم إلى بكسلات (1pt = 4/3 px). */
-.fdnw228{ font-family:"Sakkal Majalla","Traditional Arabic",Tahoma,serif !important; }
-.fdnw228 .nw-ttl{ font-size:14.7px !important; margin:2px 0 1px !important; line-height:1.3 !important; }
-.fdnw228 .nw-per{ font-size:13.3px !important; margin:0 0 4px !important; line-height:1.3 !important; }
-.fdnw228 .nw-red{ font-size:14.7px !important; margin:5px 0 3px !important; line-height:1.25 !important; }
+   0.25سم أعلى و0.5سم جانباً. وهنا تُترجَم إلى بكسلات (1pt = 4/3 px).
+   ★ كل مقاس مضروب في --nws: الضغط الأخير يتم **بتصغير الخط** لا بـzoom،
+   لأن zoom يصغّر الشكل ولا يصغّر حساب فواصل الصفحات في كروم — قِيس أنه
+   يُخرج صفحتين والصفحة الأولى نصفها فارغ. */
+.fdnw228{ font-family:"Sakkal Majalla","Traditional Arabic",Tahoma,serif !important; --nws:1; }
+/* ★ تثبيت ارتفاع السطر لكل عنصر: «normal» يختلف اختلافاً كبيراً بين الخطوط
+   (خطوط النسخ العربية تعطي نحو ١٫٩ والـTahoma نحو ١٫٢)، فبدونه ينتفخ التقرير
+   على الجهاز الذي يملك Sakkal Majalla ويضيق عن الصفحة — وهو ما حدث. */
+.fdnw228, .fdnw228 *{ line-height:1.2 !important; }
+.fdnw228 .nw-head div{ line-height:1.25 !important; }
+.fdnw228 .nw-ttl{ font-size:calc(14.7px * var(--nws)) !important; margin:2px 0 1px !important; }
+.fdnw228 .nw-per{ font-size:calc(13.3px * var(--nws)) !important; margin:0 0 4px !important; }
+.fdnw228 .nw-red{ font-size:calc(14.7px * var(--nws)) !important; margin:5px 0 3px !important; }
 .fdnw228 .nw-mx th, .fdnw228 .nw-mx td{
-  font-size:9.3px !important; padding:1.5px 2px !important; line-height:1.2 !important; }
-.fdnw228 .nw-bk th{ font-size:12px !important; padding:1.5px 3px !important; line-height:1.14 !important; }
-.fdnw228 .nw-bk td{ font-size:10.7px !important; padding:1px 4px !important; line-height:1.15 !important; }
+  font-size:calc(9.3px * var(--nws)) !important; padding:calc(1.5px * var(--nws)) 2px !important; }
+.fdnw228 .nw-bk th{ font-size:calc(12px * var(--nws)) !important; padding:calc(1.5px * var(--nws)) 3px !important; }
+.fdnw228 .nw-bk td{ font-size:calc(10.7px * var(--nws)) !important; padding:calc(1px * var(--nws)) 4px !important; }
 /* خانة التواقيع: ثلاث خانات كما في ملفه، بارتفاع مضغوط */
 .fdnw228 .sig-block{ margin-top:5px !important; }
-.fdnw228 .sig-block td{ padding:2px 6px !important; font-size:10.5px !important; line-height:1.25 !important; }
-.fdnw228 .sig-block td div{ line-height:1.18 !important; margin:0 !important; }
-.fdnw228 .sig-block img{ max-height:26px !important; }
+.fdnw228 .sig-block td{ padding:calc(2px * var(--nws)) 6px !important; font-size:calc(10.5px * var(--nws)) !important; }
+.fdnw228 .sig-block td div{ margin:0 !important; }
+.fdnw228 .sig-block img{ max-height:calc(26px * var(--nws)) !important; }
 /* الترويسة: صف واحد محاذٍ عمودياً */
 .fdnw228 .nw-head{ margin-bottom:2px !important; align-items:center !important; }
-.fdnw228 .nw-head img{ height:46px !important; }
-.fdnw228.nw-slim .nw-head img{ height:34px !important; }
+.fdnw228 .nw-head img{ height:calc(46px * var(--nws)) !important; }
+.fdnw228.nw-slim .nw-head img{ height:calc(34px * var(--nws)) !important; }
 .fdnw228.nw-nohead .nw-head{ display:none !important; }
 /* إبطال قاعدتَي الحزمة اللتين تُفسدان القياس */
 @media print{
@@ -31721,8 +31729,24 @@ window.__FD_CATS85=[{"k":"الحرائق الصناعية","p":["اقي2545","ا
    ============================================================ */
 (function () {
   if (window.__fdNawi228) return; window.__fdNawi228 = 1;
-  var PW = Math.round((297 - 10) * 96 / 25.4);   /* عرض A4 عرضية ناقص هامشي 5مم */
-  var PH = Math.round((210 - 8) * 96 / 25.4);    /* ارتفاعها ناقص 2.5مم + 5.5مم */
+  /* ★ صندوق الصفحة يُفترض **متحفّظاً**: كروم يتجاهل هوامش @page حين يختار
+     المستخدم «الهوامش: تلقائي» ويستعمل هوامش الطابعة (نحو ١٢مم)، فحُسب على
+     ذلك لا على هوامشنا — وإلا ظُنّ أن هناك متّسعاً وهو ليس كذلك. */
+  var PW = Math.round((297 - 24) * 96 / 25.4);   /* ١٠٣٢ بكسل */
+  var PH = Math.round((210 - 24) * 96 / 25.4);   /* ٧٠٣ بكسل */
+  var SAFE = 10;                                  /* هامش أمان إضافي */
+  /* وإن أمكن قياس صندوق الصفحة الحقيقي وقت الطباعة (وحدات vh تساوي ارتفاع
+     الصفحة في تخطيط الطباعة) أُخذ **الأصغر** من المقيس والمفترض. */
+  function pageBox() {
+    try {
+      var d = document.createElement("div");
+      d.style.cssText = "position:absolute;top:0;inset-inline-start:0;width:100vw;height:100vh;visibility:hidden;pointer-events:none";
+      document.body.appendChild(d);
+      var r = d.getBoundingClientRect(); d.remove();
+      var h = Math.round(r.height), w2 = Math.round(r.width);
+      return { h: (h > 200 && h < PH) ? h : PH, w: (w2 > 300 && w2 < PW) ? w2 : PW };
+    } catch (e) { return { h: PH, w: PW }; }
+  }
 
   var W = null;
   function wrap() { W = document.querySelector(".nawi-wrap"); return W; }   /* بحث فعلي — يُستدعى عند الحاجة فقط */
@@ -31783,26 +31807,40 @@ window.__FD_CATS85=[{"k":"الحرائق الصناعية","p":["اقي2545","ا
   }
 
   /* ── الملاءمة: تُقاس بعرض الورقة لا بعرض النافذة ── */
+  var BOX = { h: PH, w: PW };
   function measure(w) {
     var pz = w.style.zoom, pw = w.style.width, pm = w.style.margin;
-    w.style.zoom = "1"; w.style.width = PW + "px"; w.style.margin = "0";
+    w.style.zoom = "1"; w.style.width = BOX.w + "px"; w.style.margin = "0";
     var h = Math.max(w.scrollHeight, Math.round(w.getBoundingClientRect().height));
     w.style.zoom = pz; w.style.width = pw; w.style.margin = pm;
     return h;
   }
-  function reset(w) { w.classList.remove("nw-slim", "nw-nohead"); w.style.zoom = ""; w.style.width = ""; w.style.margin = ""; }
+  function reset(w) {
+    w.classList.remove("nw-slim", "nw-nohead");
+    w.style.zoom = ""; w.style.width = ""; w.style.margin = "";
+    try { w.style.removeProperty("--nws"); } catch (e) { }
+  }
+  function setScale(w, s) { try { w.style.setProperty("--nws", String(s)); } catch (e) { } }
   function fit() {
     var w = tag(wrap()); if (!w) return null;
     fixDates(w);
     reset(w);
+    BOX = pageBox();
+    var lim = BOX.h - SAFE;
     var st = "كاملة", h = measure(w);
-    if (h > PH) { w.classList.add("nw-slim"); st = "مصغّرة"; h = measure(w); }
-    if (h > PH) { w.classList.remove("nw-slim"); w.classList.add("nw-nohead"); st = "مخفيّة"; h = measure(w); }
+    if (h > lim) { w.classList.add("nw-slim"); st = "مصغّرة"; h = measure(w); }
+    if (h > lim) { w.classList.remove("nw-slim"); w.classList.add("nw-nohead"); st = "مخفيّة"; h = measure(w); }
+    /* الضغط الأخير: **تصغير الخط** بمتغيّر --nws لا بـzoom — يُعاد التدفّق
+       فيحسب كروم فواصل الصفحات على الارتفاع الجديد فعلاً. ثلاث محاولات تكفي. */
     var z = 1;
-    if (h > PH) { z = Math.max(0.55, Math.floor((PH / h) * 1000) / 1000); }
-    w.style.width = PW + "px"; w.style.margin = "0";
-    w.style.zoom = z >= 1 ? "" : String(z);
-    return { head: st, h: h, z: z, fits: h <= PH || z < 1 };
+    for (var i = 0; i < 4 && h > lim; i++) {
+      z = Math.max(0.5, Math.floor((z * lim / h) * 1000) / 1000);
+      setScale(w, z);
+      h = measure(w);
+      if (z <= 0.5) break;
+    }
+    w.style.width = BOX.w + "px"; w.style.margin = "0";
+    return { head: st, h: h, z: z, lim: lim, box: BOX.h, fits: h <= BOX.h };
   }
   window.__fdNawiFit228 = fit;
 
