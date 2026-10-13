@@ -1,0 +1,35 @@
+<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>إعداد تحديث الجهات</title>
+<style>body{font-family:Arial,Tahoma,sans-serif;max-width:860px;margin:24px auto;padding:0 16px;line-height:1.9;color:#141A28}h1{font-size:22px}h2{font-size:17px;border-bottom:2px solid #DEDEDC;padding-bottom:4px;margin-top:26px}ol li{margin:6px 0}code{background:#F2F3F5;border-radius:6px;padding:1px 6px;direction:ltr;display:inline-block}.n{background:#FFF8E8;border:1px solid #F0D9A0;border-radius:10px;padding:10px 14px}</style></head><body>
+<h1>إعداد «تحديث الجهات» مرة واحدة (عشر دقائق)</h1>
+<h2>أولا: ورقة Google وخدمة الاستقبال</h2>
+<ol>
+<li>افتح <code>sheets.google.com</code> بحسابك وأنشئ جدولا جديدا باسم «تحديث الجهات».</li>
+<li>من القائمة: الإضافات ← Apps Script (Extensions ← Apps Script). يفتح محرر بملف Code.gs فارغ.</li>
+<li>احذف ما فيه والصق محتوى الملف <code>u/Code.gs</code> من هذه الحزمة كاملا.</li>
+<li>في السطر الذي يحوي <code>setProperty("TOKEN", "...")</code> اكتب رمزا سريا من اختيارك (حروف وأرقام، 12 خانة فأكثر) واحفظ (Ctrl+S).</li>
+<li>من قائمة الدوال أعلى المحرر اختر <code>setToken</code> واضغط تشغيل (Run) مرة واحدة ووافق على الأذونات حين تُطلب.</li>
+<li>اضغط نشر ← نشر جديد (Deploy ← New deployment) ← النوع: تطبيق ويب (Web app) ← التنفيذ باسم: أنا (Me) ← من يملك الوصول: أي شخص (Anyone) ← نشر.</li>
+<li>انسخ رابط التطبيق المنتهي بـ <code>/exec</code>.</li>
+</ol>
+<div class="n">ملاحظة: «أي شخص» يعني أن صفحة الجهة تستطيع الإرسال بلا تسجيل دخول. الورقة نفسها لا يراها إلا أنت، والجلب الكامل من المنصة يتطلب الرمز السري.</div>
+<h2>ثانيا: المنصة</h2>
+<ol>
+<li>التقارير والبيانات ← زر «تحديث الجهات» ← تبويب الإعدادات.</li>
+<li>الصق رابط <code>/exec</code> في «رابط خدمة الاستقبال»، والرمز السري في خانته، وراجع قائمة طبيعة الاستخدام، ثم «حفظ الإعدادات».</li>
+<li>اضغط «اختبار الاتصال»؛ يجب أن تظهر رسالة «الخدمة تعمل».</li>
+<li>اضغط «نشر u/config.json إلى المستودع» (يحتاج رمز GitHub المحفوظ في المنصة كبقية عمليات النشر). أو انسخ الرابط يدويا إلى الملف <code>u/config.json</code> في المستودع.</li>
+</ol>
+<h2>ثالثا: رفع صفحة الجهات</h2>
+<ol>
+<li>ارفع مجلد <code>u</code> كاملا إلى جذر المستودع (index.html · fdunits.js · config.json) مع index.html وapp-ver.json كالمعتاد.</li>
+<li>افتح <code>https://alsubhi1415-dev.github.io/Akram.Su/u/?j=baghdadiya</code> من جوالك للتأكد.</li>
+</ol>
+<h2>رابعا: الدورة الأسبوعية</h2>
+<ol>
+<li>الأحد: «تحديث الجهات» ← «نسخ رسائل الأحد (الكل)» ← الصق في واتساب لكل جهة (أو نسخ لكل جهة على حدة).</li>
+<li>خلال الأسبوع: «جلب الردود» ثم تبويب «الردود المعلقة»: اعتمد ما لا يغير شيئا دفعة واحدة، وراجع الباقي صفا صفا.</li>
+<li>الاثنين: «نسخ التذكير (لم تحدّث)» للجهات الحمراء فقط.</li>
+</ol>
+<h2>عند تغيير شيء لاحقا</h2>
+<p>قائمة الاستخدام أو نطاق الآليات (التعبير «جيب») تُغيَّر من الإعدادات ثم «نشر u/config.json». إعادة نشر السكربت تلزم فقط إذا عدلت Code.gs (نشر ← إدارة عمليات النشر ← تعديل ← إصدار جديد).</p>
+</body></html>
