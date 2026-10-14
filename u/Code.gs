@@ -1,16 +1,16 @@
-/* منصة جاهزية الآليات — استقبال تحديثات الجهات (Google Apps Script)
-   يُلصق في مشروع Apps Script مرتبط بورقة Google ثم يُنشر كتطبيق ويب: تنفيذ باسمي، الوصول: أي شخص.
-   الورقة responses تُنشأ تلقائياً. الرمز السري (للجلب الكامل من المنصة) يُحفظ في خصائص المشروع تحت TOKEN (يُضبط بتشغيل setToken مرة واحدة). */
+/* منصة جاهزية الآليات - استقبال تحديثات الجهات (Google Apps Script)
+   يلصق في مشروع Apps Script مرتبط بورقة Google ثم ينشر كتطبيق ويب: تنفيذ باسمي، الوصول: أي شخص.
+   الورقة responses تنشأ تلقائيا. الرمز السري (للجلب الكامل من المنصة) يحفظ في خصائص المشروع تحت TOKEN (يضبط بتشغيل setToken مرة واحدة). */
 var SHEET = "responses";
 var COLS = ["ts", "week", "unitKey", "unitName", "by", "plate", "vid", "ans", "same", "noteType", "noteText", "noteDate", "faultType", "faultDesc", "faultLoc", "faultDate", "toUnit", "toDate", "reason", "use", "user", "added", "receipt", "ua"];
 var MAX_ROWS = 80; /* سقف الصفوف في الإرسال الواحد */
 
-function setToken() { /* شغّله مرة واحدة من المحرر بعد تعديل القيمتين، وانسخهما إلى إعدادات المنصة */
+function setToken() { /* شغله مرة واحدة من المحرر بعد تعديل القيمتين وانسخهما إلى إعدادات المنصة */
   var P = PropertiesService.getScriptProperties();
-  P.setProperty("TOKEN", "غيّر-هذا-الرمز-السري-للجلب");          /* الرمز السري للجلب الكامل من المنصة */
-  P.setProperty("UNIT_SECRET", "غيّر-هذا-السر-لروابط-الجهات");    /* السر الذي تُشتق منه مفاتيح روابط الجهات (k) */
+  P.setProperty("TOKEN", "غير-هذا-الرمز-السري-للجلب");          /* الرمز السري للجلب الكامل من المنصة */
+  P.setProperty("UNIT_SECRET", "غير-هذا-السر-لروابط-الجهات");    /* السر الذي تشتق منه مفاتيح روابط الجهات (k) */
 }
-/* مفتاح الجهة = أول 8 خانات من SHA-256(السر|مفتاح الجهة) — يُحسب هنا وفي المنصة بالطريقة نفسها، ولا يظهر السر في أي ملف عام */
+/* مفتاح الجهة = أول 8 خانات من SHA-256(السر|مفتاح الجهة) - يحسب هنا وفي المنصة بالطريقة نفسها ولا يظهر السر في أي ملف عام */
 function unitToken_(unit) {
   var sec = PropertiesService.getScriptProperties().getProperty("UNIT_SECRET") || "";
   var dig = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sec + "|" + unit, Utilities.Charset.UTF_8);
@@ -62,7 +62,7 @@ function doGet(e) {
     var p = e.parameter || {};
     if (p.ping) return out_({ ok: true, week: weekOf_(new Date()) });
     var R = rows_();
-    if (p.unit) { /* آخر إجابة لكل لوحة لهذه الجهة + ما قيل إنه سُلّم إليها + هل أُرسل تحديث هذا الأسبوع */
+    if (p.unit) { /* آخر إجابة لكل لوحة لهذه الجهة + ما قيل إنه سلم إليها + هل أرسل تحديث هذا الأسبوع */
       if (!unitOk_(p.unit, p.k)) return out_({ ok: false, reason: "key" });
       var last = {}; var incoming = {}; var wk = weekOf_(new Date()); var weekSub = null;
       R.forEach(function (r) {

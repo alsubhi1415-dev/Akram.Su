@@ -62,15 +62,15 @@ select:invalid{color:#888}
 </style>
 </head>
 <body>
-<div class="top"><h1 id="ttl">تحديث الآليات</h1><div class="d" id="sub">جارٍ التحميل…</div><div class="prog"><i id="pg"></i></div></div>
-<div class="wrap" id="app"><div class="msg">جارٍ تحميل قائمة الآليات…</div></div>
+<div class="top"><h1 id="ttl">تحديث الآليات</h1><div class="d" id="sub">جار التحميل…</div><div class="prog"><i id="pg"></i></div></div>
+<div class="wrap" id="app"><div class="msg">جار تحميل قائمة الآليات…</div></div>
 <div class="bar" id="bar" style="display:none"><div class="in"><button class="send" id="send" disabled>إرسال التحديث</button><div class="warn" id="warn"></div></div></div>
 <script src="fdunits.js"></script>
 <script>
 (function(){
 var Q=new URLSearchParams(location.search), KEY=(Q.get("j")||"").trim(), KTOK=(Q.get("k")||"").trim();
 var CFG={script:"",uses:["التدخل السريع","مدير الشعبة","مدير قسم الإطفاء والإنقاذ","ضابط الخفر","ضباط الشعبة","جيب القارب","أعمال إدارية","مساندات","بلا مهمة","غيرها"],typeRe:"جيب",site:"",faultTypes:["ميكانيكي","بطاريات","كهربائي","مضخات","أخرى","برمجة","كفرات","خلل فني","تجديد ودهان","حادث مروري"],faultLocs:["الصيانة المركزية","ش روزنباور","ورشة خارجية","ش الانامل"]};
-/* القوائم بمسميات ملف الإكسل نفسها (تُقرأ من config.json) */
+/* القوائم بمسميات ملف الإكسل نفسها (تقرأ من config.json) */
 var NOTE_TYPES=CFG.faultTypes, FAULT_LOCS=CFG.faultLocs;
 var U=null, DB=null, LAST={}, INC={}, CARDS=[], ALL=[], WEEK="", WEEKSUB=null;
 var app=document.getElementById("app");
@@ -116,12 +116,12 @@ function load(){
 function render(mine, j){
   document.getElementById("sub").textContent="تحديث الآليات الإدارية · أسبوع الأحد "+hijDisp(hij(new Date(WEEK+"T12:00:00")))+ (CFG.script?"":" · (وضع المعاينة)");
   var h="";
-  if(!CFG.script) h+='<div class="msg w">لم يُضبط رابط الاستقبال بعد؛ الصفحة للمعاينة فقط ولا يمكن الإرسال.</div>';
-  else if(!j||!j.ok) h+='<div class="msg w">تعذر الاتصال بخدمة الاستقبال الآن؛ تُعرض آخر إجابة محفوظة على هذا الجهاز إن وُجدت.</div>';
+  if(!CFG.script) h+='<div class="msg w">لم يضبط رابط الاستقبال بعد؛ الصفحة للمعاينة فقط ولا يمكن الإرسال.</div>';
+  else if(!j||!j.ok) h+='<div class="msg w">تعذر الاتصال بخدمة الاستقبال الآن؛ تعرض آخر إجابة محفوظة على هذا الجهاز إن وجدت.</div>';
   CARDS=[];
   mine.forEach(function(v){CARDS.push({v:v,last:LAST[v.plate]||null,added:0,inc:false})});
   Object.keys(INC).forEach(function(pl){ if(mine.some(function(v){return v.plate===pl})) return; var v=ALL.filter(function(x){return x.plate===pl})[0]; if(!v) return; CARDS.push({v:v,last:LAST[pl]||null,added:0,inc:true,from:INC[pl]}); });
-  if(WEEKSUB) h+='<div class="msg w">سبق إرسال تحديث هذه الجهة لهذا الأسبوع بواسطة <b>'+esc(WEEKSUB.by||"")+'</b> بتاريخ '+esc(hijDisp(hij(new Date(WEEKSUB.ts))))+' (إيصال '+esc(WEEKSUB.receipt||"")+'). الإرسال الجديد يُسجل باسم مرسله ويحل محل السابق عند الاعتماد.</div>';
+  if(WEEKSUB) h+='<div class="msg w">سبق إرسال تحديث هذه الجهة لهذا الأسبوع بواسطة <b>'+esc(WEEKSUB.by||"")+'</b> بتاريخ '+esc(hijDisp(hij(new Date(WEEKSUB.ts))))+' (إيصال '+esc(WEEKSUB.receipt||"")+'). الإرسال الجديد يسجل باسم مرسله ويحل محل السابق عند الاعتماد.</div>';
   var byv=""; try{byv=localStorage.getItem("fd_u_by")||""}catch(e){}
   h+='<div class="sender"><label class="f req" style="margin-top:0">اسم المرسل ورتبته (مسؤول التحديث في الجهة)</label><input type="text" id="by" maxlength="80" value="'+esc(byv)+'" placeholder="مثال: الرقيب فهد العتيبي"></div>';
   if(!CARDS.length) h+='<div class="msg">لا توجد آليات إدارية مسجلة لهذه الجهة في السجل. إن كانت لديكم آلية فأضفها من الزر أدناه.</div>';
@@ -147,14 +147,14 @@ function card(c,i){
   var v=c.v, el=document.createElement("div"); el.className="veh"+(c.inc?" inc":""); el.setAttribute("data-i",i);
   var units=FDU.UNITS.filter(function(u){return u.k!==KEY}).map(function(u){return u.name}).concat(["لا نعلم"]);
   var L=c.last;
-  var head='<div class="t"><span>'+esc(v.plate)+' <small>'+esc(v.type||"")+(v.model?' '+esc(v.model):'')+'</small></span><span class="badge" data-st>'+(c.inc?'قيل إنها لديكم':(c.added?'أُضيفت':'لم تُجب'))+'</span></div>';
-  if(c.inc&&c.from) head+='<div class="last">'+esc(unitName(c.from.unitKey))+' قالت إنها سُلمت إليكم بتاريخ '+esc(hijDisp(c.from.toDate))+'. أجيبوا بما لديكم.</div>';
+  var head='<div class="t"><span>'+esc(v.plate)+' <small>'+esc(v.type||"")+(v.model?' '+esc(v.model):'')+'</small></span><span class="badge" data-st>'+(c.inc?'قيل إنها لديكم':(c.added?'أضيفت':'لم تجب'))+'</span></div>';
+  if(c.inc&&c.from) head+='<div class="last">'+esc(unitName(c.from.unitKey))+' قالت إنها سلمت إليكم بتاريخ '+esc(hijDisp(c.from.toDate))+'. أجيبوا بما لديكم.</div>';
   var lastHtml=L?'<div class="last">آخر تحديث '+esc(hijDisp(hij(new Date(L.ts))))+': '+lastSummary(L)+'</div><div class="two"><div class="bt" data-a="same">✓ كما هو</div><div class="bt" data-a="change">تغيير</div></div>':'<div class="last none">لا يوجد تحديث سابق · التعبئة كاملة مرة واحدة</div>';
   var full='<div class="full'+(L?'':' show')+'">'
    +'<div class="opts"><div class="bt g" data-ans="ok">بحوزتنا<br>تعمل</div><div class="bt a" data-ans="notes">بحوزتنا<br>تعمل بملاحظات</div><div class="bt r" data-ans="down">بحوزتنا<br>متعطلة</div><div class="bt b" data-ans="notours">ليست عندنا</div></div>'
    +'<div class="ext ex-notes"><label class="f req">نوع الملاحظة</label>'+sel("noteType",NOTE_TYPES,1,L&&L.noteType)+'<label class="f req">نص الملاحظة</label><input type="text" data-f="noteText" maxlength="200" value="'+esc(L&&L.noteText||"")+'"><label class="f">تاريخ الملاحظة</label>'+chips("noteDate",0)+'</div>'
    +'<div class="ext ex-down"><label class="f req">نوع العطل</label>'+sel("faultType",NOTE_TYPES,1,L&&L.faultType)+'<label class="f req">وصف العطل</label><input type="text" data-f="faultDesc" maxlength="200" value="'+esc(L&&L.faultDesc||"")+'"><label class="f req">موجودة الآن في</label>'+sel("faultLoc",[U.name].concat(FAULT_LOCS,["مكان آخر"]),1,(function(){var fl=L&&L.faultLoc;if(!fl)return U.name;return ([U.name].concat(FAULT_LOCS).indexOf(fl)>=0)?fl:"مكان آخر";})())+'<input type="text" data-f="faultLocOther" placeholder="اكتب أين هي الآن" maxlength="120" style="display:'+(L&&L.faultLoc&&[U.name].concat(FAULT_LOCS).indexOf(L.faultLoc)<0?'':'none')+';margin-top:6px" value="'+esc(L&&L.faultLoc&&[U.name].concat(FAULT_LOCS).indexOf(L.faultLoc)<0?L.faultLoc:"")+'"><label class="f">تاريخ التعطل</label>'+chips("faultDate",0)+'</div>'
-   +'<div class="ext ex-notours"><label class="f req">سُلمت إلى</label>'+sel("toUnit",units,1,L&&L.toUnit?unitName(L.toUnit)||L.toUnit:"")+'<label class="f">تاريخ التسليم</label>'+chips("toDate",0)+'<label class="f">سبب التسليم (اختياري)</label><input type="text" data-f="reason" maxlength="200" value="'+esc(L&&L.reason||"")+'"></div>'
+   +'<div class="ext ex-notours"><label class="f req">سلمت إلى</label>'+sel("toUnit",units,1,L&&L.toUnit?unitName(L.toUnit)||L.toUnit:"")+'<label class="f">تاريخ التسليم</label>'+chips("toDate",0)+'<label class="f">سبب التسليم (اختياري)</label><input type="text" data-f="reason" maxlength="200" value="'+esc(L&&L.reason||"")+'"></div>'
    +'<div class="ext ex-use"><label class="f req">طبيعة الاستخدام</label>'+sel("use",CFG.uses,1,L&&CFG.uses.indexOf(L.use)>=0?L.use:(L&&L.use?"غيرها":""))+'<input type="text" data-f="useOther" placeholder="اكتب طبيعة الاستخدام" style="display:'+(L&&L.use&&CFG.uses.indexOf(L.use)<0?'':'none')+';margin-top:6px" value="'+esc(L&&L.use&&CFG.uses.indexOf(L.use)<0?L.use:"")+'"><label class="f req">المستخدم (الاسم أو المسمى)</label><input type="text" data-f="user" maxlength="80" value="'+esc(L&&L.user||"")+'"></div>'
    +'</div>';
   el.innerHTML=head+lastHtml+full;
@@ -163,7 +163,7 @@ function card(c,i){
     el.querySelectorAll(".bt[data-a]").forEach(function(x){x.classList.remove("on")}); b.classList.add("on");
     var f=el.querySelector(".full");
     if(b.getAttribute("data-a")==="same"){f.classList.remove("show");c.same=true;c.ans=L.ans;setSt(c,"done","كما هو")}
-    else{f.classList.add("show");c.same=false;c.ans=null;setSt(c,"","لم تُجب");if(L&&L.ans){var ob=el.querySelector('.bt[data-ans="'+L.ans+'"]');if(ob)ob.click()}}
+    else{f.classList.add("show");c.same=false;c.ans=null;setSt(c,"","لم تجب");if(L&&L.ans){var ob=el.querySelector('.bt[data-ans="'+L.ans+'"]');if(ob)ob.click()}}
     upd();
   }});
   el.querySelectorAll(".bt[data-ans]").forEach(function(b){b.onclick=function(){
@@ -211,19 +211,19 @@ function upd(){
   var b=document.getElementById("send"), w=document.getElementById("warn");
   var by=byName(); var byEl=document.getElementById("by"); if(byEl) byEl.classList.toggle("err",!by);
   var can=total>0&&done===total&&!!CFG.script&&!!by;
-  b.disabled=!can; w.textContent=!CFG.script?"الإرسال غير متاح في وضع المعاينة":(done<total?"أجِب عن كل الآليات بكل الخانات الإلزامية ("+done+" من "+total+")":(!by?"اكتب اسم المرسل":""));
+  b.disabled=!can; w.textContent=!CFG.script?"الإرسال غير متاح في وضع المعاينة":(done<total?"أجب عن كل الآليات بكل الخانات الإلزامية ("+done+" من "+total+")":(!by?"اكتب اسم المرسل":""));
   window.__fdU={done:done,total:total,rows:CARDS.map(rowOf)};
 }
 function send(){
   var rows=CARDS.map(rowOf).filter(Boolean); if(!rows.length) return;
-  var b=document.getElementById("send"); b.disabled=true; b.textContent="جارٍ الإرسال…";
+  var b=document.getElementById("send"); b.disabled=true; b.textContent="جار الإرسال…";
   var by=byName(); try{localStorage.setItem("fd_u_by",by)}catch(e){}
   var body={unitKey:KEY,unitName:U.name,k:KTOK,by:by,ua:navigator.userAgent.slice(0,100),rows:rows};
   fetch(CFG.script,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){
     if(!j||!j.ok) throw new Error(j&&j.reason==="key"?"الرابط غير صالح أو تم تجديده":(j&&j.reason||"فشل"));
     var last={}; rows.forEach(function(r){last[r.plate]=Object.assign({ts:new Date().toISOString()},r)}); try{localStorage.setItem("fd_u_last_"+KEY,JSON.stringify({last:last,receipt:j.receipt}))}catch(e){}
     var txt="تحديث "+U.name+" · "+rows.length+" آلية · "+hijDisp(hij(new Date()))+"\nالمرسل: "+by+"\nرقم الإيصال: "+j.receipt+"\n"+rows.map(function(r){return "• "+r.plate+": "+ansLabel(r.ans)+(r.ans==="notours"?" ← "+(unitName(r.toUnit)||r.toUnit):"")}).join("\n");
-    app.innerHTML='<div class="done"><b>وصل تحديث '+esc(U.name)+'</b><br>'+rows.length+' آلية · '+esc(hijDisp(hij(new Date())))+'<br>رقم الإيصال: <b>'+esc(j.receipt)+'</b><br><a class="wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">إرسال نسخة واتساب</a></div><div class="msg">يمكن إغلاق الصفحة. لتعديل شيء بعد الإرسال أعد فتح الرابط وأرسل تحديثاً جديداً.</div>';
+    app.innerHTML='<div class="done"><b>وصل تحديث '+esc(U.name)+'</b><br>'+rows.length+' آلية · '+esc(hijDisp(hij(new Date())))+'<br>رقم الإيصال: <b>'+esc(j.receipt)+'</b><br><a class="wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">إرسال نسخة واتساب</a></div><div class="msg">يمكن إغلاق الصفحة. لتعديل شيء بعد الإرسال أعد فتح الرابط وأرسل تحديثا جديدا.</div>';
     document.getElementById("bar").style.display="none"; document.getElementById("pg").style.width="100%";
     window.__fdUDone=j;
   }).catch(function(e){b.disabled=false;b.textContent="إرسال التحديث";document.getElementById("warn").textContent="لم يصل التحديث ("+(e&&e.message)+"). حاول مرة أخرى.";});
