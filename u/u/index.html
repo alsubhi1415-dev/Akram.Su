@@ -1,0 +1,264 @@
+<!doctype html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>تحديث الآليات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#141A28;--mut:#5B6475;--line:#D5D8DE;--bg:#F4F4F2;--red:#9E1B22;--grn:#1E7A46;--amb:#B7791F;--blu:#1F6FB8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Tajawal,Tahoma,Arial,sans-serif;font-size:16px;line-height:1.6}
+.top{background:#141A28;color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:5}
+.top h1{margin:0;font-size:18px;font-weight:800}
+.top .d{font-size:12.5px;opacity:.85}
+.prog{height:6px;background:rgba(255,255,255,.25);border-radius:3px;margin-top:8px;overflow:hidden}
+.prog i{display:block;height:100%;background:#5BD38A;width:0;transition:width .25s}
+.wrap{padding:12px 12px 120px;max-width:620px;margin:0 auto}
+.msg{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;font-size:14px}
+.msg.w{background:#FFF8E8;border-color:#F0D9A0}.msg.e{background:#FBE3E4;border-color:#E6A5A8;color:var(--red)}
+.veh,.sender{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+.veh.ok{border-color:#9BC9A6}.veh.inc{border-color:#B7791F}
+.veh .t{font-weight:800;font-size:17px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.veh .t small{font-weight:400;font-size:12.5px;color:var(--mut)}
+.badge{font-size:11.5px;font-weight:800;border-radius:999px;padding:1px 9px;background:#FDF1D6;color:var(--amb);white-space:nowrap}
+.badge.done{background:#E6F4EA;color:var(--grn)}
+.last{background:#EEF2F7;border-radius:10px;padding:7px 10px;margin:8px 0 6px;font-size:13.5px}
+.last.none{background:#FFF8E8}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.bt{border:1.5px solid #CFCFCC;border-radius:12px;padding:11px 4px;text-align:center;font-weight:800;font-size:15px;background:#FAFAF9;cursor:pointer;user-select:none;line-height:1.3}
+.bt.on{border-color:var(--grn);background:#E6F4EA;color:var(--grn)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.opts .bt{font-size:14px;padding:10px 4px}
+.opts .bt.g.on{border-color:var(--grn);background:#E6F4EA;color:var(--grn)}
+.opts .bt.a.on{border-color:var(--amb);background:#FDF1D6;color:var(--amb)}
+.opts .bt.r.on{border-color:var(--red);background:#FBE3E4;color:var(--red)}
+.opts .bt.b.on{border-color:var(--blu);background:#E3EEF8;color:var(--blu)}
+.full{display:none;margin-top:6px}.full.show{display:block}
+.ext{display:none;border-top:1px dashed var(--line);margin-top:10px;padding-top:8px}.ext.show{display:block}
+label.f{display:block;font-size:13px;color:var(--mut);margin-top:8px}
+label.f.req:after{content:" *";color:var(--red);font-weight:800}
+select,input[type=text],input[type=date]{width:100%;border:1.5px solid #CFCFCC;border-radius:10px;padding:10px;font:inherit;font-size:15px;background:#fff;color:var(--ink)}
+select:invalid{color:#888}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chips span{border:1.5px solid #CFCFCC;border-radius:999px;padding:5px 12px;font-size:13.5px;background:#fff;cursor:pointer;user-select:none}
+.chips span.on{border-color:var(--blu);background:#E3EEF8;color:var(--blu);font-weight:800}
+.hd{font-size:12.5px;color:var(--mut);margin-top:4px}
+.bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:6}
+.bar .in{max-width:620px;margin:0 auto}
+.send{display:block;width:100%;border:0;border-radius:12px;padding:13px;font:inherit;font-size:16px;font-weight:800;color:#fff;background:var(--grn);cursor:pointer}
+.send:disabled{background:#B9BEC8;cursor:not-allowed}
+.add{display:block;width:100%;border:1.5px solid #CFCFCC;background:#fff;border-radius:12px;padding:11px;font:inherit;font-size:15px;font-weight:800;cursor:pointer;margin-top:10px}
+.warn{font-size:12.5px;color:var(--red);text-align:center;margin-top:5px}
+.done{background:#E6F4EA;border:1.5px solid #9BC9A6;border-radius:14px;padding:16px;text-align:center;margin:10px 0}
+.done b{font-size:18px;color:var(--grn)}
+.wa{display:inline-block;margin-top:10px;background:#25D366;color:#fff;border-radius:10px;padding:10px 18px;font-weight:800;text-decoration:none}
+.search{position:relative}
+.sr{position:absolute;right:0;left:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:10px;max-height:200px;overflow:auto;z-index:4;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+.sr div{padding:8px 10px;border-bottom:1px solid #EEE;cursor:pointer}
+.err{outline:2px solid var(--red)}
+</style>
+</head>
+<body>
+<div class="top"><h1 id="ttl">تحديث الآليات</h1><div class="d" id="sub">جار التحميل…</div><div class="prog"><i id="pg"></i></div></div>
+<div class="wrap" id="app"><div class="msg">جار تحميل قائمة الآليات…</div></div>
+<div class="bar" id="bar" style="display:none"><div class="in"><button class="send" id="send" disabled>إرسال التحديث</button><div class="warn" id="warn"></div></div></div>
+<script src="fdunits.js"></script>
+<script>
+(function(){
+var Q=new URLSearchParams(location.search), KEY=(Q.get("j")||"").trim(), KTOK=(Q.get("k")||"").trim();
+var CFG={script:"",uses:["التدخل السريع","مدير الشعبة","مدير قسم الإطفاء والإنقاذ","ضابط الخفر","ضباط الشعبة","جيب القارب","أعمال إدارية","مساندات","بلا مهمة","غيرها"],typeRe:"جيب",site:"",faultTypes:["ميكانيكي","بطاريات","كهربائي","مضخات","أخرى","برمجة","كفرات","خلل فني","تجديد ودهان","حادث مروري"],faultLocs:["الصيانة المركزية","ش روزنباور","ورشة خارجية","ش الانامل"]};
+/* القوائم بمسميات ملف الإكسل نفسها (تقرأ من config.json) */
+var NOTE_TYPES=CFG.faultTypes, FAULT_LOCS=CFG.faultLocs;
+var U=null, DB=null, LAST={}, INC={}, CARDS=[], ALL=[], WEEK="", WEEKSUB=null;
+var app=document.getElementById("app");
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+/* أم القرى */
+var KF=new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn",{year:"numeric",month:"numeric",day:"numeric"});
+function hij(d){var o={};KF.formatToParts(d).forEach(function(p){o[p.type]=p.value});return o.year+"/"+String(o.month).padStart(2,"0")+"/"+String(o.day).padStart(2,"0")}
+function hijAgo(n){return hij(new Date(Date.now()-n*864e5))}
+function hijDisp(s){var q=String(s||"").split("/");return q.length===3?(+q[2])+"/"+(+q[1])+"/"+q[0]+"هـ":s}
+function weekSunday(d){var x=new Date(d);var back=x.getDay();x.setDate(x.getDate()-back);return x.toISOString().slice(0,10)}
+function ansLabel(a){return{ok:"بحوزتنا تعمل",notes:"بحوزتنا تعمل بملاحظات",down:"بحوزتنا متعطلة",notours:"ليست عندنا"}[a]||a}
+function unitName(k){var u=FDU.unit(k);return u?u.name:(k||"")}
+function lastSummary(r){
+  var s="<b>"+esc(ansLabel(r.ans))+"</b>";
+  if(r.ans==="notes") s+=" · "+esc(r.noteType)+": "+esc(r.noteText)+" ("+esc(hijDisp(r.noteDate))+")";
+  if(r.ans==="down") s+=" · "+esc(r.faultType)+": "+esc(r.faultDesc)+" · في "+esc(r.faultLoc)+" منذ "+esc(hijDisp(r.faultDate));
+  if(r.ans==="notours") s+=" ← "+esc(unitName(r.toUnit)||r.toUnit)+" ("+esc(hijDisp(r.toDate))+")";
+  if(r.ans!=="notours") s+="<br>"+esc(r.use)+" · "+esc(r.user);
+  return s;
+}
+function load(){
+  if(!KEY){app.innerHTML='<div class="msg e">الرابط غير مكتمل: لا توجد جهة محددة.</div>';return}
+  U=FDU.unit(KEY);
+  if(!U){app.innerHTML='<div class="msg e">الجهة غير معروفة في هذا الرابط.</div>';return}
+  document.getElementById("ttl").textContent=U.name;
+  var p1=fetch("config.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():{}}).catch(function(){return{}});
+  var p2=fetch("../data.json",{cache:"no-store"}).then(function(r){return r.json()});
+  Promise.all([p1,p2]).then(function(x){
+    Object.assign(CFG,x[0]||{}); NOTE_TYPES=CFG.faultTypes||NOTE_TYPES; FAULT_LOCS=CFG.faultLocs||FAULT_LOCS; var raw=x[1]; DB=raw.db||raw;
+    var re=new RegExp(CFG.typeRe||"جيب");
+    ALL=(DB.vehicles||[]).filter(function(v){return FDU.isAdmin(v,re)});
+    var mine=ALL.filter(function(v){return FDU.unitOf(v)===KEY}).sort(function(a,b){return String(a.plate).localeCompare(String(b.plate),"ar")});
+    var p3=CFG.script?fetch(CFG.script+"?unit="+encodeURIComponent(KEY)+"&k="+encodeURIComponent(KTOK),{cache:"no-store"}).then(function(r){return r.json()}).catch(function(){return null}):Promise.resolve(null);
+    return p3.then(function(j){
+      if(j&&!j.ok&&j.reason==="key"){app.innerHTML='<div class="msg e">هذا الرابط غير صالح أو تم تجديده. اطلب الرابط المحدث لجهتكم من إدارة الآليات.</div>';return}
+      if(j&&j.ok){LAST=j.last||{};INC=j.incoming||{};WEEK=j.week||"";WEEKSUB=j.weekSub||null}
+      else{try{var c=JSON.parse(localStorage.getItem("fd_u_last_"+KEY)||"{}");LAST=c.last||{}}catch(e){}}
+      if(!WEEK) WEEK=weekSunday(new Date());
+      render(mine, j);
+    });
+  }).catch(function(e){app.innerHTML='<div class="msg e">تعذر تحميل قائمة الآليات. أعد المحاولة بعد قليل.<br><small>'+esc(e&&e.message)+'</small></div>'});
+}
+function render(mine, j){
+  document.getElementById("sub").textContent="تحديث الآليات الإدارية · أسبوع الأحد "+hijDisp(hij(new Date(WEEK+"T12:00:00")));
+  var h="";
+  /* 42.267: بلا خدمة استقبال تعمل الصفحة بقناة الرابط - عند الاكتمال يظهر رابط البيان لنسخه وارساله */
+  if(!CFG.script) h+='<div class="msg">بعد إكمال كل الآليات اضغط إنشاء رابط التحديث ثم أرسل الرابط إلى إدارة الآليات (واتساب).</div>';
+  else if(!j||!j.ok) h+='<div class="msg w">تعذر الاتصال بخدمة الاستقبال الآن؛ تعرض آخر إجابة محفوظة على هذا الجهاز إن وجدت.</div>';
+  CARDS=[];
+  mine.forEach(function(v){CARDS.push({v:v,last:LAST[v.plate]||null,added:0,inc:false})});
+  Object.keys(INC).forEach(function(pl){ if(mine.some(function(v){return v.plate===pl})) return; var v=ALL.filter(function(x){return x.plate===pl})[0]; if(!v) return; CARDS.push({v:v,last:LAST[pl]||null,added:0,inc:true,from:INC[pl]}); });
+  if(WEEKSUB) h+='<div class="msg w">سبق إرسال تحديث هذه الجهة لهذا الأسبوع بواسطة <b>'+esc(WEEKSUB.by||"")+'</b> بتاريخ '+esc(hijDisp(hij(new Date(WEEKSUB.ts))))+' (إيصال '+esc(WEEKSUB.receipt||"")+'). الإرسال الجديد يسجل باسم مرسله ويحل محل السابق عند الاعتماد.</div>';
+  var byv=""; try{byv=localStorage.getItem("fd_u_by")||""}catch(e){}
+  h+='<div class="sender"><label class="f req" style="margin-top:0">اسم المرسل ورتبته (مسؤول التحديث في الجهة)</label><input type="text" id="by" maxlength="80" value="'+esc(byv)+'" placeholder="مثال: الرقيب فهد العتيبي"></div>';
+  if(!CARDS.length) h+='<div class="msg">لا توجد آليات إدارية مسجلة لهذه الجهة في السجل. إن كانت لديكم آلية فأضفها من الزر أدناه.</div>';
+  app.innerHTML=h+'<div id="cards"></div><button class="add" id="addb">+ آلية بحوزتنا ليست في القائمة</button><div class="search" id="srch" style="display:none"><label class="f">اكتب رقم اللوحة (الأرقام تكفي)</label><input type="text" id="sq" inputmode="numeric" placeholder="مثال: 7402"><div class="sr" id="sr" style="display:none"></div></div>';
+  CARDS.forEach(function(c,i){document.getElementById("cards").appendChild(card(c,i))});
+  document.getElementById("bar").style.display="";
+  document.getElementById("addb").onclick=function(){var s=document.getElementById("srch");s.style.display=s.style.display==="none"?"":"none";document.getElementById("sq").focus()};
+  document.getElementById("sq").oninput=function(){
+    var q=this.value.replace(/\D/g,""); var box=document.getElementById("sr"); if(q.length<2){box.style.display="none";return}
+    var hits=ALL.filter(function(v){return String(v.plate).replace(/\D/g,"").indexOf(q)>=0 && !CARDS.some(function(c){return c.v.id===v.id})}).slice(0,8);
+    box.innerHTML=hits.length?hits.map(function(v){return '<div data-id="'+esc(v.id)+'"><b>'+esc(v.plate)+'</b> <small>'+esc(v.type)+' · مسجلة: '+esc(unitName(FDU.unitOf(v)))+'</small></div>'}).join(""):'<div>لا نتيجة بين الآليات الإدارية</div>';
+    box.style.display="";
+    box.querySelectorAll("div[data-id]").forEach(function(d){d.onclick=function(){var v=ALL.filter(function(x){return String(x.id)===d.getAttribute("data-id")})[0];var c={v:v,last:null,added:1,inc:false};CARDS.push(c);document.getElementById("cards").appendChild(card(c,CARDS.length-1));box.style.display="none";document.getElementById("sq").value="";document.getElementById("srch").style.display="none";upd()}});
+  };
+  document.getElementById("send").onclick=send;
+  document.getElementById("by").addEventListener("input",upd);
+  upd();
+}
+function byName(){var x=document.getElementById("by");return x?String(x.value||"").trim():""}
+function chips(name,def){var o=[["اليوم",0],["أمس",1],["قبل أسبوع",7]];return '<div class="chips" data-ch="'+name+'">'+o.map(function(x){return '<span data-d="'+x[1]+'"'+(x[1]===def?' class="on"':'')+'>'+x[0]+'</span>'}).join("")+'<span data-d="x">تاريخ آخر</span></div><input type="date" class="dx" data-for="'+name+'" style="display:none;margin-top:6px">'}
+function sel(name,opts,req,val){return '<select data-f="'+name+'"'+(req?' required':'')+'><option value="" disabled'+(val?'':' selected')+'>اختر…</option>'+opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>'}).join("")+'</select>'}
+function card(c,i){
+  var v=c.v, el=document.createElement("div"); el.className="veh"+(c.inc?" inc":""); el.setAttribute("data-i",i);
+  var units=FDU.UNITS.filter(function(u){return u.k!==KEY}).map(function(u){return u.name}).concat(["لا نعلم"]);
+  var L=c.last;
+  var head='<div class="t"><span>'+esc(v.plate)+' <small>'+esc(v.type||"")+(v.model?' '+esc(v.model):'')+'</small></span><span class="badge" data-st>'+(c.inc?'قيل إنها لديكم':(c.added?'أضيفت':'لم تجب'))+'</span></div>';
+  if(c.inc&&c.from) head+='<div class="last">'+esc(unitName(c.from.unitKey))+' قالت إنها سلمت إليكم بتاريخ '+esc(hijDisp(c.from.toDate))+'. أجيبوا بما لديكم.</div>';
+  var lastHtml=L?'<div class="last">آخر تحديث '+esc(hijDisp(hij(new Date(L.ts))))+': '+lastSummary(L)+'</div><div class="two"><div class="bt" data-a="same">✓ كما هو</div><div class="bt" data-a="change">تغيير</div></div>':'<div class="last none">لا يوجد تحديث سابق · التعبئة كاملة مرة واحدة</div>';
+  var full='<div class="full'+(L?'':' show')+'">'
+   +'<div class="opts"><div class="bt g" data-ans="ok">بحوزتنا<br>تعمل</div><div class="bt a" data-ans="notes">بحوزتنا<br>تعمل بملاحظات</div><div class="bt r" data-ans="down">بحوزتنا<br>متعطلة</div><div class="bt b" data-ans="notours">ليست عندنا</div></div>'
+   +'<div class="ext ex-notes"><label class="f req">نوع الملاحظة</label>'+sel("noteType",NOTE_TYPES,1,L&&L.noteType)+'<label class="f req">نص الملاحظة</label><input type="text" data-f="noteText" maxlength="200" value="'+esc(L&&L.noteText||"")+'"><label class="f">تاريخ الملاحظة</label>'+chips("noteDate",0)+'</div>'
+   +'<div class="ext ex-down"><label class="f req">نوع العطل</label>'+sel("faultType",NOTE_TYPES,1,L&&L.faultType)+'<label class="f req">وصف العطل</label><input type="text" data-f="faultDesc" maxlength="200" value="'+esc(L&&L.faultDesc||"")+'"><label class="f req">موجودة الآن في</label>'+sel("faultLoc",[U.name].concat(FAULT_LOCS,["مكان آخر"]),1,(function(){var fl=L&&L.faultLoc;if(!fl)return U.name;return ([U.name].concat(FAULT_LOCS).indexOf(fl)>=0)?fl:"مكان آخر";})())+'<input type="text" data-f="faultLocOther" placeholder="اكتب أين هي الآن" maxlength="120" style="display:'+(L&&L.faultLoc&&[U.name].concat(FAULT_LOCS).indexOf(L.faultLoc)<0?'':'none')+';margin-top:6px" value="'+esc(L&&L.faultLoc&&[U.name].concat(FAULT_LOCS).indexOf(L.faultLoc)<0?L.faultLoc:"")+'"><label class="f">تاريخ التعطل</label>'+chips("faultDate",0)+'</div>'
+   +'<div class="ext ex-notours"><label class="f req">سلمت إلى</label>'+sel("toUnit",units,1,L&&L.toUnit?unitName(L.toUnit)||L.toUnit:"")+'<label class="f">تاريخ التسليم</label>'+chips("toDate",0)+'<label class="f">سبب التسليم (اختياري)</label><input type="text" data-f="reason" maxlength="200" value="'+esc(L&&L.reason||"")+'"></div>'
+   +'<div class="ext ex-use"><label class="f req">طبيعة الاستخدام</label>'+sel("use",CFG.uses,1,L&&CFG.uses.indexOf(L.use)>=0?L.use:(L&&L.use?"غيرها":""))+'<input type="text" data-f="useOther" placeholder="اكتب طبيعة الاستخدام" style="display:'+(L&&L.use&&CFG.uses.indexOf(L.use)<0?'':'none')+';margin-top:6px" value="'+esc(L&&L.use&&CFG.uses.indexOf(L.use)<0?L.use:"")+'"><label class="f req">المستخدم (الاسم أو المسمى)</label><input type="text" data-f="user" maxlength="80" value="'+esc(L&&L.user||"")+'"></div>'
+   +'</div>';
+  el.innerHTML=head+lastHtml+full;
+  c.el=el; c.ans=null; c.same=false;
+  el.querySelectorAll(".bt[data-a]").forEach(function(b){b.onclick=function(){
+    el.querySelectorAll(".bt[data-a]").forEach(function(x){x.classList.remove("on")}); b.classList.add("on");
+    var f=el.querySelector(".full");
+    if(b.getAttribute("data-a")==="same"){f.classList.remove("show");c.same=true;c.ans=L.ans;setSt(c,"done","كما هو")}
+    else{f.classList.add("show");c.same=false;c.ans=null;setSt(c,"","لم تجب");if(L&&L.ans){var ob=el.querySelector('.bt[data-ans="'+L.ans+'"]');if(ob)ob.click()}}
+    upd();
+  }});
+  el.querySelectorAll(".bt[data-ans]").forEach(function(b){b.onclick=function(){
+    el.querySelectorAll(".bt[data-ans]").forEach(function(x){x.classList.remove("on")}); b.classList.add("on");
+    var a=b.getAttribute("data-ans"); c.ans=a; c.same=false;
+    el.querySelectorAll(".ext").forEach(function(x){x.classList.remove("show")});
+    var ex=el.querySelector(".ex-"+a); if(ex) ex.classList.add("show");
+    if(a!=="notours") el.querySelector(".ex-use").classList.add("show");
+    setSt(c,"done",ansLabel(a)); upd();
+  }});
+  el.querySelectorAll(".chips").forEach(function(ch){ch.querySelectorAll("span").forEach(function(s){s.onclick=function(){ch.querySelectorAll("span").forEach(function(x){x.classList.remove("on")});s.classList.add("on");var dx=el.querySelector('.dx[data-for="'+ch.getAttribute("data-ch")+'"]');dx.style.display=s.getAttribute("data-d")==="x"?"":"none";upd()}})});
+  var us=el.querySelector('select[data-f="use"]'); us.onchange=function(){el.querySelector('input[data-f="useOther"]').style.display=us.value==="غيرها"?"":"none";upd()};
+  var fl=el.querySelector('select[data-f="faultLoc"]'); fl.onchange=function(){el.querySelector('input[data-f="faultLocOther"]').style.display=fl.value==="مكان آخر"?"":"none";upd()};
+  el.querySelectorAll("select,input").forEach(function(x){x.addEventListener("input",upd);x.addEventListener("change",upd)});
+  return el;
+}
+function setSt(c,cls,txt){var b=c.el.querySelector("[data-st]");b.className="badge "+cls;b.textContent=txt;c.el.classList.toggle("ok",cls==="done")}
+function dateOf(el,name){var ch=el.querySelector('.chips[data-ch="'+name+'"] span.on');if(!ch)return "";var d=ch.getAttribute("data-d");if(d==="x"){var dx=el.querySelector('.dx[data-for="'+name+'"]');if(!dx.value)return "";return hij(new Date(dx.value+"T12:00:00"))}return hijAgo(+d)}
+function val(c,f){var x=c.el.querySelector('[data-f="'+f+'"]');return x?String(x.value||"").trim():""}
+function rowOf(c){
+  var L=c.last, v=c.v;
+  if(c.same&&L){var r={};["ans","noteType","noteText","noteDate","faultType","faultDesc","faultLoc","faultDate","toUnit","toDate","reason","use","user"].forEach(function(k){r[k]=L[k]||""});r.same=1;r.plate=v.plate;r.vid=v.id;r.added=c.added?1:0;return r}
+  var el=c.el, a=c.ans; if(!a) return null;
+  var r={plate:v.plate,vid:v.id,ans:a,same:0,added:c.added?1:0,noteType:"",noteText:"",noteDate:"",faultType:"",faultDesc:"",faultLoc:"",faultDate:"",toUnit:"",toDate:"",reason:"",use:"",user:""};
+  if(a==="notes"){r.noteType=val(c,"noteType");r.noteText=val(c,"noteText");r.noteDate=dateOf(el,"noteDate")}
+  if(a==="down"){r.faultType=val(c,"faultType");r.faultDesc=val(c,"faultDesc");var fl=val(c,"faultLoc");r.faultLoc=fl==="مكان آخر"?val(c,"faultLocOther"):fl;r.faultDate=dateOf(el,"faultDate")}
+  if(a==="notours"){var tn=val(c,"toUnit");var u=FDU.byName(tn);r.toUnit=u?u.k:tn;r.toDate=dateOf(el,"toDate");r.reason=val(c,"reason")}
+  else{var use=val(c,"use");r.use=use==="غيرها"?val(c,"useOther"):use;r.user=val(c,"user")}
+  return r;
+}
+function missing(c){
+  if(c.same&&c.last) return [];
+  var r=rowOf(c); if(!r) return ["الحالة"];
+  var m=[];
+  if(r.ans==="notes"){if(!r.noteType)m.push("noteType");if(!r.noteText)m.push("noteText");if(!r.noteDate)m.push("noteDate")}
+  if(r.ans==="down"){if(!r.faultType)m.push("faultType");if(!r.faultDesc)m.push("faultDesc");if(!r.faultLoc)m.push(val(c,"faultLoc")==="مكان آخر"?"faultLocOther":"faultLoc");if(!r.faultDate)m.push("faultDate")}
+  if(r.ans==="notours"){if(!r.toUnit)m.push("toUnit");if(!r.toDate)m.push("toDate")}
+  else{if(!r.use)m.push("use");if(!r.user)m.push("user")}
+  return m;
+}
+function upd(){
+  var done=0, total=CARDS.length;
+  CARDS.forEach(function(c){var m=missing(c);var ok=!m.length&&(c.same||c.ans);if(ok)done++; c.el.querySelectorAll(".err").forEach(function(x){x.classList.remove("err")}); if(c.ans&&!c.same){m.forEach(function(f){var x=c.el.querySelector('[data-f="'+f+'"]');if(x)x.classList.add("err")})}});
+  document.getElementById("pg").style.width=(total?done/total*100:0)+"%";
+  var b=document.getElementById("send"), w=document.getElementById("warn");
+  var by=byName(); var byEl=document.getElementById("by"); if(byEl) byEl.classList.toggle("err",!by);
+  var can=total>0&&done===total&&!!by;
+  b.disabled=!can; b.textContent=CFG.script?"إرسال التحديث":"إنشاء رابط التحديث";
+  w.textContent=done<total?"أجب عن كل الآليات بكل الخانات الإلزامية ("+done+" من "+total+")":(!by?"اكتب اسم المرسل":"");
+  window.__fdU={done:done,total:total,rows:CARDS.map(rowOf)};
+}
+/* 42.267 - قناة الرابط: الاجابات تضغط داخل رابط المنصة (#u=...) فتنسخه الجهة وترسله؛ المنصة تقرؤه وتحوله الى بيان مستقل */
+function b64u(bytes){var s="";for(var i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function packLink(payload){
+  var json=JSON.stringify(payload), bytes=new TextEncoder().encode(json);
+  var plain=Promise.resolve("j1."+b64u(bytes));
+  if(typeof CompressionStream!=="function") return plain;
+  try{
+    var cs=new CompressionStream("deflate-raw"); var w=cs.writable.getWriter(); w.write(bytes); w.close();
+    return new Response(cs.readable).arrayBuffer().then(function(buf){var z=new Uint8Array(buf);return z.length<bytes.length?"z1."+b64u(z):"j1."+b64u(bytes)}).catch(function(){return plain});
+  }catch(e){return plain}
+}
+function siteBase(){var s=String(CFG.site||"").replace(/\/+$/,"");if(s)return s;var h=location.href.split("#")[0].split("?")[0];var k=h.indexOf("/u/");return k>0?h.slice(0,k):h.replace(/\/[^\/]*$/,"")}
+function codeOf(str){var h=5381;for(var i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return ("00000000"+(h>>>0).toString(16)).slice(-8).toUpperCase()}
+function showLink(link,code,rows,by,receipt){
+  var txt="تحديث "+U.name+" · "+rows.length+" آلية · "+hijDisp(hij(new Date()))+"\nالمرسل: "+by+"\nرمز البيان: "+code+(receipt?"\nرقم الإيصال: "+receipt:"")+"\n"+rows.map(function(r){return "• "+r.plate+": "+ansLabel(r.ans)+(r.ans==="notours"?" ← "+(unitName(r.toUnit)||r.toUnit):"")}).join("\n")+"\n\nرابط البيان:\n"+link;
+  app.innerHTML='<div class="done"><b>اكتمل تحديث '+esc(U.name)+'</b><br>'+rows.length+' آلية · '+esc(hijDisp(hij(new Date())))+'<br>رمز البيان: <b>'+esc(code)+'</b>'+(receipt?'<br>رقم الإيصال: <b>'+esc(receipt)+'</b>':'')+'</div>'
+    +'<div class="msg"><b>انسخ الرابط التالي وأرسله إلى إدارة الآليات</b> (يحمل إجاباتكم كاملة ويتحول عندهم إلى بيان رسمي):</div>'
+    +'<textarea id="ulink" readonly style="width:100%;box-sizing:border-box;height:84px;font-size:11px;direction:ltr;text-align:left;border:1.5px solid #CCD4DC;border-radius:10px;padding:8px">'+esc(link)+'</textarea>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" class="send" id="ucopy" style="flex:1">نسخ الرابط</button><a class="wa" style="flex:1;text-align:center" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">إرسال عبر واتساب</a></div>'
+    +'<div class="msg">يمكن إغلاق الصفحة بعد الإرسال. لتعديل الإجابة أعد فتح الرابط وأرسل تحديثا جديدا.</div>';
+  document.getElementById("ucopy").onclick=function(){var t=document.getElementById("ulink");var done=function(ok){document.getElementById("ucopy").textContent=ok?"نسخ الرابط ✓":"حدد النص وانسخه يدويا"};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(link).then(function(){done(true)},function(){t.select();done(document.execCommand("copy"))});return}}catch(e){}t.select();done(document.execCommand("copy"))};
+  document.getElementById("bar").style.display="none"; document.getElementById("pg").style.width="100%";
+}
+function send(){
+  var rows=CARDS.map(rowOf).filter(Boolean); if(!rows.length) return;
+  var b=document.getElementById("send"); b.disabled=true; b.textContent="جار التجهيز…";
+  var by=byName(); try{localStorage.setItem("fd_u_by",by)}catch(e){}
+  var ts=new Date().toISOString();
+  var payload={v:1,unitKey:KEY,unitName:U.name,k:KTOK,by:by,ts:ts,week:WEEK,rows:rows};
+  var last={}; rows.forEach(function(r){last[r.plate]=Object.assign({ts:ts},r)}); try{localStorage.setItem("fd_u_last_"+KEY,JSON.stringify({last:last}))}catch(e){}
+  packLink(payload).then(function(enc){
+    var link=siteBase()+"/#u="+enc, code=codeOf(enc);
+    window.__fdULink={link:link,code:code,enc:enc,payload:payload};
+    if(!CFG.script){ showLink(link,code,rows,by,""); window.__fdUDone={ok:true,link:true}; return; }
+    var body={unitKey:KEY,unitName:U.name,k:KTOK,by:by,ua:navigator.userAgent.slice(0,100),rows:rows};
+    return fetch(CFG.script,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){
+      if(!j||!j.ok) throw new Error(j&&j.reason==="key"?"الرابط غير صالح أو تم تجديده":(j&&j.reason||"فشل"));
+      showLink(link,code,rows,by,j.receipt||""); window.__fdUDone=j;
+    }).catch(function(e){ showLink(link,code,rows,by,""); document.getElementById("warn").textContent="لم تصل خدمة الاستقبال ("+(e&&e.message)+") - أرسل الرابط فهو كاف."; window.__fdUDone={ok:true,link:true,svcErr:String(e&&e.message)}; });
+  }).catch(function(e){b.disabled=false;b.textContent=CFG.script?"إرسال التحديث":"إنشاء رابط التحديث";document.getElementById("warn").textContent="تعذر تجهيز الرابط ("+(e&&e.message)+"). حاول مرة أخرى.";});
+}
+load();
+})();
+</script>
+</body>
+</html>
