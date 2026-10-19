@@ -114,9 +114,10 @@ function load(){
   }).catch(function(e){app.innerHTML='<div class="msg e">تعذر تحميل قائمة الآليات. أعد المحاولة بعد قليل.<br><small>'+esc(e&&e.message)+'</small></div>'});
 }
 function render(mine, j){
-  document.getElementById("sub").textContent="تحديث الآليات الإدارية · أسبوع الأحد "+hijDisp(hij(new Date(WEEK+"T12:00:00")))+ (CFG.script?"":" · (وضع المعاينة)");
+  document.getElementById("sub").textContent="تحديث الآليات الإدارية · أسبوع الأحد "+hijDisp(hij(new Date(WEEK+"T12:00:00")));
   var h="";
-  if(!CFG.script) h+='<div class="msg w">لم يضبط رابط الاستقبال بعد؛ الصفحة للمعاينة فقط ولا يمكن الإرسال.</div>';
+  /* 42.267: بلا خدمة استقبال تعمل الصفحة بقناة الرابط - عند الاكتمال يظهر رابط البيان لنسخه وارساله */
+  if(!CFG.script) h+='<div class="msg">بعد إكمال كل الآليات اضغط إنشاء رابط التحديث ثم أرسل الرابط إلى إدارة الآليات (واتساب).</div>';
   else if(!j||!j.ok) h+='<div class="msg w">تعذر الاتصال بخدمة الاستقبال الآن؛ تعرض آخر إجابة محفوظة على هذا الجهاز إن وجدت.</div>';
   CARDS=[];
   mine.forEach(function(v){CARDS.push({v:v,last:LAST[v.plate]||null,added:0,inc:false})});
@@ -210,23 +211,51 @@ function upd(){
   document.getElementById("pg").style.width=(total?done/total*100:0)+"%";
   var b=document.getElementById("send"), w=document.getElementById("warn");
   var by=byName(); var byEl=document.getElementById("by"); if(byEl) byEl.classList.toggle("err",!by);
-  var can=total>0&&done===total&&!!CFG.script&&!!by;
-  b.disabled=!can; w.textContent=!CFG.script?"الإرسال غير متاح في وضع المعاينة":(done<total?"أجب عن كل الآليات بكل الخانات الإلزامية ("+done+" من "+total+")":(!by?"اكتب اسم المرسل":""));
+  var can=total>0&&done===total&&!!by;
+  b.disabled=!can; b.textContent=CFG.script?"إرسال التحديث":"إنشاء رابط التحديث";
+  w.textContent=done<total?"أجب عن كل الآليات بكل الخانات الإلزامية ("+done+" من "+total+")":(!by?"اكتب اسم المرسل":"");
   window.__fdU={done:done,total:total,rows:CARDS.map(rowOf)};
+}
+/* 42.267 - قناة الرابط: الاجابات تضغط داخل رابط المنصة (#u=...) فتنسخه الجهة وترسله؛ المنصة تقرؤه وتحوله الى بيان مستقل */
+function b64u(bytes){var s="";for(var i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function packLink(payload){
+  var json=JSON.stringify(payload), bytes=new TextEncoder().encode(json);
+  var plain=Promise.resolve("j1."+b64u(bytes));
+  if(typeof CompressionStream!=="function") return plain;
+  try{
+    var cs=new CompressionStream("deflate-raw"); var w=cs.writable.getWriter(); w.write(bytes); w.close();
+    return new Response(cs.readable).arrayBuffer().then(function(buf){var z=new Uint8Array(buf);return z.length<bytes.length?"z1."+b64u(z):"j1."+b64u(bytes)}).catch(function(){return plain});
+  }catch(e){return plain}
+}
+function siteBase(){var s=String(CFG.site||"").replace(/\/+$/,"");if(s)return s;var h=location.href.split("#")[0].split("?")[0];var k=h.indexOf("/u/");return k>0?h.slice(0,k):h.replace(/\/[^\/]*$/,"")}
+function codeOf(str){var h=5381;for(var i=0;i<str.length;i++)h=((h<<5)+h+str.charCodeAt(i))|0;return ("00000000"+(h>>>0).toString(16)).slice(-8).toUpperCase()}
+function showLink(link,code,rows,by,receipt){
+  var txt="تحديث "+U.name+" · "+rows.length+" آلية · "+hijDisp(hij(new Date()))+"\nالمرسل: "+by+"\nرمز البيان: "+code+(receipt?"\nرقم الإيصال: "+receipt:"")+"\n"+rows.map(function(r){return "• "+r.plate+": "+ansLabel(r.ans)+(r.ans==="notours"?" ← "+(unitName(r.toUnit)||r.toUnit):"")}).join("\n")+"\n\nرابط البيان:\n"+link;
+  app.innerHTML='<div class="done"><b>اكتمل تحديث '+esc(U.name)+'</b><br>'+rows.length+' آلية · '+esc(hijDisp(hij(new Date())))+'<br>رمز البيان: <b>'+esc(code)+'</b>'+(receipt?'<br>رقم الإيصال: <b>'+esc(receipt)+'</b>':'')+'</div>'
+    +'<div class="msg"><b>انسخ الرابط التالي وأرسله إلى إدارة الآليات</b> (يحمل إجاباتكم كاملة ويتحول عندهم إلى بيان رسمي):</div>'
+    +'<textarea id="ulink" readonly style="width:100%;box-sizing:border-box;height:84px;font-size:11px;direction:ltr;text-align:left;border:1.5px solid #CCD4DC;border-radius:10px;padding:8px">'+esc(link)+'</textarea>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" class="send" id="ucopy" style="flex:1">نسخ الرابط</button><a class="wa" style="flex:1;text-align:center" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">إرسال عبر واتساب</a></div>'
+    +'<div class="msg">يمكن إغلاق الصفحة بعد الإرسال. لتعديل الإجابة أعد فتح الرابط وأرسل تحديثا جديدا.</div>';
+  document.getElementById("ucopy").onclick=function(){var t=document.getElementById("ulink");var done=function(ok){document.getElementById("ucopy").textContent=ok?"نسخ الرابط ✓":"حدد النص وانسخه يدويا"};try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(link).then(function(){done(true)},function(){t.select();done(document.execCommand("copy"))});return}}catch(e){}t.select();done(document.execCommand("copy"))};
+  document.getElementById("bar").style.display="none"; document.getElementById("pg").style.width="100%";
 }
 function send(){
   var rows=CARDS.map(rowOf).filter(Boolean); if(!rows.length) return;
-  var b=document.getElementById("send"); b.disabled=true; b.textContent="جار الإرسال…";
+  var b=document.getElementById("send"); b.disabled=true; b.textContent="جار التجهيز…";
   var by=byName(); try{localStorage.setItem("fd_u_by",by)}catch(e){}
-  var body={unitKey:KEY,unitName:U.name,k:KTOK,by:by,ua:navigator.userAgent.slice(0,100),rows:rows};
-  fetch(CFG.script,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){
-    if(!j||!j.ok) throw new Error(j&&j.reason==="key"?"الرابط غير صالح أو تم تجديده":(j&&j.reason||"فشل"));
-    var last={}; rows.forEach(function(r){last[r.plate]=Object.assign({ts:new Date().toISOString()},r)}); try{localStorage.setItem("fd_u_last_"+KEY,JSON.stringify({last:last,receipt:j.receipt}))}catch(e){}
-    var txt="تحديث "+U.name+" · "+rows.length+" آلية · "+hijDisp(hij(new Date()))+"\nالمرسل: "+by+"\nرقم الإيصال: "+j.receipt+"\n"+rows.map(function(r){return "• "+r.plate+": "+ansLabel(r.ans)+(r.ans==="notours"?" ← "+(unitName(r.toUnit)||r.toUnit):"")}).join("\n");
-    app.innerHTML='<div class="done"><b>وصل تحديث '+esc(U.name)+'</b><br>'+rows.length+' آلية · '+esc(hijDisp(hij(new Date())))+'<br>رقم الإيصال: <b>'+esc(j.receipt)+'</b><br><a class="wa" href="https://wa.me/?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">إرسال نسخة واتساب</a></div><div class="msg">يمكن إغلاق الصفحة. لتعديل شيء بعد الإرسال أعد فتح الرابط وأرسل تحديثا جديدا.</div>';
-    document.getElementById("bar").style.display="none"; document.getElementById("pg").style.width="100%";
-    window.__fdUDone=j;
-  }).catch(function(e){b.disabled=false;b.textContent="إرسال التحديث";document.getElementById("warn").textContent="لم يصل التحديث ("+(e&&e.message)+"). حاول مرة أخرى.";});
+  var ts=new Date().toISOString();
+  var payload={v:1,unitKey:KEY,unitName:U.name,k:KTOK,by:by,ts:ts,week:WEEK,rows:rows};
+  var last={}; rows.forEach(function(r){last[r.plate]=Object.assign({ts:ts},r)}); try{localStorage.setItem("fd_u_last_"+KEY,JSON.stringify({last:last}))}catch(e){}
+  packLink(payload).then(function(enc){
+    var link=siteBase()+"/#u="+enc, code=codeOf(enc);
+    window.__fdULink={link:link,code:code,enc:enc,payload:payload};
+    if(!CFG.script){ showLink(link,code,rows,by,""); window.__fdUDone={ok:true,link:true}; return; }
+    var body={unitKey:KEY,unitName:U.name,k:KTOK,by:by,ua:navigator.userAgent.slice(0,100),rows:rows};
+    return fetch(CFG.script,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)}).then(function(r){return r.json()}).then(function(j){
+      if(!j||!j.ok) throw new Error(j&&j.reason==="key"?"الرابط غير صالح أو تم تجديده":(j&&j.reason||"فشل"));
+      showLink(link,code,rows,by,j.receipt||""); window.__fdUDone=j;
+    }).catch(function(e){ showLink(link,code,rows,by,""); document.getElementById("warn").textContent="لم تصل خدمة الاستقبال ("+(e&&e.message)+") - أرسل الرابط فهو كاف."; window.__fdUDone={ok:true,link:true,svcErr:String(e&&e.message)}; });
+  }).catch(function(e){b.disabled=false;b.textContent=CFG.script?"إرسال التحديث":"إنشاء رابط التحديث";document.getElementById("warn").textContent="تعذر تجهيز الرابط ("+(e&&e.message)+"). حاول مرة أخرى.";});
 }
 load();
 })();
