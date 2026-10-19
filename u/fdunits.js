@@ -48,6 +48,6 @@
     return "other";
   }
   function unit(k) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].k === k) return UNITS[i]; return null; }
-  function isAdmin(v, re) { var R = re || /جيب/; return R.test(String(v && v.type || "")); }
+  function isAdmin(v, re) { var R = re || /جيب/; var t = String(v && v.type || ""); return R.test(t) && !/ديهاتسو/.test(t); } /* 42.268: جيوب ديهاتسو ادرجت تحت الجهات بالخطا - لا تعرض ولا تعد */
   G.FDU = { UNITS: UNITS, AOT: AOT, oz: oz, tl: tl, unitOf: unitOf, unit: unit, byName: byName, isAdmin: isAdmin, NONUNIT: NONUNIT };
 })(typeof window !== "undefined" ? window : (typeof globalThis !== "undefined" ? globalThis : this));
