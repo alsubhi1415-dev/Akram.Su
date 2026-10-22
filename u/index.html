@@ -68,7 +68,7 @@ select:invalid{color:#888}
 <script src="fdunits.js"></script>
 <script>
 (function(){
-var Q=new URLSearchParams(location.search), KEY=(Q.get("j")||"").trim(), KTOK=(Q.get("k")||"").trim();
+var Q=new URLSearchParams(location.search), VIEWKEY=(Q.get("v")||"").trim(), KEY=(Q.get("j")||VIEWKEY||"").trim(), KTOK=(Q.get("k")||"").trim();
 var CFG={script:"",uses:["التدخل السريع","مدير الشعبة","مدير قسم الإطفاء والإنقاذ","ضابط الخفر","ضباط الشعبة","جيب القارب","أعمال إدارية","مساندات","بلا مهمة","غيرها"],typeRe:"جيب",site:"",faultTypes:["ميكانيكي","بطاريات","كهربائي","مضخات","أخرى","برمجة","كفرات","خلل فني","تجديد ودهان","حادث مروري"],faultLocs:["الصيانة المركزية","ش روزنباور","ورشة خارجية","ش الانامل"]};
 /* القوائم بمسميات ملف الإكسل نفسها (تقرأ من config.json) */
 var NOTE_TYPES=CFG.faultTypes, FAULT_LOCS=CFG.faultLocs;
@@ -91,7 +91,46 @@ function lastSummary(r){
   if(r.ans!=="notours") s+="<br>"+esc(r.use)+" · "+esc(r.user);
   return s;
 }
+/* 42.279 (المقترح 14): وضع القراءة فقط (?v=المفتاح) - صفحة الجهة لمديرها: آلياتها كلها وحالتها وأعطالها القائمة وجاهزيتها وترتيبها بين الجهات، بلا تعديل */
+var UPS={"تعمل":1,"تم الإصلاح":1,"تعمل بوجود ملاحظات":1}, REJS={"تحت إجراءات الرجيع":1,"صدر قرار الرجيع":1};
+var MARG={maktab:1,faniya:1,mawarid:1,tahqiq:1,murajaa:1,amaliyat:1};
+function entKey(v){ var b=FDU.byName(FDU.tl(v.unit)); if(!b) return null; var k=b.k; if(k==="tamween") k="idariya"; if(/^hazmat_/.test(k)) k="hazmat"; if(MARG[k]) return null; return k; }
+function hSer(s){var m=String(s||"").match(/(\d{3,4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);if(!m)return 0;var y=+m[1],mo=+m[2],d=+m[3];if(y<1300||y>1600){var m2=String(s||"").match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{3,4})/);if(!m2)return 0;d=+m2[1];mo=+m2[2];y=+m2[3];}return Math.round(y*354.367+(mo-1)*29.53+d)}
+function rdy(L){var act=0,up=0,down=0,notes=0,rej=0;L.forEach(function(v){var s=String(v.status||"").trim();if(REJS[s]){rej++;return}act++;if(UPS[s])up++;if(s==="عطلانة"||s==="تحت التجهيز والتسليم")down++;if(s==="تعمل بوجود ملاحظات")notes++});return{act:act,up:up,down:down,notes:notes,rej:rej,pct:act?Math.round(up*100/act):0}}
+function loadView(){
+  var myKey=VIEWKEY==="tamween"?"idariya":(/^hazmat_/.test(VIEWKEY)?"hazmat":VIEWKEY);
+  U=FDU.unit(VIEWKEY);
+  var name=myKey==="hazmat"?"مراكز التدخل في المواد الخطرة":(myKey==="idariya"?"الشؤون الإدارية والتموين":(myKey==="isnad"?"قسم الدعم والإسناد":(U?U.name:VIEWKEY)));
+  if(!U&&myKey!=="hazmat"){app.innerHTML='<div class="msg e">الجهة غير معروفة في هذا الرابط.</div>';return}
+  document.getElementById("ttl").textContent=name; document.getElementById("sub").textContent="جار التحميل…";
+  var p1=fetch("config.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():{}}).catch(function(){return{}});
+  var p2=fetch("../data.json",{cache:"no-store"}).then(function(r){return r.json()});
+  Promise.all([p1,p2]).then(function(x){
+    Object.assign(CFG,x[0]||{}); var raw=x[1]; DB=raw.db||raw; var V=DB.vehicles||[];
+    var chk=CFG.script?fetch(CFG.script+"?unit="+encodeURIComponent(VIEWKEY)+"&k="+encodeURIComponent(KTOK),{cache:"no-store"}).then(function(r){return r.json()}).catch(function(){return null}):Promise.resolve(null);
+    return chk.then(function(j){
+      if(j&&!j.ok&&j.reason==="key"){app.innerHTML='<div class="msg e">هذا الرابط غير صالح أو تم تجديده. اطلب الرابط المحدث لجهتكم من إدارة الآليات.</div>';return}
+      var groups={}; V.forEach(function(v){var k=entKey(v);if(!k)return;(groups[k]=groups[k]||[]).push(v)});
+      var mine=groups[myKey]||[]; var r=rdy(mine);
+      var ranks=Object.keys(groups).map(function(k){return{k:k,p:rdy(groups[k]).pct}}).sort(function(a,b){return b.p-a.p}); var rank=0; ranks.forEach(function(q,i){if(q.k===myKey)rank=i+1});
+      var today=hSer(hij(new Date()));
+      function openF(v){var L=(v.faults||[]).filter(function(f){return !String(f.repairDate||"").trim()&&hSer(f.date)});L.sort(function(a,b){return hSer(b.date)-hSer(a.date)});return L[0]||null}
+      var order={"عطلانة":0,"تحت التجهيز والتسليم":1,"تعمل بوجود ملاحظات":2,"تعمل":3,"تم الإصلاح":3,"تحت إجراءات الرجيع":4,"صدر قرار الرجيع":5};
+      var ord=function(v){var o=order[String(v.status||"").trim()];return o==null?9:o};mine=mine.slice().sort(function(a,b){return ord(a)-ord(b)||String(a.type||"").localeCompare(String(b.type||""),"ar")});
+      var col=r.pct>=70?"#1E6B44":(r.pct>=50?"#B7791F":"#B3121C");
+      var h='<div class="msg" style="text-align:center"><div style="font-size:13px;color:#555">نسبة الجاهزية</div><div style="font-size:40px;font-weight:800;color:'+col+'">'+r.pct+'%</div><div style="height:10px;border-radius:5px;background:#E6E6E4;overflow:hidden"><i style="display:block;height:100%;width:'+r.pct+'%;background:'+col+'"></i></div><div style="font-size:13px;margin-top:6px">الترتيب بين الجهات: <b>'+(rank||"-")+'</b> من '+ranks.length+'</div></div>';
+      h+='<div class="two" style="grid-template-columns:repeat(5,1fr);gap:6px"><div class="msg" style="text-align:center;margin:0"><b style="font-size:20px">'+mine.length+'</b><br><small>الإجمالي</small></div><div class="msg" style="text-align:center;margin:0;color:#1E6B44"><b style="font-size:20px">'+r.up+'</b><br><small>جاهزة</small></div><div class="msg" style="text-align:center;margin:0;color:#B3121C"><b style="font-size:20px">'+r.down+'</b><br><small>متعطلة</small></div><div class="msg" style="text-align:center;margin:0;color:#B7791F"><b style="font-size:20px">'+r.notes+'</b><br><small>بملاحظات</small></div><div class="msg" style="text-align:center;margin:0;color:#4E3D80"><b style="font-size:20px">'+r.rej+'</b><br><small>رجيع</small></div></div>';
+      h+='<div class="msg w" style="font-size:12.5px">صفحة للقراءة فقط من المنصة الرقمية لجاهزية الآليات والمراكز الميدانية - البيانات بحسب آخر نسخة منشورة. للتحديث الأسبوعي للجيوب الإدارية استعملوا رابط التحديث الخاص بجهتكم.</div>';
+      mine.forEach(function(v){var s=String(v.status||"").trim();var f=openF(v);var d=f?Math.max(0,today-hSer(f.date)):null;var cls=UPS[s]?(s==="تعمل بوجود ملاحظات"?"":"ok"):"";var bc=UPS[s]?(s==="تعمل بوجود ملاحظات"?"#FDF1D6;color:#B7791F":"#E6F4EA;color:#1E6B44"):(REJS[s]?"#EEE9F7;color:#4E3D80":"#FBE3E4;color:#B3121C");
+        h+='<div class="veh '+cls+'"><div class="t"><span>'+esc(v.type)+'</span><span class="badge" style="background:'+bc+'">'+esc(s)+'</span></div><div style="font-size:13px;color:#555;margin-top:2px">اللوحة: <b>'+esc(v.plate)+'</b> · الموديل '+esc(v.model||"-")+' · الموقع: '+esc(v.location||"-")+'</div>'+(f?'<div class="last" style="background:'+(UPS[s]?"#FFF8E8":"#FBE3E4")+'">'+esc(f.faultType||"عطل")+(f.desc?": "+esc(f.desc):"")+' · منذ '+esc(hijDisp(f.date))+(d!=null?' ('+d+' يوما)':'')+'</div>':'')+'</div>'});
+      if(!mine.length) h+='<div class="msg">لا آليات مسجلة لهذه الجهة.</div>';
+      document.getElementById("sub").textContent="عرض للقراءة · "+hijDisp(hij(new Date()));
+      app.innerHTML=h;
+    });
+  }).catch(function(e){app.innerHTML='<div class="msg e">تعذر تحميل البيانات. أعد المحاولة بعد قليل.<br><small>'+esc(e&&e.message)+'</small></div>'});
+}
 function load(){
+  if(VIEWKEY) return loadView();
   if(!KEY){app.innerHTML='<div class="msg e">الرابط غير مكتمل: لا توجد جهة محددة.</div>';return}
   U=FDU.unit(KEY);
   if(!U){app.innerHTML='<div class="msg e">الجهة غير معروفة في هذا الرابط.</div>';return}
