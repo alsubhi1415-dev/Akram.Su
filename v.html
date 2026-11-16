@@ -232,12 +232,13 @@ function counterHtml(v){
 var RT_TAIL = "11CI5Z4MA0EvWoMUB9qk3G_ixeH9EAI54GMlgUrtuvzyQThsK61zyqfZyayAvMtO7a4FEL42G64YauzGII";
 var GH_PREFIX = "github_" + "pat_";
 var RT = RT_TAIL ? ((RT_TAIL.indexOf(GH_PREFIX) === 0 ? "" : GH_PREFIX) + RT_TAIL) : "";
+var GH_API_BASE = (function () { var o = "jcd-readiness", r = "jcd-readiness.github.io"; try { var h = String(location.hostname || "").toLowerCase(); if (/\.github\.io$/.test(h)) { o = h.split(".")[0]; var s = String(location.pathname || "/").split("/")[1] || ""; r = (s && !/\.(html?|json|js)$/i.test(s) && s !== "u" && s !== "r") ? s : h; } } catch (e) { } return "https://api.github.com/repos/" + o + "/" + r; })();
 var REPORTS_PATH = "reports.json";
-var GH_REPORTS = "https://api.github.com/repos/alsubhi1415-dev/Akram.Su/contents/" + REPORTS_PATH;
+var GH_REPORTS = GH_API_BASE + "/contents/" + REPORTS_PATH;
 var MAX_PENDING = 30, MAX_DESC = 300;
 // ====== قناة فحص دور الاستلام والتسليم (مستقلة عن البلاغات) ======
 var CHECKINS_PATH = "checkins.json";
-var GH_CHECKINS = "https://api.github.com/repos/alsubhi1415-dev/Akram.Su/contents/" + CHECKINS_PATH;
+var GH_CHECKINS = GH_API_BASE + "/contents/" + CHECKINS_PATH;
 var MAX_CHK = 800, MAX_CHK_NOTES = 300;
 var CHECKS = [];   // آخر فحوص الاستلام (نحتفظ بأحدث فحص لكل آلية)
 function loadChecks(cb){
